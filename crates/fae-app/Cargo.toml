@@ -1,0 +1,19 @@
+[package]
+name = "fae-app"
+description = "AI coding agent TUI application"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+fae-core = { workspace = true }
+fae-ai = { workspace = true }
+fae-agent = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "project": "fae",
+  "active": true,
+  "milestone": {
+    "number": 1,
+    "name": "Foundation"
+  },
+  "phase": {
+    "number": "1.1",
+    "name": "Workspace & Core Types",
+    "plan": "PLAN-phase-1.1.md"
+  },
+  "progress": {
+    "total_tasks": 10,
+    "completed_tasks": 10,
+    "current_task": 10
+  },
+  "review": {
+    "status": "pending",
+    "iteration": 0,
+    "last_verdict": null
+  },
+  "status": "review_pending",
+  "last_updated": "2026-02-06T00:15:00Z"
+}
