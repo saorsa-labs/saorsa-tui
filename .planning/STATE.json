@@ -7,14 +7,14 @@
     "name": "Foundation"
   },
   "phase": {
-    "number": "1.1",
-    "name": "Workspace & Core Types",
-    "plan": "PLAN-phase-1.1.md"
+    "number": "1.2",
+    "name": "Screen Buffer & Rendering",
+    "plan": "PLAN-phase-1.2.md"
   },
   "progress": {
-    "total_tasks": 10,
-    "completed_tasks": 10,
-    "current_task": 10
+    "total_tasks": 7,
+    "completed_tasks": 7,
+    "current_task": 7
   },
   "review": {
     "status": "pending",
@@ -22,5 +22,5 @@
     "last_verdict": null
   },
   "status": "review_pending",
-  "last_updated": "2026-02-06T00:15:00Z"
+  "last_updated": "2026-02-06T00:30:00Z"
 }

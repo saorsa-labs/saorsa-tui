@@ -56,3 +56,60 @@
 - **Zero clippy warnings**
 - **Zero compilation errors**
 - **All formatting clean**
+
+---
+
+## Phase 1.2: Screen Buffer & Rendering
+
+### Task 1: ScreenBuffer — Cell Grid
+- `buffer.rs`: ScreenBuffer with Vec<Cell> grid
+- new(), resize(), clear(), get(), get_mut(), set(), get_row()
+- Wide character support (auto-sets continuation cell)
+- Out-of-bounds safety (returns None / no-op)
+- 14 tests
+
+### Task 2: ScreenBuffer — Diff Algorithm
+- diff() computes minimal CellChange list between current and previous
+- Size mismatch triggers full redraw
+- CellChange struct with x, y, cell
+- Tested: no changes, single change, style change, size mismatch, wide chars
+
+### Task 3: ANSI Renderer — Escape Sequences
+- `renderer.rs`: Renderer producing ANSI escape sequences from CellChanges
+- Cursor positioning (1-based \x1b[row;colH)
+- Style diffing: only emit changed attributes between consecutive cells
+- SGR sequences for bold, italic, underline, dim, reverse, strikethrough
+- Color encoding: truecolor (38;2;r;g;b), 256 (38;5;N), named (30-37/90-97)
+- Continuation cell skipping
+- Reset at end of styled output
+- 13 tests
+
+### Task 4: Color Downgrading
+- Truecolor → 256-color: RGB to nearest 6x6x6 cube / grayscale ramp
+- Truecolor → 16-color: RGB to nearest ANSI by Euclidean distance
+- 256-color → 16-color: index to ANSI name
+- NoColor: all colors become Reset
+- 6 tests
+
+### Task 5: Synchronized Output (CSI 2026)
+- Wraps render output in \x1b[?2026h ... \x1b[?2026l
+- Controlled by TerminalCapabilities.synchronized_output flag
+- 2 tests
+
+### Task 6: RenderContext — Full Pipeline
+- `render_context.rs`: Double-buffered rendering pipeline
+- begin_frame() swaps and clears, end_frame() diffs + renders + writes
+- handle_resize() for terminal size changes
+- Integration with TestBackend for testing
+- 6 tests
+
+### Task 7: Wire Up
+- Added buffer, renderer, render_context modules to lib.rs
+- Re-exported: ScreenBuffer, CellChange, Renderer, RenderContext
+- All 48 original tests still passing
+
+### Summary
+- **91 tests passing** (43 new)
+- **Zero clippy warnings**
+- **Zero compilation errors**
+- **All formatting clean**
