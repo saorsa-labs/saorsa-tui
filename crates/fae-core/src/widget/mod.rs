@@ -81,9 +81,11 @@ pub trait InteractiveWidget: Widget {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::cell::Cell;
+    use crate::event::{Event, KeyCode, KeyEvent};
     use crate::geometry::{Rect, Size};
     use crate::style::Style;
 
@@ -197,5 +199,257 @@ mod tests {
         stack.push(tooltip.to_overlay_config(screen), tooltip.render_to_lines());
 
         assert!(stack.len() == 3);
+    }
+
+    // --- Phase 4.3 integration tests ---
+
+    #[test]
+    fn tabs_with_progress_bar_content() {
+        use crate::segment::Segment;
+
+        let bar = ProgressBar::new(0.7);
+        let mut bar_buf = ScreenBuffer::new(Size::new(20, 1));
+        bar.render(Rect::new(0, 0, 20, 1), &mut bar_buf);
+
+        // Tabs can hold arbitrary content
+        let tabs = Tabs::new(vec![
+            Tab::new("Status").with_content(vec![vec![Segment::new("Progress: 70%")]]),
+            Tab::new("Details").with_content(vec![vec![Segment::new("All good")]]),
+        ]);
+        assert_eq!(tabs.tab_count(), 2);
+        assert_eq!(tabs.active_tab(), 0);
+
+        let mut buf = ScreenBuffer::new(Size::new(40, 5));
+        tabs.render(Rect::new(0, 0, 40, 5), &mut buf);
+
+        let row1: String = (0..40)
+            .map(|x| buf.get(x, 1).map(|c| c.grapheme.as_str()).unwrap_or(" "))
+            .collect();
+        assert!(row1.contains("Progress: 70%"));
+    }
+
+    #[test]
+    fn form_controls_group_radio_selection() {
+        let mut radios = vec![
+            RadioButton::new("Option A").with_selected(true),
+            RadioButton::new("Option B"),
+            RadioButton::new("Option C"),
+        ];
+
+        assert!(radios[0].is_selected());
+        assert!(!radios[1].is_selected());
+
+        // Simulate selecting option B (deselect all, select new)
+        for r in &mut radios {
+            r.deselect();
+        }
+        radios[1].select();
+
+        assert!(!radios[0].is_selected());
+        assert!(radios[1].is_selected());
+        assert!(!radios[2].is_selected());
+    }
+
+    #[test]
+    fn animated_widgets_tick() {
+        let mut bar = ProgressBar::indeterminate();
+        let mut loader = LoadingIndicator::new();
+
+        bar.tick();
+        loader.tick();
+
+        assert!(matches!(
+            bar.mode(),
+            ProgressMode::Indeterminate { phase: 1 }
+        ));
+        assert_eq!(loader.frame(), 1);
+
+        // Render after ticking
+        let mut buf = ScreenBuffer::new(Size::new(20, 2));
+        bar.render(Rect::new(0, 0, 20, 1), &mut buf);
+        loader.render(Rect::new(0, 1, 20, 1), &mut buf);
+
+        // Both should have rendered non-space chars
+        assert_ne!(buf.get(0, 0).map(|c| c.grapheme.as_str()), Some(" "));
+        assert_ne!(buf.get(0, 1).map(|c| c.grapheme.as_str()), Some(" "));
+    }
+
+    #[test]
+    fn collapsible_with_option_list() {
+        let mut collapsible = Collapsible::new("Settings")
+            .with_content(vec![
+                vec![crate::segment::Segment::new("Dark Mode")],
+                vec![crate::segment::Segment::new("Sound")],
+            ])
+            .with_expanded(true);
+
+        let ol = OptionList::new(vec!["Theme".to_string(), "Language".to_string()]);
+
+        // Render both
+        let mut buf = ScreenBuffer::new(Size::new(30, 10));
+        collapsible.render(Rect::new(0, 0, 30, 5), &mut buf);
+        ol.render(Rect::new(0, 5, 30, 5), &mut buf);
+
+        let row0: String = (0..30)
+            .map(|x| buf.get(x, 0).map(|c| c.grapheme.as_str()).unwrap_or(" "))
+            .collect();
+        assert!(row0.contains("Settings"));
+
+        // Collapse it
+        collapsible.handle_event(&Event::Key(KeyEvent::plain(KeyCode::Enter)));
+        assert!(!collapsible.is_expanded());
+    }
+
+    #[test]
+    fn sparkline_live_data_push() {
+        let mut spark = Sparkline::new(vec![]).with_max_width(5);
+        for i in 0..10 {
+            spark.push(i as f32);
+        }
+        // Should only have last 5 data points
+        assert_eq!(spark.data().len(), 5);
+        assert_eq!(spark.data()[0], 5.0);
+        assert_eq!(spark.data()[4], 9.0);
+
+        let mut buf = ScreenBuffer::new(Size::new(10, 1));
+        spark.render(Rect::new(0, 0, 10, 1), &mut buf);
+        // First 5 positions should have bar chars
+        assert_ne!(buf.get(0, 0).map(|c| c.grapheme.as_str()), Some(" "));
+    }
+
+    #[test]
+    fn empty_widgets_render_safely() {
+        let tabs = Tabs::new(vec![]);
+        let ol = OptionList::new(vec![]);
+        let spark = Sparkline::new(vec![]);
+        let collapsible = Collapsible::new("Empty");
+
+        let mut buf = ScreenBuffer::new(Size::new(20, 10));
+        tabs.render(Rect::new(0, 0, 20, 2), &mut buf);
+        ol.render(Rect::new(0, 2, 20, 2), &mut buf);
+        spark.render(Rect::new(0, 4, 20, 2), &mut buf);
+        collapsible.render(Rect::new(0, 6, 20, 2), &mut buf);
+        // No panic
+    }
+
+    #[test]
+    fn utf8_across_all_widgets() {
+        use crate::segment::Segment;
+
+        let tabs = Tabs::new(vec![
+            Tab::new("日本語").with_content(vec![vec![Segment::new("コンテンツ")]]),
+        ]);
+        let switch = Switch::new("暗いモード");
+        let checkbox = Checkbox::new("同意する");
+        let ol = OptionList::new(vec!["選択肢A".to_string(), "選択肢B".to_string()]);
+        let spark = Sparkline::new(vec![1.0, 2.0, 3.0]);
+        let collapsible = Collapsible::new("セクション").with_expanded(true);
+
+        let mut buf = ScreenBuffer::new(Size::new(40, 20));
+        tabs.render(Rect::new(0, 0, 40, 3), &mut buf);
+        switch.render(Rect::new(0, 3, 40, 1), &mut buf);
+        checkbox.render(Rect::new(0, 4, 40, 1), &mut buf);
+        ol.render(Rect::new(0, 5, 40, 3), &mut buf);
+        spark.render(Rect::new(0, 8, 40, 1), &mut buf);
+        collapsible.render(Rect::new(0, 9, 40, 3), &mut buf);
+        // No panic, no truncation errors
+    }
+
+    #[test]
+    fn event_consumption_correctness() {
+        let mut tabs = Tabs::new(vec![Tab::new("A"), Tab::new("B")]);
+        let mut switch = Switch::new("S");
+        let mut checkbox = Checkbox::new("C");
+        let mut radio = RadioButton::new("R");
+        let mut collapsible = Collapsible::new("X");
+        let mut ol = OptionList::new(vec!["1".to_string()]);
+
+        // Space/Enter consumed by interactive widgets
+        assert_eq!(
+            switch.handle_event(&Event::Key(KeyEvent::plain(KeyCode::Char(' ')))),
+            EventResult::Consumed
+        );
+        assert_eq!(
+            checkbox.handle_event(&Event::Key(KeyEvent::plain(KeyCode::Enter))),
+            EventResult::Consumed
+        );
+        assert_eq!(
+            radio.handle_event(&Event::Key(KeyEvent::plain(KeyCode::Enter))),
+            EventResult::Consumed
+        );
+        assert_eq!(
+            collapsible.handle_event(&Event::Key(KeyEvent::plain(KeyCode::Enter))),
+            EventResult::Consumed
+        );
+        assert_eq!(
+            ol.handle_event(&Event::Key(KeyEvent::plain(KeyCode::Down))),
+            EventResult::Consumed
+        );
+        assert_eq!(
+            tabs.handle_event(&Event::Key(KeyEvent::plain(KeyCode::Right))),
+            EventResult::Consumed
+        );
+
+        // Unhandled events ignored
+        assert_eq!(
+            switch.handle_event(&Event::Key(KeyEvent::plain(KeyCode::F(1)))),
+            EventResult::Ignored
+        );
+    }
+
+    #[test]
+    fn zero_size_area_no_panic() {
+        let tabs = Tabs::new(vec![Tab::new("A")]);
+        let bar = ProgressBar::new(0.5);
+        let loader = LoadingIndicator::new();
+        let collapsible = Collapsible::new("C");
+        let switch = Switch::new("S");
+        let ol = OptionList::new(vec!["X".to_string()]);
+        let spark = Sparkline::new(vec![1.0]);
+
+        let mut buf = ScreenBuffer::new(Size::new(1, 1));
+        let zero = Rect::new(0, 0, 0, 0);
+
+        tabs.render(zero, &mut buf);
+        bar.render(zero, &mut buf);
+        loader.render(zero, &mut buf);
+        collapsible.render(zero, &mut buf);
+        switch.render(zero, &mut buf);
+        ol.render(zero, &mut buf);
+        spark.render(zero, &mut buf);
+        // No panic
+    }
+
+    #[test]
+    fn style_propagation() {
+        let style = Style::default().bold(true);
+        let switch = Switch::new("Bold")
+            .with_on_style(style.clone())
+            .with_state(true);
+        let mut buf = ScreenBuffer::new(Size::new(20, 1));
+        switch.render(Rect::new(0, 0, 20, 1), &mut buf);
+
+        assert!(buf.get(0, 0).map(|c| c.style.bold).unwrap_or(false));
+    }
+
+    #[test]
+    fn border_consistency() {
+        let widgets_with_borders: Vec<Box<dyn Widget>> = vec![
+            Box::new(Tabs::new(vec![Tab::new("A")]).with_border(BorderStyle::Single)),
+            Box::new(ProgressBar::new(0.5).with_border(BorderStyle::Single)),
+            Box::new(Collapsible::new("C").with_border(BorderStyle::Single)),
+            Box::new(OptionList::new(vec!["O".to_string()]).with_border(BorderStyle::Single)),
+        ];
+
+        for widget in &widgets_with_borders {
+            let mut buf = ScreenBuffer::new(Size::new(20, 5));
+            widget.render(Rect::new(0, 0, 20, 5), &mut buf);
+            // All should have top-left corner border char
+            assert_eq!(
+                buf.get(0, 0).map(|c| c.grapheme.as_str()),
+                Some("┌"),
+                "Widget should render single border"
+            );
+        }
     }
 }
