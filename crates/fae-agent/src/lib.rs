@@ -2,6 +2,67 @@
 //!
 //! Provides the agent loop, built-in tools (bash, read, write, edit, grep, find, ls),
 //! event system for UI integration, and tool registry.
+//!
+//! # Architecture Overview
+//!
+//! ```text
+//! ┌─────────────────────────────────────────────────────────────┐
+//! │                     UI Layer (fae-app)                      │
+//! │  Sends user input, receives AgentEvent stream               │
+//! └─────────────────────────────────────────────────────────────┘
+//!                              │
+//!                              ▼
+//! ┌─────────────────────────────────────────────────────────────┐
+//! │                  AgentLoop (async runtime)                  │
+//! │  User message → Context → LLM request → Tool execution      │
+//! │  → Follow-up → ... → Final response → TurnEnd               │
+//! └─────────────────────────────────────────────────────────────┘
+//!          │                   │                   │
+//!          ▼                   ▼                   ▼
+//!    ┌──────────┐      ┌──────────────┐    ┌──────────────┐
+//!    │ Context  │      │  Provider    │    │ ToolRegistry │
+//!    │ Builder  │      │  (fae-ai)    │    │              │
+//!    └──────────┘      └──────────────┘    └──────────────┘
+//!         │                   │                   │
+//!         ▼                   ▼                   ▼
+//! ┌────────────────┐  ┌────────────────┐  ┌────────────────┐
+//! │ AGENTS.md      │  │ Stream events  │  │ Bash, Read,    │
+//! │ SYSTEM.md      │  │ Tool calls     │  │ Write, Edit,   │
+//! │ Project files  │  │ Content delta  │  │ Grep, Find, Ls │
+//! └────────────────┘  └────────────────┘  └────────────────┘
+//!                              │
+//!                              ▼
+//! ┌─────────────────────────────────────────────────────────────┐
+//! │              SessionStorage (persistence)                   │
+//! │  Messages, tool results, tree structure, bookmarks          │
+//! └─────────────────────────────────────────────────────────────┘
+//! ```
+//!
+//! ## Core Subsystems
+//!
+//! - **AgentLoop**: Main async runtime coordinating LLM interaction and tool execution
+//! - **Context Engineering**: Loads AGENTS.md, SYSTEM.md, project files into LLM context
+//! - **Tool Registry**: Built-in tools (bash, file ops, search) + extension tools
+//! - **Session Management**: Conversation history with tree-based branching and bookmarks
+//! - **Event System**: Async channel for UI updates (thinking, tool execution, streaming)
+//! - **Skills System**: On-demand capabilities loaded from `~/.claude/skills/`
+//! - **Extension System**: Plugins for commands, keybindings, tools, and widgets
+//!
+//! ## Agent Execution Flow
+//!
+//! 1. **User Input** → ContextBuilder assembles prompt with context files
+//! 2. **LLM Request** → Provider streams back content and tool calls
+//! 3. **Tool Execution** → Tools run in parallel, results added to conversation
+//! 4. **Follow-up** → If tools were called, LLM gets results and continues
+//! 5. **Turn End** → Final response emitted, session persisted
+//!
+//! ## Key Types
+//!
+//! - `AgentLoop`: Main agent runtime (run_turn, execute_tools)
+//! - `Tool`: Trait for executable tools with JSON schema parameters
+//! - `ContextBuilder`: Assembles system prompt with AGENTS.md, project files
+//! - `SessionStorage`: Persists conversation history and tree structure
+//! - `AgentEvent`: UI update events (thinking, tool execution, streaming, turn end)
 
 pub mod agent;
 pub mod config;

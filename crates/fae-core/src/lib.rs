@@ -3,6 +3,63 @@
 //! This crate provides the core rendering pipeline, layout engine,
 //! CSS styling system, and widget infrastructure for building
 //! rich terminal user interfaces.
+//!
+//! # Architecture Overview
+//!
+//! ```text
+//! ┌─────────────────────────────────────────────────────────────┐
+//! │                    Application Layer                        │
+//! │  (Widget tree, CSS styles, reactive signals & bindings)     │
+//! └─────────────────────────────────────────────────────────────┘
+//!                              │
+//!                              ▼
+//! ┌─────────────────────────────────────────────────────────────┐
+//! │                  Layout Engine (Taffy)                      │
+//! │  TCSS → ComputedStyle → taffy::Style → computed rects       │
+//! └─────────────────────────────────────────────────────────────┘
+//!                              │
+//!                              ▼
+//! ┌─────────────────────────────────────────────────────────────┐
+//! │               Widget Rendering System                       │
+//! │  Widget::render() → Vec<Segment> → Lines of styled text     │
+//! └─────────────────────────────────────────────────────────────┘
+//!                              │
+//!                              ▼
+//! ┌─────────────────────────────────────────────────────────────┐
+//! │          Compositor (Layers, Z-ordering, Clipping)          │
+//! │  Base layer + overlays → CompositorRegion → final buffer    │
+//! └─────────────────────────────────────────────────────────────┘
+//!                              │
+//!                              ▼
+//! ┌─────────────────────────────────────────────────────────────┐
+//! │         Renderer (Differential, SGR optimization)           │
+//! │  ScreenBuffer → DeltaBatch → optimized escape sequences     │
+//! └─────────────────────────────────────────────────────────────┘
+//!                              │
+//!                              ▼
+//! ┌─────────────────────────────────────────────────────────────┐
+//! │               Terminal Backend (Crossterm)                  │
+//! │  Raw mode, cursor control, alternate screen, events         │
+//! └─────────────────────────────────────────────────────────────┘
+//! ```
+//!
+//! ## Core Subsystems
+//!
+//! - **TCSS Parser**: CSS-like styling with variables, pseudo-classes, and themes
+//! - **Layout Engine**: Flexbox and grid layout via Taffy, scroll management
+//! - **Reactive System**: Signal-based state with computed values, effects, and bindings
+//! - **Compositor**: Layer-based rendering with z-ordering, clipping, and overlays
+//! - **Widget Library**: Rich set of data, text, and UI widgets (tables, trees, markdown, etc.)
+//! - **Renderer**: Double-buffered differential rendering with SGR optimization
+//!
+//! ## Key Types
+//!
+//! - `Segment`: Fundamental rendering unit (styled text + control flags)
+//! - `Cell`: Single terminal cell (grapheme cluster + style + display width)
+//! - `ScreenBuffer`: Double-buffered grid of cells with delta tracking
+//! - `Widget`: Trait for renderable UI components
+//! - `Signal<T>`: Reactive state container with automatic dependency tracking
+//! - `Compositor`: Manages layers and composition into final screen buffer
 
 pub mod buffer;
 pub mod cell;
