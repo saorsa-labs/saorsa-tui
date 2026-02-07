@@ -5,6 +5,8 @@
 
 pub mod agent;
 pub mod config;
+/// Context engineering (AGENTS.md, SYSTEM.md, compaction, skills, templates).
+pub mod context;
 pub mod error;
 pub mod event;
 /// Session management for conversation history and persistence.
@@ -14,6 +16,7 @@ pub mod tools;
 
 pub use agent::{AgentLoop, default_tools};
 pub use config::AgentConfig;
+pub use context::ContextDiscovery;
 pub use error::{FaeAgentError, Result};
 pub use event::{AgentEvent, EventReceiver, EventSender, TurnEndReason, event_channel};
 pub use session::{

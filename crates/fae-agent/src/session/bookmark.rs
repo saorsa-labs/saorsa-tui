@@ -28,7 +28,8 @@ impl BookmarkManager {
     /// Create a new bookmark manager with the default path.
     pub fn new() -> Result<Self, FaeAgentError> {
         let base = crate::session::path::sessions_dir()?;
-        let bookmarks_path = base.parent()
+        let bookmarks_path = base
+            .parent()
             .ok_or_else(|| FaeAgentError::Session("Invalid sessions directory".to_string()))?
             .join("bookmarks.json");
         Ok(Self { bookmarks_path })
@@ -47,13 +48,11 @@ impl BookmarkManager {
             return Ok(HashMap::new());
         }
 
-        let json = fs::read_to_string(&self.bookmarks_path).map_err(|e| {
-            FaeAgentError::Session(format!("Failed to read bookmarks file: {}", e))
-        })?;
+        let json = fs::read_to_string(&self.bookmarks_path)
+            .map_err(|e| FaeAgentError::Session(format!("Failed to read bookmarks file: {}", e)))?;
 
-        serde_json::from_str(&json).map_err(|e| {
-            FaeAgentError::Session(format!("Failed to parse bookmarks: {}", e))
-        })
+        serde_json::from_str(&json)
+            .map_err(|e| FaeAgentError::Session(format!("Failed to parse bookmarks: {}", e)))
     }
 
     /// Save bookmarks to disk.
@@ -63,9 +62,8 @@ impl BookmarkManager {
             crate::session::path::ensure_dir(parent)?;
         }
 
-        let json = serde_json::to_string_pretty(bookmarks).map_err(|e| {
-            FaeAgentError::Session(format!("Failed to serialize bookmarks: {}", e))
-        })?;
+        let json = serde_json::to_string_pretty(bookmarks)
+            .map_err(|e| FaeAgentError::Session(format!("Failed to serialize bookmarks: {}", e)))?;
 
         fs::write(&self.bookmarks_path, json).map_err(|e| {
             FaeAgentError::Session(format!("Failed to write bookmarks file: {}", e))
@@ -107,9 +105,9 @@ impl BookmarkManager {
     pub fn rename_bookmark(&self, old_name: &str, new_name: String) -> Result<(), FaeAgentError> {
         let mut bookmarks = self.load_bookmarks()?;
 
-        let bookmark = bookmarks.remove(old_name).ok_or_else(|| {
-            FaeAgentError::Session(format!("Bookmark '{}' not found", old_name))
-        })?;
+        let bookmark = bookmarks
+            .remove(old_name)
+            .ok_or_else(|| FaeAgentError::Session(format!("Bookmark '{}' not found", old_name)))?;
 
         bookmarks.insert(
             new_name.clone(),
@@ -183,9 +181,7 @@ mod tests {
         let (_temp, manager) = test_manager();
         let session_id = SessionId::new();
 
-        assert!(manager
-            .add_bookmark("test".to_string(), session_id)
-            .is_ok());
+        assert!(manager.add_bookmark("test".to_string(), session_id).is_ok());
 
         let result = manager.get_bookmark("test");
         assert!(result.is_ok());
@@ -204,9 +200,11 @@ mod tests {
         let (_temp, manager) = test_manager();
         let session_id = SessionId::new();
 
-        assert!(manager
-            .add_bookmark("remove-me".to_string(), session_id)
-            .is_ok());
+        assert!(
+            manager
+                .add_bookmark("remove-me".to_string(), session_id)
+                .is_ok()
+        );
 
         let removed = manager.remove_bookmark("remove-me");
         assert!(removed.is_ok());
@@ -230,9 +228,11 @@ mod tests {
         let (_temp, manager) = test_manager();
         let session_id = SessionId::new();
 
-        assert!(manager
-            .add_bookmark("old-name".to_string(), session_id)
-            .is_ok());
+        assert!(
+            manager
+                .add_bookmark("old-name".to_string(), session_id)
+                .is_ok()
+        );
 
         let result = manager.rename_bookmark("old-name", "new-name".to_string());
         assert!(result.is_ok());

@@ -37,9 +37,7 @@ impl TreeCommand {
     }
 
     /// Execute with custom options (for filtering).
-    pub fn execute_with_options(
-        options: TreeRenderOptions,
-    ) -> Result<String, FaeAgentError> {
+    pub fn execute_with_options(options: TreeRenderOptions) -> Result<String, FaeAgentError> {
         let storage = SessionStorage::new()?;
         let tree = build_session_tree(&storage)?;
         render_tree(&tree, &options)

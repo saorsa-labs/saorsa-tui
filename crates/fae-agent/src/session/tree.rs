@@ -44,11 +44,12 @@ pub fn build_session_tree(storage: &SessionStorage) -> Result<Vec<TreeNode>, Fae
     }
 
     // Build a map of session ID -> (metadata, node, message_count)
-    let mut session_map: HashMap<SessionId, (SessionMetadata, SessionNode, usize)> =
-        HashMap::new();
+    let mut session_map: HashMap<SessionId, (SessionMetadata, SessionNode, usize)> = HashMap::new();
 
     for (id, metadata) in sessions {
-        let node = storage.load_tree(&id).unwrap_or_else(|_| SessionNode::new_root(id));
+        let node = storage
+            .load_tree(&id)
+            .unwrap_or_else(|_| SessionNode::new_root(id));
 
         let message_count = storage.load_messages(&id).map(|m| m.len()).unwrap_or(0);
 
@@ -152,20 +153,12 @@ fn render_node_recursive(
     let connector = if is_last { "└──" } else { "├──" };
 
     let highlight = if let Some(highlight_id) = options.highlight_id {
-        if highlight_id == node.id {
-            "➤ "
-        } else {
-            ""
-        }
+        if highlight_id == node.id { "➤ " } else { "" }
     } else {
         ""
     };
 
-    let title = node
-        .metadata
-        .title
-        .as_deref()
-        .unwrap_or("(untitled)");
+    let title = node.metadata.title.as_deref().unwrap_or("(untitled)");
 
     let last_active = node.metadata.last_active.format("%Y-%m-%d %H:%M");
 
@@ -218,9 +211,8 @@ fn list_all_sessions_with_metadata(
         return Ok(Vec::new());
     }
 
-    let entries = std::fs::read_dir(base_path).map_err(|e| {
-        FaeAgentError::Session(format!("Failed to read sessions directory: {}", e))
-    })?;
+    let entries = std::fs::read_dir(base_path)
+        .map_err(|e| FaeAgentError::Session(format!("Failed to read sessions directory: {}", e)))?;
 
     let mut sessions = Vec::new();
 

@@ -39,10 +39,7 @@ pub fn fork_session(
     new_metadata.title = title.or_else(|| {
         Some(format!(
             "Fork of {} at message {}",
-            parent_metadata
-                .title
-                .as_deref()
-                .unwrap_or("untitled"),
+            parent_metadata.title.as_deref().unwrap_or("untitled"),
             fork_index
         ))
     });
@@ -113,12 +110,16 @@ mod tests {
         assert!(storage.save_tree(&parent_id, &parent_node).is_ok());
 
         // Add some messages
-        assert!(storage
-            .save_message(&parent_id, 0, &Message::user("Message 1".to_string()))
-            .is_ok());
-        assert!(storage
-            .save_message(&parent_id, 1, &Message::user("Message 2".to_string()))
-            .is_ok());
+        assert!(
+            storage
+                .save_message(&parent_id, 0, &Message::user("Message 1".to_string()))
+                .is_ok()
+        );
+        assert!(
+            storage
+                .save_message(&parent_id, 1, &Message::user("Message 2".to_string()))
+                .is_ok()
+        );
 
         // Fork at message 1
         let result = fork_session(&storage, &parent_id, Some(1), Some("Forked".to_string()));
@@ -164,9 +165,11 @@ mod tests {
         assert!(storage.save_manifest(&parent_id, &parent_meta).is_ok());
         assert!(storage.save_tree(&parent_id, &parent_node).is_ok());
 
-        assert!(storage
-            .save_message(&parent_id, 0, &Message::user("Test".to_string()))
-            .is_ok());
+        assert!(
+            storage
+                .save_message(&parent_id, 0, &Message::user("Test".to_string()))
+                .is_ok()
+        );
 
         let result = fork_session(&storage, &parent_id, None, None);
         assert!(result.is_ok());
@@ -207,9 +210,11 @@ mod tests {
 
         assert!(storage.save_manifest(&parent_id, &parent_meta).is_ok());
         assert!(storage.save_tree(&parent_id, &parent_node).is_ok());
-        assert!(storage
-            .save_message(&parent_id, 0, &Message::user("Test".to_string()))
-            .is_ok());
+        assert!(
+            storage
+                .save_message(&parent_id, 0, &Message::user("Test".to_string()))
+                .is_ok()
+        );
 
         // Create two forks
         let fork1 = fork_session(&storage, &parent_id, None, Some("Fork 1".to_string()));
@@ -248,15 +253,21 @@ mod tests {
 
         assert!(storage.save_manifest(&session_id, &metadata).is_ok());
         assert!(storage.save_tree(&session_id, &node).is_ok());
-        assert!(storage
-            .save_message(&session_id, 0, &Message::user("Msg 1".to_string()))
-            .is_ok());
-        assert!(storage
-            .save_message(&session_id, 1, &Message::user("Msg 2".to_string()))
-            .is_ok());
-        assert!(storage
-            .save_message(&session_id, 2, &Message::user("Msg 3".to_string()))
-            .is_ok());
+        assert!(
+            storage
+                .save_message(&session_id, 0, &Message::user("Msg 1".to_string()))
+                .is_ok()
+        );
+        assert!(
+            storage
+                .save_message(&session_id, 1, &Message::user("Msg 2".to_string()))
+                .is_ok()
+        );
+        assert!(
+            storage
+                .save_message(&session_id, 2, &Message::user("Msg 3".to_string()))
+                .is_ok()
+        );
 
         // Auto-fork at message 1 (editing second message)
         let result = auto_fork_on_edit(&storage, &session_id, 1);
@@ -287,9 +298,11 @@ mod tests {
 
         assert!(storage.save_manifest(&parent_id, &parent_meta).is_ok());
         assert!(storage.save_tree(&parent_id, &parent_node).is_ok());
-        assert!(storage
-            .save_message(&parent_id, 0, &Message::user("Test".to_string()))
-            .is_ok());
+        assert!(
+            storage
+                .save_message(&parent_id, 0, &Message::user("Test".to_string()))
+                .is_ok()
+        );
 
         // Try to fork at index 10 (out of bounds)
         let result = fork_session(&storage, &parent_id, Some(10), None);

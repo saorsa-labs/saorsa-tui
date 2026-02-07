@@ -16,9 +16,8 @@ pub fn export_to_html(
 
     let html = generate_html(&metadata, &messages)?;
 
-    fs::write(output_path, html).map_err(|e| {
-        FaeAgentError::Session(format!("Failed to write HTML file: {}", e))
-    })?;
+    fs::write(output_path, html)
+        .map_err(|e| FaeAgentError::Session(format!("Failed to write HTML file: {}", e)))?;
 
     Ok(())
 }
@@ -34,20 +33,17 @@ fn generate_html(
     html.push_str("<!DOCTYPE html>\n<html>\n<head>\n");
     html.push_str("<meta charset=\"UTF-8\">\n");
     html.push_str("<title>");
-    html.push_str(
-        &html_escape(
-            metadata
-                .title
-                .as_deref()
-                .unwrap_or("Fae Session Export"),
-        ),
-    );
+    html.push_str(&html_escape(
+        metadata.title.as_deref().unwrap_or("Fae Session Export"),
+    ));
     html.push_str("</title>\n");
 
     // Embedded CSS
     html.push_str("<style>\n");
     html.push_str("body { font-family: -apple-system, system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }\n");
-    html.push_str(".header { border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }\n");
+    html.push_str(
+        ".header { border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }\n",
+    );
     html.push_str(".message { margin: 20px 0; padding: 15px; border-radius: 8px; }\n");
     html.push_str(".user { background: #e3f2fd; }\n");
     html.push_str(".assistant { background: #f5f5f5; }\n");
@@ -164,9 +160,11 @@ mod tests {
         metadata.title = Some("Test".to_string());
 
         assert!(storage.save_manifest(&session_id, &metadata).is_ok());
-        assert!(storage
-            .save_message(&session_id, 0, &Message::user("Hello".to_string()))
-            .is_ok());
+        assert!(
+            storage
+                .save_message(&session_id, 0, &Message::user("Hello".to_string()))
+                .is_ok()
+        );
 
         let output = temp_dir.path().join("export.html");
         let result = export_to_html(&storage, &session_id, &output);
