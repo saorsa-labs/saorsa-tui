@@ -59,7 +59,7 @@ impl Tool for FindTool {
     }
 
     fn description(&self) -> &str {
-        "Find files by name pattern using glob syntax (*, ?, [abc], etc.)"
+        "Find files by name pattern using glob syntax (*, ?, \\[abc\\], etc.)"
     }
 
     fn input_schema(&self) -> serde_json::Value {

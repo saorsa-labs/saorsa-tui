@@ -13,7 +13,7 @@
 //!
 //! ## File Discovery
 //!
-//! - **FindTool** (`find`) - Find files by name pattern using glob syntax (*, ?, [abc])
+//! - **FindTool** (`find`) - Find files by name pattern using glob syntax (*, ?, \\[abc\\])
 //! - **GrepTool** (`grep`) - Search file contents using regex patterns
 //! - **LsTool** (`ls`) - List directory contents with metadata (size, type)
 //!
@@ -145,7 +145,7 @@
 //! Find files by name pattern using glob syntax. Searches recursively.
 //!
 //! **Input:**
-//! - `pattern` (required): Glob pattern (*, ?, [abc])
+//! - `pattern` (required): Glob pattern (*, ?, \\[abc\\])
 //! - `path` (optional): Directory to search (default: working directory)
 //!
 //! **Example:**
