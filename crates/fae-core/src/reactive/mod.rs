@@ -9,6 +9,7 @@
 //! automatically registers the dependency.
 
 pub mod batch;
+pub mod binding;
 pub mod computed;
 pub mod context;
 pub mod effect;
@@ -16,6 +17,10 @@ pub mod scope;
 pub mod signal;
 
 pub use batch::batch;
+pub use binding::{
+    Binding, BindingDirection, BindingExpression, BindingId, BindingScope, OneWayBinding,
+    PropertySink, TwoWayBinding,
+};
 pub use computed::Computed;
 pub use effect::Effect;
 pub use scope::ReactiveScope;

@@ -45,7 +45,10 @@ pub use layout::{
     ScrollManager, ScrollState,
 };
 pub use overlay::{OverlayConfig, OverlayId, OverlayPosition, Placement, ScreenStack};
-pub use reactive::{Computed, Effect, ReactiveScope, Signal, batch};
+pub use reactive::{
+    Binding, BindingDirection, BindingExpression, BindingId, BindingScope, Computed, Effect,
+    OneWayBinding, PropertySink, ReactiveScope, Signal, TwoWayBinding, batch,
+};
 pub use render_context::RenderContext;
 pub use renderer::{DeltaBatch, Renderer, batch_changes, build_sgr_sequence};
 pub use segment::Segment;
