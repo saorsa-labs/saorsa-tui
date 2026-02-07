@@ -13,6 +13,8 @@ pub mod event;
 pub mod session;
 /// Skills system for on-demand capabilities.
 pub mod skills;
+/// Prompt template system.
+pub mod templates;
 pub mod tool;
 pub mod tools;
 
@@ -28,5 +30,6 @@ pub use session::{
     restore_session,
 };
 pub use skills::{Skill, SkillRegistry};
+pub use templates::{TemplateContext, TemplateEngine, get_builtin, list_builtins, render_simple};
 pub use tool::{Tool, ToolRegistry};
 pub use tools::{BashTool, EditTool, FindTool, GrepTool, LsTool, ReadTool, WriteTool};
