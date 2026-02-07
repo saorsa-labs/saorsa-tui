@@ -23,6 +23,7 @@ similar = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
+insta = { version = "1", features = ["glob"] }
 
 [lints]
 workspace = true
