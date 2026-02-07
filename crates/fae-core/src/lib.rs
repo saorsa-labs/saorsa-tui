@@ -7,6 +7,7 @@
 pub mod buffer;
 pub mod cell;
 pub mod color;
+pub mod compositor;
 pub mod error;
 pub mod event;
 pub mod focus;
