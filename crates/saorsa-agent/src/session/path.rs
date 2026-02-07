@@ -12,7 +12,8 @@ use std::path::{Path, PathBuf};
 pub fn sessions_dir() -> Result<PathBuf, SaorsaAgentError> {
     let base = if let Ok(xdg_data) = std::env::var("XDG_DATA_HOME") {
         PathBuf::from(xdg_data).join("saorsa-tui")
-    } else if let Some(home) = std::env::var_os("HOME") {
+    } else if let Some(home) = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"))
+    {
         PathBuf::from(home).join(".saorsa-tui")
     } else {
         return Err(SaorsaAgentError::Session(
@@ -157,14 +158,18 @@ mod tests {
         let path = message_path(&id, 0, "user");
         assert!(path.is_ok());
         match path {
-            Ok(p) => assert!(p.to_string_lossy().ends_with("messages/0-user.json")),
+            Ok(p) => {
+                assert!(p.ends_with(Path::new("messages").join("0-user.json")));
+            }
             Err(_) => unreachable!(),
         }
 
         let path2 = message_path(&id, 42, "assistant");
         assert!(path2.is_ok());
         match path2 {
-            Ok(p2) => assert!(p2.to_string_lossy().ends_with("messages/42-assistant.json")),
+            Ok(p2) => {
+                assert!(p2.ends_with(Path::new("messages").join("42-assistant.json")));
+            }
             Err(_) => unreachable!(),
         }
     }

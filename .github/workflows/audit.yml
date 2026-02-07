@@ -6,6 +6,10 @@ on:
   schedule:
     - cron: "0 0 * * 1"
 
+permissions:
+  checks: write
+  contents: read
+
 jobs:
   audit:
     name: Cargo Audit
