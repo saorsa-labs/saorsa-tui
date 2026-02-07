@@ -3,25 +3,19 @@
   "project": "saorsa-tui",
   "active": true,
   "milestone": {
-    "number": 7,
-    "name": "Polish & Release"
+    "number": 8,
+    "name": "Comprehensive README Documentation"
   },
   "phase": {
-    "number": "7.4",
-    "name": "CI/CD & Releases",
-    "plan": "PLAN-phase-7.4.md",
-    "status": "complete"
+    "number": "8.5",
+    "name": "saorsa-cli README + Root README",
+    "plan": null
   },
   "progress": {
-    "total_tasks": 8,
-    "completed_tasks": 8,
-    "current_task": 8
+    "total_tasks": 2,
+    "completed_tasks": 2,
+    "current_task": null
   },
-  "review": {
-    "status": "passed",
-    "iteration": 1,
-    "last_verdict": null
-  },
-  "status": "milestone_complete",
-  "last_updated": 1770498500
+  "status": "complete",
+  "last_updated": "2026-02-07T00:00:00Z"
 }

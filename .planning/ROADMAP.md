@@ -264,6 +264,54 @@
 
 ---
 
+## Milestone 8: Comprehensive README Documentation
+
+**Goal**: Every crate has a production-ready README.md with architecture, API reference, examples, and getting-started guides.
+
+### Phase 8.1: saorsa-core README
+- Overview and architecture (retained-mode, CSS-styled TUI framework)
+- Quick start example (basic widget rendering)
+- Widget catalog (all 24+ widgets with descriptions)
+- TCSS guide (Terminal CSS syntax, properties, theming)
+- Reactive system guide (signals, computed, effects)
+- Layout engine guide (flexbox/grid via Taffy)
+- Compositor and rendering pipeline
+- Terminal backend abstraction
+- Testing guide (snapshots, property-based, integration)
+
+### Phase 8.2: saorsa-ai README
+- Overview and architecture (unified multi-provider LLM API)
+- Quick start for each provider (Anthropic, OpenAI, Gemini, Ollama)
+- Streaming vs non-streaming usage
+- Tool calling examples
+- Model metadata and capabilities
+- OpenAI-compatible provider setup (Azure, Groq, Mistral, xAI)
+- Error handling reference
+
+### Phase 8.3: Update saorsa-agent README
+- Refresh existing README
+- Add context engineering system documentation
+- Add session management documentation
+- Add extension system documentation
+- Add skills and templates documentation
+
+### Phase 8.4: saorsa-app README
+- Overview (AI coding agent TUI application)
+- Installation and setup
+- CLI argument reference
+- Slash command reference (all 13 commands)
+- Keybinding reference
+- Session management user guide
+- Architecture overview
+
+### Phase 8.5: saorsa-cli README + Root README
+- saorsa-cli README (installation, basic usage)
+- Root workspace README (project overview, architecture diagram, dependency graph, quick start, dev guide)
+
+**Milestone 8 Deliverable**: All 5 crate READMEs + workspace root README complete and production-ready.
+
+---
+
 ## Architecture Decision Records
 
 | ADR | Decision | Rationale |
