@@ -160,11 +160,15 @@ impl ProviderRegistry {
 }
 
 impl Default for ProviderRegistry {
-    /// Create a registry pre-loaded with the Anthropic provider.
+    /// Create a registry pre-loaded with available providers.
     fn default() -> Self {
         let mut reg = Self::new();
         reg.register(ProviderKind::Anthropic, |config| {
             let provider = crate::anthropic::AnthropicProvider::new(config)?;
+            Ok(Box::new(provider))
+        });
+        reg.register(ProviderKind::OpenAi, |config| {
+            let provider = crate::openai::OpenAiProvider::new(config)?;
             Ok(Box::new(provider))
         });
         reg
@@ -252,7 +256,7 @@ mod tests {
     fn registry_has_provider() {
         let reg = ProviderRegistry::default();
         assert!(reg.has_provider(ProviderKind::Anthropic));
-        assert!(!reg.has_provider(ProviderKind::OpenAi));
+        assert!(reg.has_provider(ProviderKind::OpenAi));
         assert!(!reg.has_provider(ProviderKind::Gemini));
         assert!(!reg.has_provider(ProviderKind::Ollama));
         assert!(!reg.has_provider(ProviderKind::OpenAiCompatible));
@@ -271,9 +275,17 @@ mod tests {
     }
 
     #[test]
-    fn registry_create_unknown_returns_error() {
+    fn registry_create_openai() {
         let reg = ProviderRegistry::default();
         let config = ProviderConfig::new(ProviderKind::OpenAi, "sk-test", "gpt-4o");
+        let result = reg.create(config);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn registry_create_unknown_returns_error() {
+        let reg = ProviderRegistry::default();
+        let config = ProviderConfig::new(ProviderKind::Gemini, "key", "gemini-2.0-flash");
         let result = reg.create(config);
         assert!(result.is_err());
     }
