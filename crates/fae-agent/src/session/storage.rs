@@ -6,6 +6,7 @@ use std::fs;
 use std::path::PathBuf;
 
 /// Manages filesystem storage for sessions.
+#[derive(Clone)]
 pub struct SessionStorage {
     base_path: PathBuf,
 }
