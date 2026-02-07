@@ -7,6 +7,7 @@ pub mod anthropic;
 pub mod error;
 pub mod gemini;
 pub mod message;
+pub mod ollama;
 pub mod openai;
 pub mod provider;
 pub mod tokens;
@@ -16,6 +17,7 @@ pub use anthropic::AnthropicProvider;
 pub use error::{FaeAiError, Result};
 pub use gemini::GeminiProvider;
 pub use message::{ContentBlock, Message, Role, ToolDefinition};
+pub use ollama::OllamaProvider;
 pub use openai::OpenAiProvider;
 pub use provider::{Provider, ProviderConfig, ProviderKind, ProviderRegistry, StreamingProvider};
 pub use types::{

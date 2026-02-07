@@ -175,6 +175,10 @@ impl Default for ProviderRegistry {
             let provider = crate::gemini::GeminiProvider::new(config)?;
             Ok(Box::new(provider))
         });
+        reg.register(ProviderKind::Ollama, |config| {
+            let provider = crate::ollama::OllamaProvider::new(config)?;
+            Ok(Box::new(provider))
+        });
         reg
     }
 }
@@ -262,7 +266,7 @@ mod tests {
         assert!(reg.has_provider(ProviderKind::Anthropic));
         assert!(reg.has_provider(ProviderKind::OpenAi));
         assert!(reg.has_provider(ProviderKind::Gemini));
-        assert!(!reg.has_provider(ProviderKind::Ollama));
+        assert!(reg.has_provider(ProviderKind::Ollama));
         assert!(!reg.has_provider(ProviderKind::OpenAiCompatible));
     }
 
@@ -295,9 +299,17 @@ mod tests {
     }
 
     #[test]
-    fn registry_create_unknown_returns_error() {
+    fn registry_create_ollama() {
         let reg = ProviderRegistry::default();
         let config = ProviderConfig::new(ProviderKind::Ollama, "", "llama3");
+        let result = reg.create(config);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn registry_create_unknown_returns_error() {
+        let reg = ProviderRegistry::default();
+        let config = ProviderConfig::new(ProviderKind::OpenAiCompatible, "", "model");
         let result = reg.create(config);
         assert!(result.is_err());
     }
