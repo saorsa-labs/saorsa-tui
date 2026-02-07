@@ -5,6 +5,7 @@
 //! visible widget for each region, and writes the result to a screen buffer.
 
 pub mod chop;
+pub mod compose;
 pub mod cuts;
 pub mod layer;
 pub mod zorder;
