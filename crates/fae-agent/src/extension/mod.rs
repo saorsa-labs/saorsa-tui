@@ -9,10 +9,12 @@
 //! WASM-backed implementations without adding heavy dependencies now.
 
 pub mod registry;
+pub mod tool_registry;
 
 use crate::error::Result;
 
 pub use registry::{ExtensionRegistry, SharedExtensionRegistry, shared_registry};
+pub use tool_registry::{ToolDefinition, ToolHandler, ToolParameter, ToolRegistry};
 
 /// Extension trait defining the lifecycle and capabilities of a plugin.
 ///
