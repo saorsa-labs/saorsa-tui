@@ -1,615 +1,386 @@
-# Code Simplification Review: Phase 4.2 Data Widgets
+# Phase 4.3 Code Simplification Review
 
-**Review Date:** 2026-02-07
-**Scope:** Phase 4.2 Data Widgets (rich_log.rs, select_list.rs, data_table.rs, tree.rs, directory_tree.rs, diff_view.rs)
-**Commit Range:** affc93e..39704b0
-
----
+**Grade: B+**
 
 ## Executive Summary
 
-Phase 4.2 introduces 6 new data widgets with 2,907 lines of code and 439 tests. The code is well-structured and follows project patterns, but contains **significant duplication** that should be consolidated. No code changes were made during this review.
+Phase 4.3 widgets (tabs, progress_bar, loading_indicator, collapsible, form_controls, option_list, sparkline) are well-structured and functional. The codebase has **high clarity** with good separation of concerns. However, there are **moderate opportunities for simplification** and consolidation of shared rendering patterns.
 
-### Key Findings
-
-1. **CRITICAL: Duplicated `border_chars()` Function** - Identical implementation across 5 files (292 lines total)
-2. **CRITICAL: Duplicated Border Rendering Logic** - Nearly identical `render_border()` across 5 files
-3. **CRITICAL: Duplicated `inner_area()` Logic** - Identical border accounting across 5 files
-4. **MODERATE: Repeated UTF-8 Safe Truncation Pattern** - Same character rendering loop in all widgets
-5. **MODERATE: Duplicated `ensure_selected_visible()` Logic** - Identical across 3 widgets
-6. **MINOR: Repeated Page Size Magic Number** - Hardcoded `20` appears 30+ times
+**Key Finding:** Multiple widgets implement similar character-by-character rendering logic with Unicode width handling. This pattern can be extracted into a shared utility module.
 
 ---
 
-## 1. CRITICAL: Duplicated `border_chars()` Function
+## Detailed Findings
 
-### Current State
+### 1. **DUPLICATED RENDERING PATTERN** (HIGH PRIORITY)
 
-**Identical implementation in 5 files:**
-- `rich_log.rs` (lines 292-318, 27 lines)
-- `select_list.rs` (lines 534-560, 27 lines)
-- `data_table.rs` (lines 599-625, 27 lines)
-- `tree.rs` (lines 566-592, 27 lines)
-- `diff_view.rs` (lines 495-521, 27 lines)
+**Location:** tabs.rs, collapsible.rs, form_controls.rs, loading_indicator.rs, option_list.rs
 
-**Total duplication:** 135 lines (5 × 27)
+**Pattern:** Character-by-character rendering with Unicode width tracking
 
-### Code Example
+**Code Appearing in Multiple Places:**
 
 ```rust
-// DUPLICATED 5 TIMES
-fn border_chars(
-    style: BorderStyle,
-) -> Option<(
-    &'static str,
-    &'static str,
-    &'static str,
-    &'static str,
-    &'static str,
-    &'static str,
-)> {
-    match style {
-        BorderStyle::None => None,
-        BorderStyle::Single => Some((
-            "\u{250c}", "\u{2510}", "\u{2514}", "\u{2518}", "\u{2500}", "\u{2502}",
-        )),
-        BorderStyle::Double => Some((
-            "\u{2554}", "\u{2557}", "\u{255a}", "\u{255d}", "\u{2550}", "\u{2551}",
-        )),
-        BorderStyle::Rounded => Some((
-            "\u{256d}", "\u{256e}", "\u{2570}", "\u{256f}", "\u{2500}", "\u{2502}",
-        )),
-        BorderStyle::Heavy => Some((
-            "\u{250f}", "\u{2513}", "\u{2517}", "\u{251b}", "\u{2501}", "\u{2503}",
-        )),
-    }
-}
-```
-
-### Recommendation
-
-**Move to a shared module** (e.g., `widget/border.rs` or add to `widget/mod.rs`):
-
-```rust
-// In crates/fae-core/src/widget/border.rs (new file)
-/// Border character set: (top-left, top-right, bottom-left, bottom-right, horizontal, vertical)
-pub type BorderChars = (&'static str, &'static str, &'static str, &'static str, &'static str, &'static str);
-
-impl BorderStyle {
-    /// Get the Unicode characters for this border style.
-    pub fn chars(self) -> Option<BorderChars> {
-        match self {
-            BorderStyle::None => None,
-            BorderStyle::Single => Some((
-                "\u{250c}", "\u{2510}", "\u{2514}", "\u{2518}", "\u{2500}", "\u{2502}",
-            )),
-            BorderStyle::Double => Some((
-                "\u{2554}", "\u{2557}", "\u{255a}", "\u{255d}", "\u{2550}", "\u{2551}",
-            )),
-            BorderStyle::Rounded => Some((
-                "\u{256d}", "\u{256e}", "\u{2570}", "\u{256f}", "\u{2500}", "\u{2502}",
-            )),
-            BorderStyle::Heavy => Some((
-                "\u{250f}", "\u{2513}", "\u{2517}", "\u{251b}", "\u{2501}", "\u{2503}",
-            )),
-        }
-    }
-}
-```
-
-**Impact:** Eliminates 135 lines of duplication, centralizes border logic in `BorderStyle` type.
-
----
-
-## 2. CRITICAL: Duplicated Border Rendering Logic
-
-### Current State
-
-**Nearly identical `render_border()` method in 5 files:**
-- `rich_log.rs` (lines 142-181, 40 lines)
-- `select_list.rs` (lines 337-374, 38 lines)
-- `data_table.rs` (lines 289-323, 35 lines)
-- `tree.rs` (lines 354-388, 35 lines)
-- `diff_view.rs` (lines 247-282, 36 lines)
-
-**Total duplication:** ~184 lines
-
-### Code Pattern
-
-```rust
-// DUPLICATED 5 TIMES (with minor style variations)
-fn render_border(&self, area: Rect, buf: &mut ScreenBuffer) {
-    let chars = border_chars(self.border);
-    let (tl, tr, bl, br, h, v) = match chars {
-        Some(c) => c,
-        None => return,
-    };
-
-    let x1 = area.position.x;
-    let y1 = area.position.y;
-    let w = area.size.width;
-    let h_val = area.size.height;
-
-    if w == 0 || h_val == 0 {
-        return;
-    }
-
-    let x2 = x1.saturating_add(w.saturating_sub(1));
-    let y2 = y1.saturating_add(h_val.saturating_sub(1));
-
-    // Corners
-    buf.set(x1, y1, Cell::new(tl, style.clone()));
-    buf.set(x2, y1, Cell::new(tr, style.clone()));
-    buf.set(x1, y2, Cell::new(bl, style.clone()));
-    buf.set(x2, y2, Cell::new(br, style.clone()));
-
-    // Edges
-    for x in (x1 + 1)..x2 {
-        buf.set(x, y1, Cell::new(h, style.clone()));
-        buf.set(x, y2, Cell::new(h, style.clone()));
-    }
-
-    for y in (y1 + 1)..y2 {
-        buf.set(x1, y, Cell::new(v, style.clone()));
-        buf.set(x2, y, Cell::new(v, style.clone()));
-    }
-}
-```
-
-### Recommendation
-
-**Create a shared utility function:**
-
-```rust
-// In crates/fae-core/src/widget/border.rs
-pub fn render_border(
-    area: Rect,
-    border_style: BorderStyle,
-    cell_style: Style,
-    buf: &mut ScreenBuffer,
-) {
-    let Some((tl, tr, bl, br, h, v)) = border_style.chars() else {
-        return;
-    };
-
-    let x1 = area.position.x;
-    let y1 = area.position.y;
-    let w = area.size.width;
-    let h_val = area.size.height;
-
-    if w == 0 || h_val == 0 {
-        return;
-    }
-
-    let x2 = x1.saturating_add(w.saturating_sub(1));
-    let y2 = y1.saturating_add(h_val.saturating_sub(1));
-
-    buf.set(x1, y1, Cell::new(tl, cell_style.clone()));
-    buf.set(x2, y1, Cell::new(tr, cell_style.clone()));
-    buf.set(x1, y2, Cell::new(bl, cell_style.clone()));
-    buf.set(x2, y2, Cell::new(br, cell_style.clone()));
-
-    for x in (x1 + 1)..x2 {
-        buf.set(x, y1, Cell::new(h, cell_style.clone()));
-        buf.set(x, y2, Cell::new(h, cell_style.clone()));
-    }
-
-    for y in (y1 + 1)..y2 {
-        buf.set(x1, y, Cell::new(v, cell_style.clone()));
-        buf.set(x2, y, Cell::new(v, cell_style.clone()));
-    }
-}
-```
-
-**Widget usage becomes:**
-
-```rust
-// Before (40 lines of duplicated code)
-fn render_border(&self, area: Rect, buf: &mut ScreenBuffer) {
-    // ... 40 lines ...
-}
-
-// After (1 line)
-border::render_border(area, self.border, self.style.clone(), buf);
-```
-
-**Impact:** Eliminates ~184 lines of duplication.
-
----
-
-## 3. CRITICAL: Duplicated `inner_area()` Logic
-
-### Current State
-
-**Identical implementation in 5 files:**
-- `rich_log.rs` (lines 124-139, 16 lines)
-- `select_list.rs` (lines 319-335, 17 lines)
-- `data_table.rs` (lines 271-287, 17 lines)
-- `tree.rs` (lines 336-352, 17 lines)
-- `diff_view.rs` (lines 229-245, 17 lines)
-
-**Total duplication:** 84 lines
-
-### Code Pattern
-
-```rust
-// DUPLICATED 5 TIMES
-fn inner_area(&self, area: Rect) -> Rect {
-    match self.border {
-        BorderStyle::None => area,
-        _ => {
-            if area.size.width < 2 || area.size.height < 2 {
-                return Rect::new(area.position.x, area.position.y, 0, 0);
-            }
-            Rect::new(
-                area.position.x + 1,
-                area.position.y + 1,
-                area.size.width.saturating_sub(2),
-                area.size.height.saturating_sub(2),
-            )
-        }
-    }
-}
-```
-
-### Recommendation
-
-**Add as a method on `Rect` or create utility function:**
-
-```rust
-// Option A: Add to Rect (in geometry.rs)
-impl Rect {
-    /// Calculate the inner area after accounting for a border.
-    pub fn inner_with_border(self, border: BorderStyle) -> Rect {
-        match border {
-            BorderStyle::None => self,
-            _ => {
-                if self.size.width < 2 || self.size.height < 2 {
-                    return Rect::new(self.position.x, self.position.y, 0, 0);
-                }
-                Rect::new(
-                    self.position.x + 1,
-                    self.position.y + 1,
-                    self.size.width.saturating_sub(2),
-                    self.size.height.saturating_sub(2),
-                )
-            }
-        }
-    }
-}
-
-// Option B: Utility function (in widget/border.rs)
-pub fn inner_area(area: Rect, border: BorderStyle) -> Rect {
-    // Same implementation
-}
-```
-
-**Widget usage becomes:**
-
-```rust
-// Before
-fn inner_area(&self, area: Rect) -> Rect {
-    match self.border { /* 16 lines */ }
-}
-let inner = self.inner_area(area);
-
-// After (Option A - preferred)
-let inner = area.inner_with_border(self.border);
-
-// After (Option B)
-let inner = border::inner_area(area, self.border);
-```
-
-**Impact:** Eliminates 84 lines of duplication.
-
----
-
-## 4. MODERATE: Repeated UTF-8 Safe Text Rendering Pattern
-
-### Current State
-
-**Similar character-by-character rendering loop in all 6 widgets:**
-
-```rust
-// PATTERN REPEATED 10+ TIMES across widgets
+// tabs.rs (lines 265-279)
 for ch in truncated.chars() {
-    let char_w = UnicodeWidthStr::width(ch.encode_utf8(&mut [0; 4]) as &str);
-    if col as usize + char_w > width {
+    if col as usize >= w {
         break;
     }
-    buf.set(x, y, Cell::new(ch.to_string(), style.clone()));
+    let char_w = UnicodeWidthStr::width(ch.encode_utf8(&mut [0; 4]) as &str);
+    if col as usize + char_w > w {
+        break;
+    }
+    buf.set(x0 + col, y, Cell::new(ch.to_string(), style.clone()));
     col += char_w as u16;
 }
 ```
 
-**Locations:**
-- `rich_log.rs` (lines 223-231)
-- `select_list.rs` (lines 442-450)
-- `data_table.rs` (lines 380-387)
-- `tree.rs` (lines 480-492)
-- `diff_view.rs` (lines 296-303)
+**Also in:**
+- collapsible.rs (lines 118-132)
+- form_controls.rs (lines 340-350)
+- loading_indicator.rs (lines 158-172)
+- option_list.rs (lines 161-171)
 
-### Recommendation
+**Impact:** 5+ duplication instances of nearly identical code
 
-**Create a shared rendering helper:**
-
+**Simplification Opportunity:**
+Create a shared utility function in `text.rs`:
 ```rust
-// In crates/fae-core/src/widget/render_util.rs (new file)
-use unicode_width::UnicodeWidthStr;
-
-/// Render text into a buffer row, handling UTF-8 width and truncation.
-///
-/// Returns the number of columns consumed.
-pub fn render_text(
+pub fn render_text_line(
     text: &str,
-    x: u16,
-    y: u16,
-    max_width: usize,
     style: &Style,
-    buf: &mut ScreenBuffer,
+    x0: u16,
+    y: u16,
+    width: usize,
+    buf: &mut ScreenBuffer
 ) -> u16 {
-    let truncated = truncate_to_display_width(text, max_width);
+    let truncated = truncate_to_display_width(text, width);
     let mut col: u16 = 0;
-
     for ch in truncated.chars() {
-        let char_w = UnicodeWidthStr::width(ch.encode_utf8(&mut [0; 4]) as &str);
-        if col as usize + char_w > max_width {
+        if col as usize >= width {
             break;
         }
-        buf.set(x + col, y, Cell::new(ch.to_string(), style.clone()));
+        let char_w = UnicodeWidthStr::width(ch.encode_utf8(&mut [0; 4]) as &str);
+        if col as usize + char_w > width {
+            break;
+        }
+        buf.set(x0 + col, y, Cell::new(ch.to_string(), style.clone()));
         col += char_w as u16;
     }
-
     col
 }
 ```
 
-**Widget usage becomes:**
-
-```rust
-// Before (9 lines)
-for ch in truncated.chars() {
-    let char_w = UnicodeWidthStr::width(ch.encode_utf8(&mut [0; 4]) as &str);
-    if col as usize + char_w > width {
-        break;
-    }
-    buf.set(x, y, Cell::new(ch.to_string(), style.clone()));
-    col += char_w as u16;
-}
-
-// After (1 line)
-col += render_text(&segment.text, inner.position.x + col, y, remaining, &style, buf);
-```
-
-**Impact:** Reduces 90+ lines across all widgets, centralizes UTF-8 rendering logic.
+**Benefit:** Eliminates ~5 instances of near-identical code (35+ lines), improves consistency
 
 ---
 
-## 5. MODERATE: Duplicated `ensure_selected_visible()` Logic
+### 2. **FORM_CONTROLS EXCESSIVE REPETITION**
 
-### Current State
+**Location:** form_controls.rs
 
-**Identical implementation in 3 widgets:**
-- `select_list.rs` (lines 376-389, 14 lines)
-- `data_table.rs` (lines 405-418, 14 lines)
-- `tree.rs` (lines 321-334, 14 lines)
+**Issue:** Three widgets (Switch, RadioButton, Checkbox) with nearly identical patterns:
+- Identical builder patterns (10 methods each with same structure)
+- Identical event handling (lines 114-127, 213-226, 312-325)
+- Identical render implementations using `render_single_line` helper
 
-**Total duplication:** 42 lines
-
-### Code Pattern
+**Code Duplication:**
 
 ```rust
-// DUPLICATED 3 TIMES
-fn ensure_selected_visible(&mut self, visible_height: usize) {
-    if visible_height == 0 {
-        return;
-    }
-    if self.selected < self.scroll_offset {
-        self.scroll_offset = self.selected;
-    }
-    if self.selected >= self.scroll_offset + visible_height {
-        self.scroll_offset = self
-            .selected
-            .saturating_sub(visible_height.saturating_sub(1));
+// Pattern repeats 3x with different names:
+pub fn toggle(&mut self) {
+    self.state = !self.state;  // or .selected, .checked
+}
+
+pub fn set_state(&mut self, state: bool) {
+    self.state = state;
+}
+
+impl InteractiveWidget for {
+    fn handle_event(&mut self, event: &Event) -> EventResult {
+        let Event::Key(KeyEvent { code, .. }) = event else {
+            return EventResult::Ignored;
+        };
+        match code {
+            KeyCode::Enter | KeyCode::Char(' ') => {
+                self.toggle();  // or .select(), or same
+                EventResult::Consumed
+            }
+            _ => EventResult::Ignored,
+        }
     }
 }
 ```
 
-### Recommendation
-
-**Create a utility function:**
-
+**Simplification Opportunity:**
+Create a generic `ToggleControl` trait:
 ```rust
-// In crates/fae-core/src/widget/scroll.rs (new file)
-/// Adjust scroll offset to ensure the selected index is visible.
-pub fn ensure_visible(
-    selected: usize,
-    scroll_offset: &mut usize,
-    visible_height: usize,
+trait ToggleControl: Widget {
+    fn toggle(&mut self);
+    fn set_state(&mut self, state: bool);
+    fn is_active(&self) -> bool;
+}
+```
+
+Then implement event handling once via blanket implementation for all `InteractiveWidget` + `ToggleControl`.
+
+**Benefit:** Reduces code by ~80 lines, easier maintenance
+
+---
+
+### 3. **SIMILAR BUILDER PATTERNS**
+
+**Location:** All widgets (tabs, progress_bar, loading_indicator, collapsible, form_controls, option_list, sparkline)
+
+**Pattern:** Each widget uses identical builder pattern structure:
+```rust
+pub fn with_xxx_style(mut self, style: Style) -> Self {
+    self.xxx_style = style;
+    self
+}
+
+pub fn with_border(mut self, border: BorderStyle) -> Self {
+    self.border = border;
+    self
+}
+```
+
+**Analysis:** This is actually **good code** - builders are explicit and clear. NOT a simplification candidate. Avoid unnecessary macros here.
+
+---
+
+### 4. **TABS RENDERING COMPLEXITY**
+
+**Location:** tabs.rs (lines 216-284)
+
+**Issue:** `render_tab_bar` is 68 lines with nested loops and complex column tracking
+
+**Current Structure:**
+```rust
+fn render_tab_bar(&self, area_x: u16, area_y: u16, width: u16, buf: &mut ScreenBuffer) {
+    // Fill background (lines 222-228)
+    // Render tabs with separators (lines 233-283)
+}
+```
+
+**Simplification Opportunity:**
+Break into smaller, focused functions:
+```rust
+fn fill_tab_bar_background(&self, x: u16, y: u16, width: u16, buf: &mut ScreenBuffer) { }
+fn render_tab_at_column(&self, idx: usize, x: u16, y: u16, width: u16, buf: &mut ScreenBuffer) -> u16 { }
+fn render_tab_separator(&self, x: u16, y: u16, buf: &mut ScreenBuffer) { }
+```
+
+**Benefit:** Improves readability, easier to test individual tab rendering
+
+---
+
+### 5. **SEGMENT RENDERING CONSOLIDATION**
+
+**Location:** tabs.rs (lines 287-330), collapsible.rs (lines 109-134)
+
+**Pattern:** Both widgets render `Vec<Segment>` with identical logic
+
+**Current:**
+- tabs.rs: `render_content` renders segment lines
+- collapsible.rs: `render_segments` renders segment lines
+
+**Consolidation Opportunity:**
+Add to `text.rs`:
+```rust
+pub fn render_segments(
+    segments: &[Segment],
+    x0: u16,
+    y: u16,
+    width: usize,
+    buf: &mut ScreenBuffer,
 ) {
-    if visible_height == 0 {
-        return;
-    }
-    if selected < *scroll_offset {
-        *scroll_offset = selected;
-    }
-    if selected >= *scroll_offset + visible_height {
-        *scroll_offset = selected.saturating_sub(visible_height.saturating_sub(1));
+    // Shared logic for rendering Segment arrays
+}
+```
+
+**Benefit:** Eliminates duplicate segment rendering logic
+
+---
+
+### 6. **HARDCODED ANIMATION FRAMES**
+
+**Location:** loading_indicator.rs (lines 32-40)
+
+**Issue:** Five hardcoded frame arrays using Unicode literals via escape sequences
+
+**Current:**
+```rust
+IndicatorStyle::Spinner => &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"],
+IndicatorStyle::Dots => &["⠁", "⠂", "⠄", "⡀", "⢀", "⠠", "⠐", "⠈"],
+// ...
+```
+
+**Concern:** Not necessarily bad - inline literal is explicit. However, could benefit from documentation explaining what these characters represent.
+
+**Status:** No change needed - this is clear as-is
+
+---
+
+### 7. **PROGRESS_BAR WAVE ANIMATION**
+
+**Location:** progress_bar.rs (lines 191-202)
+
+**Issue:** Indeterminate animation uses manual index wrapping with unclear logic
+
+**Current:**
+```rust
+let wave_len = WAVE_CHARS.len();
+for i in 0..w {
+    let char_idx = (i + phase) % (wave_len * 2);
+    let ch = if char_idx < wave_len {
+        WAVE_CHARS[char_idx]
+    } else {
+        WAVE_CHARS[wave_len * 2 - 1 - char_idx]
+    };
+}
+```
+
+**Concern:** The double-width wrapping (wave_len * 2) with reverse indexing is clever but could be clearer with a helper function
+
+**Simplification Opportunity:**
+```rust
+fn wave_frame_char(position: usize, phase: usize, frames: &[&str]) -> &str {
+    let wave_len = frames.len();
+    let idx = (position + phase) % (wave_len * 2);
+    if idx < wave_len {
+        frames[idx]
+    } else {
+        frames[wave_len * 2 - 1 - idx]
     }
 }
 ```
 
-**Widget usage becomes:**
+**Benefit:** Makes animation logic clearer and reusable
 
+---
+
+### 8. **OPTION_LIST HARDCODED HEIGHT**
+
+**Location:** option_list.rs (lines 200, 207, 217, 222, 227)
+
+**Issue:** Height constant of 20 is hardcoded in five places for `ensure_visible` calls
+
+**Current:**
 ```rust
-// Before (14 lines)
-fn ensure_selected_visible(&mut self, visible_height: usize) {
-    if visible_height == 0 {
-        return;
+self.ensure_visible(20);  // Lines 200, 207, 217, 222, 227
+```
+
+**Problem:** If height calculation logic changes, five places need updating
+
+**Simplification Opportunity:**
+```rust
+const KEYBOARD_PAGE_SIZE: usize = 20;
+
+// Then use:
+self.ensure_visible(Self::KEYBOARD_PAGE_SIZE);
+```
+
+**Benefit:** Single source of truth for page size
+
+---
+
+### 9. **SPARKLINE VALUE_TO_BAR_INDEX CLARITY**
+
+**Location:** sparkline.rs (lines 88-95)
+
+**Issue:** The min/max finding in render loop (lines 114-123) repeats calculation
+
+**Current:**
+```rust
+// Find data range (lines 114-123)
+let mut min = f32::MAX;
+let mut max = f32::MIN;
+for &v in visible {
+    if v < min { min = v; }
+    if v > max { max = v; }
+}
+```
+
+**Simplification Opportunity:**
+Extract into helper:
+```rust
+fn find_range(data: &[f32]) -> (f32, f32) {
+    let mut min = f32::MAX;
+    let mut max = f32::MIN;
+    for &v in data {
+        if v < min { min = v; }
+        if v > max { max = v; }
     }
-    // ... 10 more lines
-}
-
-// After (1 line)
-scroll::ensure_visible(self.selected, &mut self.scroll_offset, visible_height);
-```
-
-**Impact:** Eliminates 42 lines of duplication.
-
----
-
-## 6. MINOR: Repeated Page Size Magic Number
-
-### Current State
-
-**Hardcoded `20` appears 30+ times across all widgets:**
-
-```rust
-// In keyboard event handlers
-KeyCode::PageUp => {
-    let page = 20;  // ← MAGIC NUMBER REPEATED 10+ TIMES
-    self.selected = self.selected.saturating_sub(page);
-    self.ensure_selected_visible(20);  // ← ALSO HERE
-    EventResult::Consumed
+    (min, max)
 }
 ```
 
-**Locations:**
-- `rich_log.rs`: lines 263, 269, 469, 470, etc.
-- `select_list.rs`: lines 469, 481, 482, etc.
-- `data_table.rs`: lines 506, 552, etc.
-- `tree.rs`: lines 512, 536, etc.
-- `diff_view.rs`: lines 446, 451
-
-### Recommendation
-
-**Define as a constant:**
-
-```rust
-// In crates/fae-core/src/widget/mod.rs or each widget
-/// Default page size for Page Up/Down navigation.
-const DEFAULT_PAGE_SIZE: usize = 20;
-```
-
-**Usage:**
-
-```rust
-// Before
-let page = 20;
-self.ensure_selected_visible(20);
-
-// After
-let page = DEFAULT_PAGE_SIZE;
-self.ensure_selected_visible(DEFAULT_PAGE_SIZE);
-```
-
-**Impact:**
-- Eliminates magic numbers
-- Makes page size configurable in the future (could become a widget field)
-- Clarifies intent
+**Benefit:** Reusable, testable, clearer intent
 
 ---
 
-## 7. Additional Observations
+### 10. **BORDER HANDLING PATTERN**
 
-### Positive Patterns (Do Not Change)
+**Location:** tabs.rs, progress_bar.rs, collapsible.rs, option_list.rs
 
-1. **Consistent Widget Architecture** - All widgets follow the same pattern:
-   - Builder pattern with `with_*()` methods
-   - `inner_area()` → `render_border()` → render content
-   - Comprehensive tests (70-150 tests per widget)
+**Pattern:** Consistent and well-implemented - calls `super::border::render_border` and `super::border::inner_area`
 
-2. **UTF-8 Safety** - All widgets use `truncate_to_display_width()` correctly
-
-3. **Proper Error Handling** - No `.unwrap()` or `.expect()` in production code
-
-4. **Good Test Coverage** - 439 tests total, covering edge cases and UTF-8 scenarios
-
-### Non-Issues (No Action Needed)
-
-1. **Different rendering implementations** - Each widget has unique rendering logic (unified vs. side-by-side, tree indentation, table columns). This is expected and should NOT be consolidated.
-
-2. **Type-specific logic** - Generic `Tree<T>`, `SelectList<T>` vs. concrete `DirectoryTree`. This is appropriate specialization.
-
-3. **Separate `border_chars()` functions** - While duplicated, they're small and self-contained. However, consolidation is still recommended for maintainability.
+**Assessment:** This pattern is **GOOD** - no simplification needed. Shows proper abstraction
 
 ---
 
-## Consolidation Plan
+## Code Quality Assessment
 
-### Proposed New Files
+| Aspect | Rating | Notes |
+|--------|--------|-------|
+| Clarity | A | Explicit code, clear intent, good naming |
+| Consistency | B+ | Builder patterns and event handling mostly consistent |
+| Duplication | B- | Character rendering duplicated 5+ times |
+| Test Coverage | A | Comprehensive tests across all widgets |
+| Error Handling | A | Proper bounds checking, no unwrap/panic |
+| Documentation | A | Doc comments on all public items |
 
-1. **`crates/fae-core/src/widget/border.rs`** (NEW)
-   - `BorderStyle::chars()` method (replaces 5 × `border_chars()`)
-   - `render_border()` utility function (replaces 5 × `render_border()` methods)
-   - `inner_area()` utility function (replaces 5 × `inner_area()` methods)
+---
 
-2. **`crates/fae-core/src/widget/render_util.rs`** (NEW)
-   - `render_text()` function (consolidates UTF-8 rendering loops)
+## Summary of Simplification Opportunities
 
-3. **`crates/fae-core/src/widget/scroll.rs`** (NEW)
-   - `ensure_visible()` function (consolidates scroll adjustment logic)
-   - `DEFAULT_PAGE_SIZE` constant
-
-### Migration Order
-
-1. **Phase 1 (Immediate):** Move `border_chars()` to `BorderStyle::chars()` method
-2. **Phase 2 (Immediate):** Create `border::render_border()` utility
-3. **Phase 3 (Immediate):** Create `border::inner_area()` or `Rect::inner_with_border()`
-4. **Phase 4 (Optional):** Create `render_util::render_text()` helper
-5. **Phase 5 (Optional):** Create `scroll::ensure_visible()` utility
-
-### Impact Summary
-
-| Refactoring | Lines Saved | Files Affected | Priority |
-|-------------|-------------|----------------|----------|
-| `border_chars()` consolidation | 135 | 5 | CRITICAL |
-| `render_border()` consolidation | 184 | 5 | CRITICAL |
-| `inner_area()` consolidation | 84 | 5 | CRITICAL |
-| UTF-8 rendering helper | 90+ | 6 | MODERATE |
-| `ensure_selected_visible()` | 42 | 3 | MODERATE |
-| Page size constant | 30+ | 5 | MINOR |
-| **TOTAL** | **565+** | **6** | |
+| Priority | Item | Type | Effort | Impact |
+|----------|------|------|--------|--------|
+| HIGH | Extract character rendering helper | Refactor | 1 hour | Eliminate ~35 lines duplication |
+| HIGH | Consolidate form control logic | Refactor | 2 hours | Reduce form_controls.rs by ~80 lines |
+| MEDIUM | Extract segment rendering helper | Refactor | 30 min | Eliminate ~25 lines duplication |
+| MEDIUM | Break down tabs::render_tab_bar | Refactor | 45 min | Improve readability |
+| MEDIUM | Add wave_frame_char helper | Refactor | 15 min | Clarify animation logic |
+| LOW | Document animation frames better | Docs | 15 min | Better maintainability |
+| LOW | Extract KEYBOARD_PAGE_SIZE constant | Refactor | 5 min | Single source of truth |
 
 ---
 
 ## Recommendations
 
-### Immediate Actions (CRITICAL)
+### Immediate Actions (Next Refactor Session)
+1. Extract `render_text_line()` helper to `text.rs`
+2. Update tabs, collapsible, form_controls, loading_indicator, option_list to use helper
+3. Extract `render_segments()` helper to `text.rs`
+4. Update tabs and collapsible to use helper
 
-1. **Create `crates/fae-core/src/widget/border.rs`** with:
-   - `BorderStyle::chars()` method
-   - `render_border()` utility function
-   - `inner_area()` utility function (or add to `Rect`)
+### Short-Term (Phase 4.4)
+1. Create `ToggleControl` trait for form_controls
+2. Add animation helper functions to respective widgets
+3. Extract constants like `KEYBOARD_PAGE_SIZE`
 
-2. **Update all 5 widgets** to use the new border utilities:
-   - `rich_log.rs`
-   - `select_list.rs`
-   - `data_table.rs`
-   - `tree.rs`
-   - `diff_view.rs`
-
-3. **Run full test suite** - All 439 existing tests should pass unchanged
-
-### Optional Follow-Up (MODERATE)
-
-4. **Create `crates/fae-core/src/widget/render_util.rs`** with `render_text()` helper
-
-5. **Create `crates/fae-core/src/widget/scroll.rs`** with `ensure_visible()` and constants
-
-### Future Considerations (MINOR)
-
-6. **Make page size configurable** - Add `page_size` field to widgets that support paging
+### Documentation Improvements
+1. Add doc comment explaining loading_indicator animation styles
+2. Document the wave animation doubling trick in progress_bar
+3. Add example usage to sparkline for value scaling
 
 ---
 
-## Conclusion
+## Final Notes
 
-Phase 4.2 code is well-structured and follows project standards, but contains **565+ lines of duplication** that should be consolidated. The most critical issue is the duplicated border logic across 5 files (403 lines). Consolidating into shared utilities will:
+**Overall Assessment:** The Phase 4.3 code is **well-structured and maintainable**. The B+ grade reflects that the code is excellent in clarity and correctness, with only moderate opportunities for consolidation. The main opportunity is eliminating duplicated rendering patterns across multiple widgets.
 
-- Reduce code size by ~19% (565 / 2,907 lines)
-- Improve maintainability (single source of truth for borders)
-- Simplify future border enhancements (new border styles, themes, etc.)
-- Maintain existing test coverage (no behavioral changes)
+**No Breaking Changes Required:** All suggested simplifications are internal refactors that would not change public APIs or widget behavior.
 
-**No code changes were made during this review.** All findings are recommendations for future refactoring.
+**Risk Level:** LOW - These refactors are routine and well-scoped.
