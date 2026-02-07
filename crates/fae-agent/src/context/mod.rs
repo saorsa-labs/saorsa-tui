@@ -8,11 +8,13 @@
 //! - Prompt templates
 
 pub mod agents;
+pub mod compaction;
 pub mod discovery;
 pub mod system;
 pub mod types;
 
 pub use agents::AgentsContext;
+pub use compaction::{CompactionConfig, CompactionStats, CompactionStrategy, compact};
 pub use discovery::ContextDiscovery;
 pub use system::SystemContext;
 pub use types::{ContextBuilder, ContextBundle, MergeStrategy, SystemMode};
