@@ -58,6 +58,6 @@ pub use undo::{EditOperation, UndoStack};
 pub use viewport::Viewport;
 pub use widget::{
     Alignment, BorderStyle, Container, EventResult, Label, MarkdownRenderer, Modal, RichLog,
-    StaticWidget, TextArea, Toast, ToastPosition, Tooltip, Widget,
+    SelectList, StaticWidget, TextArea, Toast, ToastPosition, Tooltip, Widget,
 };
 pub use wrap::{WrapLine, WrapResult, line_number_width, wrap_line, wrap_lines};
