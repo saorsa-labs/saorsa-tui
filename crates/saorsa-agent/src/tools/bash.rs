@@ -149,6 +149,7 @@ mod tests {
         BashTool::new(std::env::temp_dir())
     }
 
+    #[cfg(unix)]
     #[tokio::test]
     async fn execute_echo() {
         let tool = test_tool();
@@ -168,6 +169,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    #[cfg(unix)]
     #[tokio::test]
     async fn execute_failing_command() {
         let tool = test_tool();
@@ -180,6 +182,7 @@ mod tests {
         }
     }
 
+    #[cfg(unix)]
     #[tokio::test]
     async fn execute_stderr() {
         let tool = test_tool();
@@ -193,6 +196,7 @@ mod tests {
         }
     }
 
+    #[cfg(unix)]
     #[tokio::test]
     async fn execute_timeout() {
         let tool = BashTool::new(std::env::temp_dir()).timeout(Duration::from_millis(100));
