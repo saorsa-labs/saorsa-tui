@@ -1,28 +1,36 @@
 # Task Specification Review
-**Date**: 2026-02-07 17:48:00
-**Task**: Task 2 - Filesystem Layout and Serialization
+**Date**: 2026-02-07 18:30:00
+**Task**: Task 4 - Continue and Resume Functionality
 
-## Spec Compliance
+## Spec Compliance Checklist
 
-Required files:
-- [x] crates/fae-agent/src/session/storage.rs
-- [x] crates/fae-agent/src/session/path.rs
+### Files
+- [x] crates/fae-agent/src/session/resume.rs (created)
+- [x] crates/fae-cli/src/args.rs (flags added - actually in crates/fae-app/src/cli.rs)
+- [x] crates/fae-app/src/main.rs (startup handling integrated)
 
-Required components:
-- [x] SessionStorage struct managing base path
-- [x] manifest.json with all metadata fields
-- [x] messages/ directory with {index}-{type}.json naming
-- [x] tree.json for parent/child relationships
-- [x] Atomic writes (write to temp, rename)
-- [x] XDG base directory support (~/.fae or $XDG_DATA_HOME/fae)
+### Requirements
+- [x] -c/--continue flag continues most recent session
+- [x] -r <prefix>/--resume <prefix> resumes by session ID prefix
+- [x] last_active timestamp in manifest (added to SessionMetadata)
+- [x] Prefix matching finds shortest unique match (error on ambiguous)
+- [x] Load all messages and rebuild agent state (restore_session function)
+- [x] Ephemeral mode (--ephemeral, no persistence)
 
-Required tests:
-- [x] Directory creation on first use
-- [x] Message serialization to individual files
-- [x] Manifest read/write round-trip
-- [x] Tree structure persistence
-- [x] Path construction for various session IDs
+### Tests
+- [x] Continue loads most recent session (test_find_last_active_single_session, test_find_last_active_multiple_sessions)
+- [x] Resume with full ID works (test_find_session_by_full_id)
+- [x] Resume with prefix works (test_find_session_by_short_prefix)
+- [x] Resume errors on ambiguous prefix (test_find_session_by_prefix_ambiguous)
+- [x] Ephemeral mode flag added (cli_ephemeral test)
+- [x] Restored session has all messages (test_restore_session)
 
-## Grade: A
+## Findings
+- [OK] All requirements met
+- [OK] All tests implemented and passing
+- [MINOR] CLI args defined in fae-app/cli.rs not fae-cli/args.rs (fae-cli is just a thin wrapper)
 
-All task requirements met exactly as specified.
+## Summary
+Task specification fully satisfied. All requirements implemented with comprehensive test coverage.
+
+## Grade: A+

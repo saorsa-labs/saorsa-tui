@@ -52,6 +52,8 @@ pub struct SessionMetadata {
     pub created: DateTime<Utc>,
     /// When the session was last modified
     pub modified: DateTime<Utc>,
+    /// When the session was last actively used
+    pub last_active: DateTime<Utc>,
     /// User-provided title for the session
     pub title: Option<String>,
     /// Optional description
@@ -67,15 +69,23 @@ impl SessionMetadata {
         Self {
             created: now,
             modified: now,
+            last_active: now,
             title: None,
             description: None,
             tags: HashSet::new(),
         }
     }
 
-    /// Update the modified timestamp to now
+    /// Update the modified and last_active timestamps to now
     pub fn touch(&mut self) {
-        self.modified = Utc::now();
+        let now = Utc::now();
+        self.modified = now;
+        self.last_active = now;
+    }
+
+    /// Update only the last_active timestamp (for session resume/usage)
+    pub fn mark_active(&mut self) {
+        self.last_active = Utc::now();
     }
 
     /// Add a tag

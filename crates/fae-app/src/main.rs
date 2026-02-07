@@ -8,7 +8,9 @@ use futures::StreamExt;
 use tracing::debug;
 
 use fae_agent::{
-    AgentConfig, AgentEvent, AgentLoop, BashTool, ToolRegistry, TurnEndReason, event_channel,
+    AgentConfig, AgentEvent, AgentLoop, BashTool, Message, SessionStorage, ToolRegistry,
+    TurnEndReason, event_channel, find_last_active_session, find_session_by_prefix,
+    restore_session,
 };
 use fae_ai::{AnthropicProvider, ProviderConfig, ProviderKind};
 use fae_core::render_context::RenderContext;
@@ -18,6 +20,9 @@ use fae_app::app::{AppState, AppStatus};
 use fae_app::cli::Cli;
 use fae_app::input::{InputAction, handle_event};
 use fae_app::ui;
+
+/// Type alias for session loading result
+type SessionLoadResult = Result<Option<(String, Vec<Message>)>, Box<dyn std::error::Error>>;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -94,10 +99,58 @@ async fn run_print_mode(cli: &Cli, api_key: &str, prompt: &str) -> anyhow::Resul
 /// Run in interactive TUI mode.
 async fn run_interactive(cli: &Cli, api_key: &str) -> anyhow::Result<()> {
     let mut state = AppState::new(&cli.model);
-    state.add_system_message(format!(
-        "Connected to {}. Type a message to start.",
-        cli.model
-    ));
+
+    // Handle session continuation/resumption
+    if !cli.ephemeral {
+        if let Some(resume_prefix) = &cli.resume {
+            // Resume specific session by prefix
+            match load_session_by_prefix(resume_prefix) {
+                Ok((session_id, messages)) => {
+                    for msg in messages {
+                        add_message_to_state(&mut state, &msg);
+                    }
+                    state.add_system_message(format!(
+                        "Resumed session {} ({} messages loaded)",
+                        session_id,
+                        state.messages.len()
+                    ));
+                }
+                Err(e) => {
+                    state.add_system_message(format!("Failed to resume session: {}", e));
+                }
+            }
+        } else if cli.continue_session {
+            // Continue most recent session
+            match load_last_active_session() {
+                Ok(Some((session_id, messages))) => {
+                    for msg in messages {
+                        add_message_to_state(&mut state, &msg);
+                    }
+                    state.add_system_message(format!(
+                        "Continued session {} ({} messages loaded)",
+                        session_id,
+                        state.messages.len()
+                    ));
+                }
+                Ok(None) => {
+                    state.add_system_message("No previous sessions found. Starting new session.");
+                }
+                Err(e) => {
+                    state.add_system_message(format!("Failed to continue session: {}", e));
+                }
+            }
+        } else {
+            state.add_system_message(format!(
+                "Connected to {}. Type a message to start.",
+                cli.model
+            ));
+        }
+    } else {
+        state.add_system_message(format!(
+            "Connected to {} (ephemeral mode). Type a message to start.",
+            cli.model
+        ));
+    }
 
     // Set up terminal.
     let mut backend = CrosstermBackend::new();
@@ -280,5 +333,52 @@ fn render_ui(state: &AppState, ctx: &mut RenderContext, backend: &mut dyn Termin
     ui::render(state, ctx.buffer_mut());
     if let Err(e) = ctx.end_frame(backend) {
         debug!(error = %e, "Render error");
+    }
+}
+
+/// Load the most recently active session.
+fn load_last_active_session() -> SessionLoadResult {
+    let storage = SessionStorage::new()?;
+    let session_id: fae_agent::SessionId = match find_last_active_session(&storage)? {
+        Some(id) => id,
+        None => return Ok(None),
+    };
+    let (_metadata, messages) = restore_session(&storage, &session_id)?;
+    Ok(Some((session_id.prefix(), messages)))
+}
+
+/// Load a session by ID prefix.
+fn load_session_by_prefix(
+    prefix: &str,
+) -> Result<(String, Vec<Message>), Box<dyn std::error::Error>> {
+    let storage = SessionStorage::new()?;
+    let session_id = find_session_by_prefix(&storage, prefix)?;
+    let (_metadata, messages) = restore_session(&storage, &session_id)?;
+    Ok((session_id.prefix(), messages))
+}
+
+/// Add a session message to app state.
+fn add_message_to_state(state: &mut AppState, msg: &Message) {
+    match msg {
+        Message::User { content, .. } => {
+            state.add_user_message(content);
+        }
+        Message::Assistant { content, .. } => {
+            state.add_assistant_message(content);
+        }
+        Message::ToolCall { tool_name, .. } => {
+            state.add_tool_message(tool_name, "(tool called)");
+        }
+        Message::ToolResult {
+            tool_name, result, ..
+        } => {
+            let result_str = result.to_string();
+            let display = if result_str.len() > 200 {
+                format!("{}...", &result_str[..200])
+            } else {
+                result_str
+            };
+            state.add_tool_message(tool_name, display);
+        }
     }
 }

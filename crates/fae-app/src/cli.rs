@@ -29,6 +29,18 @@ pub struct Cli {
     /// Run in print mode: send a single prompt and print the response.
     #[arg(short, long)]
     pub print: Option<String>,
+
+    /// Continue the most recent session.
+    #[arg(short = 'c', long)]
+    pub continue_session: bool,
+
+    /// Resume a specific session by ID prefix.
+    #[arg(short = 'r', long)]
+    pub resume: Option<String>,
+
+    /// Run in ephemeral mode (no session persistence).
+    #[arg(long)]
+    pub ephemeral: bool,
 }
 
 impl Cli {
@@ -59,6 +71,9 @@ mod tests {
         assert_eq!(cli.max_tokens, 4096);
         assert_eq!(cli.max_turns, 10);
         assert!(cli.print.is_none());
+        assert!(!cli.continue_session);
+        assert!(cli.resume.is_none());
+        assert!(!cli.ephemeral);
     }
 
     #[test]
@@ -91,7 +106,34 @@ mod tests {
             max_tokens: 4096,
             max_turns: 10,
             print: None,
+            continue_session: false,
+            resume: None,
+            ephemeral: false,
         };
         assert!(cli.api_key().is_err());
+    }
+
+    #[test]
+    fn cli_continue_session() {
+        let cli = Cli::parse_from(["fae", "-c"]);
+        assert!(cli.continue_session);
+    }
+
+    #[test]
+    fn cli_continue_session_long_form() {
+        let cli = Cli::parse_from(["fae", "--continue-session"]);
+        assert!(cli.continue_session);
+    }
+
+    #[test]
+    fn cli_resume_session() {
+        let cli = Cli::parse_from(["fae", "--resume", "abc123"]);
+        assert_eq!(cli.resume.as_deref(), Some("abc123"));
+    }
+
+    #[test]
+    fn cli_ephemeral() {
+        let cli = Cli::parse_from(["fae", "--ephemeral"]);
+        assert!(cli.ephemeral);
     }
 }

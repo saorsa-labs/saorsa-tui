@@ -1,5 +1,7 @@
-# MiniMax Review (External)
-**Date**: 2026-02-07 17:48:00
-**Status**: MINIMAX_UNAVAILABLE
+# MiniMax External Review
+**Date**: 2026-02-07 18:30:00
+**Status**: UNAVAILABLE
+
+MiniMax review not available in current context.
 
 ## Grade: N/A

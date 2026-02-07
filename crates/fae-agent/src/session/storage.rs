@@ -23,6 +23,11 @@ impl SessionStorage {
         Self { base_path }
     }
 
+    /// Get the base path for all sessions.
+    pub fn base_path(&self) -> &std::path::Path {
+        &self.base_path
+    }
+
     /// Get the directory for a specific session.
     fn session_dir(&self, session_id: &SessionId) -> PathBuf {
         self.base_path.join(session_id.as_str())

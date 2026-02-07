@@ -282,9 +282,11 @@ mod tests {
         };
 
         let session_id = SessionId::new();
+        let now = Utc::now();
         let metadata = SessionMetadata {
-            created: Utc::now(),
-            modified: Utc::now(),
+            created: now,
+            modified: now,
+            last_active: now,
             title: Some("Test Session".to_string()),
             description: None,
             tags: HashSet::new(),
@@ -323,9 +325,11 @@ mod tests {
         };
 
         let session_id = SessionId::new();
+        let now = Utc::now();
         let metadata = SessionMetadata {
-            created: Utc::now(),
-            modified: Utc::now(),
+            created: now,
+            modified: now,
+            last_active: now,
             title: Some("Incremental Test".to_string()),
             description: None,
             tags: HashSet::new(),
@@ -369,9 +373,11 @@ mod tests {
         };
 
         let session_id = SessionId::new();
+        let now = Utc::now();
         let metadata = SessionMetadata {
-            created: Utc::now(),
-            modified: Utc::now(),
+            created: now,
+            modified: now,
+            last_active: now,
             title: Some("Retry Test".to_string()),
             description: None,
             tags: HashSet::new(),
@@ -402,9 +408,11 @@ mod tests {
         };
 
         let session_id = SessionId::new();
+        let now = Utc::now();
         let metadata = SessionMetadata {
-            created: Utc::now(),
-            modified: Utc::now(),
+            created: now,
+            modified: now,
+            last_active: now,
             title: Some("Persist Test".to_string()),
             description: None,
             tags: HashSet::new(),
@@ -446,9 +454,11 @@ mod tests {
         };
 
         let session_id = SessionId::new();
+        let now = Utc::now();
         let metadata = SessionMetadata {
-            created: Utc::now(),
-            modified: Utc::now(),
+            created: now,
+            modified: now,
+            last_active: now,
             title: Some("Rapid Test".to_string()),
             description: None,
             tags: HashSet::new(),
