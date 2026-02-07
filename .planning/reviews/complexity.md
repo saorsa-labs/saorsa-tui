@@ -1,201 +1,166 @@
-# Complexity Review
-**Date**: 2026-02-07
-**Phase**: 3.4 (Overlay Stack, Modal, Toast, Tooltip)
+# Complexity Analysis Report
 
-## Statistics
-
-| File | LOC | Functions | Max Nesting | Largest Func |
-|------|-----|-----------|-------------|--------------|
-| `overlay.rs` | 674 | 13 | 5 | `apply_to_compositor` (22 lines) |
-| `modal.rs` | 290 | 9 | 5 | `render_to_lines` (63 lines) |
-| `toast.rs` | 211 | 7 | 4 | `to_overlay_config` (24 lines) |
-| `tooltip.rs` | 300 | 10 | 5 | `compute_position` (56 lines) |
-| **Total** | **1,475** | **39** | **5** | — |
+## Overview
+This analysis examines the complexity of code changes in the recent commit (75c26d2) which implemented text widgets including buffer, cursor, undo, wrap, highlight, textarea, and markdown features.
 
 ## Findings
 
-### overlay.rs (674 LOC)
-- **SEVERITY: MEDIUM** - File size is substantial but well-structured
-  - Largest function: `apply_to_compositor()` at 22 lines — clean and readable
-  - `resolve_position()` (47 lines) is a match expression with 4 arms; nesting is acceptable due to nested `match` structure
-  - Good separation of concerns: `create_dim_layer()` isolated as helper
-  - 26 test functions provide strong coverage (lines 225-674)
+### 🟢 LOW COMPLEXITY
 
-- **POSITIVE**: Stack management code is straightforward:
-  - `push()`, `pop()`, `remove()`, `clear()` are all under 10 lines
-  - Helper methods (`len()`, `is_empty()`) are trivial
-  - Enum types (`Placement`, `OverlayPosition`, `OverlayConfig`) well-defined
+#### `cursor.rs` (Lines 1-509)
+- **Structure**: Clean data structures with clear responsibilities
+- **Methods**: All methods are short and focused on single operations
+- **Complexity**: Low cyclomatic complexity
+- **Notes**:
+  - `CursorPosition` and `Selection` are simple data types
+  - Movement methods have clear, linear logic
+  - Test coverage ensures edge cases are handled
 
-### modal.rs (290 LOC)
-- **SEVERITY: MEDIUM** - `render_to_lines()` reaches 63 lines
-  - Function structure: top border construction (lines 74-88) → body rows (lines 91-112) → bottom border (lines 115-121)
-  - Nesting depth within the function reaches 3-4 (loop + if-let for body line access)
-  - Inner loop at lines 92-112 handles body row iteration with conditional text flattening (line 98)
-  - All string building is straightforward; no complex logic
+#### `undo.rs` (Lines 1-292)
+- **Structure**: Simple enum-based operation tracking
+- **Methods**: Short and focused on stack operations
+- **Complexity**: Low
+- **Notes**:
+  - `EditOperation` enum clearly models operations
+  - `inverse()` method provides clean inversion logic
+  - Stack management is straightforward
 
-- **POSITIVE**:
-  - Builder pattern clean (`with_body()`, `with_style()`, `with_border()` all 4-6 lines)
-  - `border_chars()` match is simple selector pattern (42 lines of match arms is normal for enum dispatch)
-  - 9 unit tests verify all paths
+### 🟡 MEDIUM COMPLEXITY
 
-### toast.rs (211 LOC)
-- **SEVERITY: LOW** - Smallest, cleanest file in scope
-  - Largest function: `to_overlay_config()` at 24 lines (simple match on `ToastPosition`)
-  - `render_to_lines()` is 9 lines of straightforward string padding
-  - All builder methods follow identical 4-6 line pattern
-  - Nesting depth maxes at 4 (match + nested path calculations)
+#### `highlight.rs` (Lines 1-181)
+- **Structure**: Trait + implementations pattern
+- **Methods**:
+  - `highlight_line()` in `SimpleKeywordHighlighter` has nested loops (lines 78-91)
+  - Character index conversion logic (lines 82-84)
+- **Complexity**: Medium due to nested iteration
+- **Notes**:
+  - Keyword search with multiple overlapping matches requires careful indexing
+  - Sorting by start position adds complexity
+  - Acceptable for a simple highlighter
 
-- **POSITIVE**:
-  - Single responsibility: toast is *just* a corner-positioned notification
-  - No string interpolation logic, no conditional text building
-  - 7 tests exercise all 4 corner positions
+#### `wrap.rs` (Lines 1-260)
+- **Structure**: Text wrapping algorithms
+- **Methods**:
+  - `wrap_line()` (lines 41-88) has complex logic with multiple branches
+  - Helper functions like `find_last_space()` and `display_width_of()`
+- **Complexity**: Medium
+- **Notes**:
+  - Word boundary detection requires careful handling
+  - Character width calculations add complexity
+  - Algorithm is well-structured but non-trivial
 
-### tooltip.rs (300 LOC)
-- **SEVERITY: MEDIUM** - Two moderately complex functions
-  - `compute_position()` (56 lines) — nested match with 4 placement arms
-    - Each arm has identical structure: `x` calculation (2-3 saturating operations) + `y` calculation (2-3 saturating operations)
-    - Heavy use of `saturating_add()`/`saturating_sub()` for safe arithmetic
-    - Nesting depth: 3 (match + saturating operation chains)
+### 🟠 HIGH COMPLEXITY
 
-  - `flip_if_needed()` (43 lines) — match on placement with conditional logic
-    - Mirrors `compute_position()` structure
-    - Each arm checks one boundary condition + returns adjusted placement
-    - Uses saturating arithmetic for bounds checking (lines 144-149, 164-169)
+#### `text_buffer.rs` (Lines 1-354)
+- **Structure**: Rope-based text buffer with line operations
+- **Complex Methods**:
+  - `delete_range()` (not shown in diff but likely present)
+  - Line joining logic when deleting at line boundaries
+- **Complexity**: High
+- **Notes**:
+  - Line/column to character index conversions are error-prone
+  - Edge cases with empty lines and newlines require careful handling
+  - Rope data structure adds abstraction complexity
 
-- **POSITIVE**:
-  - Separation of concerns: `compute_position()` delegates to `flip_if_needed()`
-  - Smart positioning logic is isolated in helper method
-  - 10 tests verify all 4 directions + all 4 flip scenarios + edge cases
-  - No deep nesting (max 3)
+#### `text_area.rs` (Lines 1-891)
+- **Structure**: Main text editing widget
+- **High Complexity Areas**:
+  1. **Rendering method** (lines 388-512):
+     - Nested loops with multiple conditions
+     - Complex cursor positioning with soft wrap support
+     - Line number rendering logic
+     - Style resolution with multiple layers
 
----
+  2. **Key handling method** (lines 554-649):
+     - Large match statement with multiple nested if/else
+     - Shift + key combinations
+     - Ctrl + key combinations
+     - Movement with/without selection
 
-## Detailed Function Analysis
+  3. **Style resolution** (lines 516-541):
+     - Multiple precedence layers (selection > highlight > base)
+     - Nested iteration through highlight spans
 
-### Functions Under 25 Lines (Ideal)
-- **overlay.rs**: `push()`, `pop()`, `remove()`, `clear()`, `len()`, `is_empty()`, `new()` ✓
-- **modal.rs**: All builder methods (`with_body()`, `with_style()`, `with_border()`), `new()` ✓
-- **toast.rs**: All builder methods, `new()`, `render_to_lines()` ✓
-- **tooltip.rs**: All builder methods, `new()`, `render_to_lines()`, `size()` ✓
+  4. **Selection handling** (lines 264-319):
+     - Complex multi-line selection logic
+     - Character index calculations
+     - Edge case handling for empty selections
 
-### Functions 25-50 Lines (Acceptable)
-- **overlay.rs**: `apply_to_compositor()` (22 lines) ✓
-- **modal.rs**: `render_to_lines()` (63 lines) ⚠️ See below
-- **toast.rs**: `to_overlay_config()` (24 lines) ✓
-- **tooltip.rs**: `compute_position()` (56 lines) ⚠️, `flip_if_needed()` (43 lines) ✓
+- **Complexity**: High
+- **Notes**:
+  - The `render()` method is 124 lines long with deep nesting
+  - Key handling has many branching paths
+  - Event handling could benefit from state machine pattern
+  - Complexity is justified by the richness of features
 
-### Functions Over 50 Lines (Requires Review)
-1. **modal.rs::render_to_lines()** — 63 lines (lines 61-124)
-   - **Structure**: Top border → body rows → bottom border
-   - **Complexity**: Moderate — string building with conditional padding
-   - **Verdict**: Acceptable. Logic is sequential, not heavily nested. Each section is self-contained.
+### 🔴 CRITICAL COMPLEXITY
 
-2. **tooltip.rs::compute_position()** — 56 lines (lines 65-120)
-   - **Structure**: Match on `effective_placement` (4 arms), each arm calculates x/y
-   - **Complexity**: Moderate — repetitive but necessary pattern matching
-   - **Verdict**: Acceptable. High repetition (4 identical patterns) is a design tradeoff for readability. Could extract `_position_for_placement()` helper to reduce to ~30 lines, but current form is clear.
+#### `markdown.rs` (Lines 1-453)
+- **Structure**: Incremental markdown parser and renderer
+- **Critical Areas**:
+  1. **Main rendering loop** (lines 84+):
+     - Nested state machine with multiple boolean flags
+     - Complex event handling with deep nesting
+     - Style stacking/unstacking logic
 
----
+  2. **Event handling**:
+     - Multiple nested match statements
+     - Complex state transitions
+     - Edge cases with incomplete/invalid markdown
 
-## Nesting Depth Analysis
+  3. **Inline element handling** (not fully shown):
+     - Link parsing and rendering
+     - Code span handling
+     - Emphasis nesting
 
-**Max nesting by file**: All files ≤ 5 levels (target: ≤ 6)
+- **Complexity**: Critical
+- **Notes**:
+  - Parser/renderer integration creates high coupling
+  - State management is spread across multiple variables
+  - Incremental parsing adds complexity
+  - Risk of edge case bugs is high
+  - Would benefit from refactoring into smaller, focused components
 
-### overlay.rs
-- **Peak nesting**: 5 levels in `resolve_position()` (match → Placement::Anchored → nested match → saturating_add chains)
-- **Assessment**: ✓ Acceptable. Nesting is due to structure of problem (position resolution logic), not complex control flow
+## Recommendations
 
-### modal.rs
-- **Peak nesting**: 5 levels in `render_to_lines()` (loop → if-let → match → string operations)
-- **Assessment**: ✓ Acceptable. Each level serves clear purpose (iteration, conditional, pattern match)
+### Immediate Actions (High Priority)
+1. **Refactor `text_area.rs::render()`**:
+   - Extract line rendering logic into separate method
+   - Extract cursor rendering into separate method
+   - Extract style resolution into separate method
 
-### toast.rs
-- **Peak nesting**: 4 levels in `to_overlay_config()` (match arms with nested arithmetic)
-- **Assessment**: ✓ Clean. Lowest nesting in scope (simplest domain logic)
+2. **Refactor `text_area.rs::handle_key()`**:
+   - Use strategy pattern for different key combinations
+   - Extract movement logic into separate handlers
+   - Simplify the large match statement
 
-### tooltip.rs
-- **Peak nesting**: 5 levels in `compute_position()` (match → saturating chains → Position::new)
-- **Assessment**: ✓ Acceptable. Nesting is symmetric and deliberate
+3. **Refactor `markdown.rs`**:
+   - Separate parsing from rendering
+   - Extract state management into a dedicated state machine
+   - Break down the main loop into smaller, focused methods
 
----
+### Medium Priority
+1. **Improve `wrap.rs`**:
+   - Extract word boundary detection into separate module
+   - Consider using iterators instead of manual indexing
 
-## Test Coverage Quality
+2. **Enhance error handling**:
+   - Add better error types and messages
+   - Consider Result types instead of panics in edge cases
 
-**Test Coverage**: Excellent across all files
+### Long Term
+1. **Consider architectural changes**:
+   - Event sourcing for text operations
+   - More separation of concerns between parsing and rendering
+   - Plugin architecture for highlighting and rendering
 
-- **overlay.rs**: 26 tests
-  - Unit tests: position resolution (8 tests), stack operations (5 tests)
-  - Integration tests: modal pipeline (2), toast pipeline (1), tooltip pipeline (1), z-ordering (2), removal (2)
+## Complexity Metrics Summary
+- **Average file length**: Medium (250-400 lines)
+- **Most complex method**: `text_area.rs::render()` (124 lines)
+- **Highest cyclomatic complexity**: `markdown.rs` main rendering loop
+- **Most complex data flow**: Text selection and cursor handling across widgets
 
-- **modal.rs**: 9 tests
-  - Rendering: title placement, body padding, borders, styles
-  - Edge cases: empty body, oversized title, too-small modal
-  - Overlay config generation
-
-- **toast.rs**: 7 tests
-  - All 4 corner positions
-  - Width/padding behavior
-  - Style preservation
-  - No dim background assertion
-
-- **tooltip.rs**: 10 tests
-  - All 4 directions
-  - All 4 flip scenarios (edge cases)
-  - Text rendering, style preservation
-  - Default placement behavior
-
----
-
-## Code Quality Observations
-
-### Positive
-✓ **No functions over 63 lines** — all within acceptable range
-✓ **Consistent nesting depth** — none exceed 5 levels
-✓ **Builder pattern used extensively** — clean, chainable APIs
-✓ **Comprehensive test coverage** — 52 tests for overlay ecosystem
-✓ **No empty/unused code** — all functions serve a purpose
-✓ **Error handling** — Uses `saturating_add()`/`saturating_sub()` for safe arithmetic (no panics)
-✓ **Clear separation of concerns** — widgets don't know about `ScreenStack`; stack doesn't know about widget internals
-
-### Areas for Consideration
-⚠️ **Modal::render_to_lines()** (63 lines) — At upper threshold. Could be refactored into `_render_top_border()`, `_render_body()`, `_render_bottom_border()` helpers (~20 lines each) if maintainability becomes an issue.
-
-⚠️ **Tooltip::compute_position()** (56 lines) — 4 nearly-identical match arms. Could extract `_compute_xyz_for_placement()` to ~30 lines, but current form is explicit and defensive (preferred for position calculation logic).
-
-⚠️ **resolve_position()** in overlay.rs (47 lines) — Similar to tooltip, 4 match arms with repeated arithmetic. Acceptable given the nature of positional mathematics.
-
----
-
-## Comparison to Targets
-
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| Max function length | ≤ 50 | 63 | ⚠️ 1 function over |
-| Max nesting depth | ≤ 6 | 5 | ✓ |
-| Avg lines per function | ≤ 30 | ~18 | ✓ |
-| Test functions per file | ≥ 1:2 | 1:0.75 | ✓ |
-| Empty/dead code | 0 | 0 | ✓ |
-
----
-
-## Conclusion
-
-**Phase 3.4 complexity is well-managed.** While `modal.rs::render_to_lines()` exceeds the 50-line soft limit at 63 lines, the function is:
-- Linear in structure (sequential sections, not nested conditions)
-- Highly readable (border + body + border logic is obvious)
-- Necessary for the domain (terminal UI rendering inherently involves string assembly)
-- Easy to test (9 focused unit tests)
-
-All other functions are appropriately sized. Nesting depth is controlled across all files. Test coverage is comprehensive and well-distributed.
-
-**Recommendation**: Accept current complexity. No refactoring required. Consider extracting border helpers in `modal.rs` only if future enhancements add significant logic.
-
-## Grade: A
-
-**Rationale**:
-- No deep nesting issues
-- Only 1 minor violation (modal.rs at 63 lines, acceptable range)
-- Excellent test coverage
-- Clean, idiomatic Rust patterns throughout
-- Good separation of concerns
-- All code serves clear purpose
+## Risk Assessment
+- **High risk**: Markdown rendering due to complexity and edge cases
+- **Medium risk**: Text rendering with soft wrap and cursor positioning
+- **Low risk**: Undo/redo and cursor movement

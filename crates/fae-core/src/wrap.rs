@@ -53,7 +53,7 @@ pub fn wrap_line(text: &str, width: usize) -> Vec<(String, usize)> {
     let mut line_start_col: usize = 0;
 
     for (char_col, ch) in text.chars().enumerate() {
-        let ch_width = UnicodeWidthChar::width(ch).unwrap_or(0);
+        let ch_width = ch.width().unwrap_or(0);
 
         if current_width + ch_width > width && !current_line.is_empty() {
             // Need to wrap — try to find a word boundary to break at
@@ -126,9 +126,7 @@ pub fn line_number_width(line_count: usize) -> u16 {
 
 /// Calculate the display width of a string.
 fn display_width_of(text: &str) -> usize {
-    text.chars()
-        .map(|c| UnicodeWidthChar::width(c).unwrap_or(0))
-        .sum()
+    text.chars().map(|c| c.width().unwrap_or(0)).sum()
 }
 
 /// Find the byte index of the last space character in a string.
