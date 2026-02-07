@@ -2,6 +2,7 @@
 
 mod crossterm_backend;
 mod detect;
+pub mod multiplexer;
 mod profiles;
 mod query;
 mod test_backend;
