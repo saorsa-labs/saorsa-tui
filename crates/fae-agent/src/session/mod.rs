@@ -6,6 +6,8 @@ pub mod autosave;
 pub mod bookmark;
 /// Session branching and forking.
 pub mod branch;
+/// Session export (HTML, etc).
+pub mod export;
 /// Filesystem path utilities.
 pub mod path;
 /// Session continuation and resumption.
@@ -20,6 +22,7 @@ pub mod types;
 pub use autosave::{AutoSaveConfig, AutoSaveManager};
 pub use bookmark::{Bookmark, BookmarkManager};
 pub use branch::{auto_fork_on_edit, fork_session};
+pub use export::export_to_html;
 pub use resume::{find_last_active_session, find_session_by_prefix, restore_session};
 pub use storage::SessionStorage;
 pub use tree::{TreeNode, TreeRenderOptions, build_session_tree, find_in_tree, render_tree};
