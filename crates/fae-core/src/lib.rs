@@ -24,6 +24,7 @@ pub mod widget;
 pub use buffer::{CellChange, ScreenBuffer};
 pub use cell::Cell;
 pub use color::Color;
+pub use compositor::{Compositor, CompositorError, CompositorRegion, Layer};
 pub use error::{FaeCoreError, Result};
 pub use event::{Event, KeyCode, KeyEvent, Modifiers, MouseEvent};
 pub use focus::{FocusManager, FocusState, WidgetId};
