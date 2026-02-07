@@ -1,5 +1,7 @@
 //! Agent configuration.
 
+use crate::context::ContextBundle;
+
 /// Configuration for the agent loop.
 #[derive(Clone, Debug)]
 pub struct AgentConfig {
@@ -11,6 +13,8 @@ pub struct AgentConfig {
     pub max_turns: u32,
     /// Maximum tokens per response.
     pub max_tokens: u32,
+    /// Context bundle (AGENTS.md, SYSTEM.md, user context).
+    pub context: ContextBundle,
 }
 
 impl AgentConfig {
@@ -21,6 +25,7 @@ impl AgentConfig {
             system_prompt: "You are a helpful assistant.".into(),
             max_turns: 10,
             max_tokens: 4096,
+            context: ContextBundle::new(),
         }
     }
 
@@ -42,6 +47,13 @@ impl AgentConfig {
     #[must_use]
     pub fn max_tokens(mut self, max: u32) -> Self {
         self.max_tokens = max;
+        self
+    }
+
+    /// Set the context bundle.
+    #[must_use]
+    pub fn context(mut self, context: ContextBundle) -> Self {
+        self.context = context;
         self
     }
 }

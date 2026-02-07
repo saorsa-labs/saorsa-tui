@@ -16,7 +16,7 @@ pub mod tools;
 
 pub use agent::{AgentLoop, default_tools};
 pub use config::AgentConfig;
-pub use context::ContextDiscovery;
+pub use context::{AgentsContext, ContextBuilder, ContextBundle, ContextDiscovery, SystemContext};
 pub use error::{FaeAgentError, Result};
 pub use event::{AgentEvent, EventReceiver, EventSender, TurnEndReason, event_channel};
 pub use session::{

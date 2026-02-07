@@ -15,4 +15,4 @@ pub mod types;
 pub use agents::AgentsContext;
 pub use discovery::ContextDiscovery;
 pub use system::SystemContext;
-pub use types::{MergeStrategy, SystemMode};
+pub use types::{ContextBuilder, ContextBundle, MergeStrategy, SystemMode};
