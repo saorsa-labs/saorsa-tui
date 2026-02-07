@@ -1,15 +1,15 @@
-# saorsa-app
+# saorsa
 
 An AI coding agent TUI application built on the saorsa framework.
 
-[![Crates.io](https://img.shields.io/crates/v/saorsa-app.svg)](https://crates.io/crates/saorsa-app)
-[![Documentation](https://docs.rs/saorsa-app/badge.svg)](https://docs.rs/saorsa-app)
-[![License](https://img.shields.io/crates/l/saorsa-app.svg)](LICENSE)
+[![Crates.io](https://img.shields.io/crates/v/saorsa.svg)](https://crates.io/crates/saorsa)
+[![Documentation](https://docs.rs/saorsa/badge.svg)](https://docs.rs/saorsa)
+[![License](https://img.shields.io/crates/l/saorsa.svg)](LICENSE)
 [![MSRV](https://img.shields.io/badge/MSRV-1.88-blue.svg)](#minimum-supported-rust-version)
 
 ## Overview
 
-**saorsa-app** is a full-featured AI coding agent that runs in your terminal. It combines the saorsa TUI framework, multi-provider LLM support, and an agent runtime with tool execution into a single interactive application.
+**saorsa** is a full-featured AI coding agent that runs in your terminal. It combines the saorsa TUI framework, multi-provider LLM support, and an agent runtime with tool execution into a single interactive application.
 
 - **Interactive TUI** - Real-time streaming chat with retained-mode rendering
 - **Print mode** - Non-interactive mode for scripting and piping
@@ -22,7 +22,7 @@ An AI coding agent TUI application built on the saorsa framework.
 ## Installation
 
 ```bash
-cargo install saorsa-app
+cargo install saorsa
 ```
 
 Or build from the workspace:
@@ -30,7 +30,7 @@ Or build from the workspace:
 ```bash
 git clone https://github.com/saorsa-labs/saorsa-tui.git
 cd saorsa-tui
-cargo build --release -p saorsa-app
+cargo build --release -p saorsa
 ```
 
 ## Usage
@@ -39,22 +39,22 @@ cargo build --release -p saorsa-app
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
-saorsa-app
+saorsa
 ```
 
 ### Print Mode (scripting)
 
 ```bash
-saorsa-app --print "Explain Rust lifetimes" | tee output.txt
+saorsa --print "Explain Rust lifetimes" | tee output.txt
 ```
 
 ### Session Management
 
 ```bash
-saorsa-app                    # New session
-saorsa-app -c                 # Continue most recent session
-saorsa-app -r abc123          # Resume session by ID prefix
-saorsa-app --ephemeral        # No session persistence
+saorsa                    # New session
+saorsa -c                 # Continue most recent session
+saorsa -r abc123          # Resume session by ID prefix
+saorsa --ephemeral        # No session persistence
 ```
 
 ## CLI Arguments
@@ -204,13 +204,13 @@ CLI Parsing → Mode Selection
 
 ```bash
 # Run tests
-cargo test -p saorsa-app
+cargo test -p saorsa
 
 # Run the application
-cargo run -p saorsa-app
+cargo run -p saorsa
 
 # Run in print mode
-cargo run -p saorsa-app -- --print "Hello"
+cargo run -p saorsa -- --print "Hello"
 ```
 
 ## Minimum Supported Rust Version

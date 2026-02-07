@@ -1,5 +1,5 @@
 [package]
-name = "saorsa-app"
+name = "saorsa"
 description = "AI coding agent TUI application"
 version.workspace = true
 edition.workspace = true

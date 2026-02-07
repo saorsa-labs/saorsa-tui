@@ -11,15 +11,15 @@ Saorsa TUI is a retained-mode, CSS-styled terminal UI framework in Rust, with a 
 | `saorsa-core` | lib | TUI framework: rendering, layout, CSS, widgets, compositor |
 | `saorsa-ai` | lib | Unified multi-provider LLM API (Anthropic, OpenAI, etc.) |
 | `saorsa-agent` | lib | Agent runtime: tool execution, sessions, context engineering |
-| `saorsa-app` | bin+lib | The AI coding agent application |
+| `saorsa` | bin+lib | The AI coding agent application |
 | `saorsa-cli` | bin | Thin CLI entry point |
 
 ### Dependency Graph
 
 ```
-saorsa-cli -> saorsa-app -> saorsa-core
-                          -> saorsa-ai
-                          -> saorsa-agent -> saorsa-ai
+saorsa-cli -> saorsa -> saorsa-core
+                      -> saorsa-ai
+                      -> saorsa-agent -> saorsa-ai
 ```
 
 ## Build Commands

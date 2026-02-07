@@ -1817,6 +1817,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "saorsa"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "crossterm",
+ "futures",
+ "fuzzy-matcher",
+ "saorsa-agent",
+ "saorsa-ai",
+ "saorsa-core",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "saorsa-agent"
 version = "0.1.0"
 dependencies = [
@@ -1853,28 +1870,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "saorsa-app"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "crossterm",
- "futures",
- "fuzzy-matcher",
- "saorsa-agent",
- "saorsa-ai",
- "saorsa-core",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "saorsa-cli"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "saorsa-app",
+ "saorsa",
  "tokio",
 ]
 

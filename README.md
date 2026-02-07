@@ -15,9 +15,9 @@ The framework brings web-like development patterns to the terminal: retained-mod
 ## Workspace Crates
 
 ```
-saorsa-cli ──→ saorsa-app ──→ saorsa-core
-                            ├→ saorsa-ai
-                            └→ saorsa-agent ──→ saorsa-ai
+saorsa-cli ──→ saorsa ──→ saorsa-core
+                        ├→ saorsa-ai
+                        └→ saorsa-agent ──→ saorsa-ai
 ```
 
 | Crate | Type | Description |
@@ -25,7 +25,7 @@ saorsa-cli ──→ saorsa-app ──→ saorsa-core
 | [**saorsa-core**](crates/saorsa-core/) | lib | TUI framework: 24+ widgets, TCSS styling, Taffy layout, reactive signals, compositor |
 | [**saorsa-ai**](crates/saorsa-ai/) | lib | Unified multi-provider LLM API (Anthropic, OpenAI, Gemini, Ollama, + OpenAI-compatible) |
 | [**saorsa-agent**](crates/saorsa-agent/) | lib | Agent runtime: tool execution, sessions, context engineering, extensions |
-| [**saorsa-app**](crates/saorsa-app/) | bin+lib | AI coding agent application with TUI and print modes |
+| [**saorsa**](crates/saorsa/) | bin+lib | AI coding agent application with TUI and print modes |
 | [**saorsa-cli**](crates/saorsa-cli/) | bin | Thin CLI entry point |
 
 ## Quick Start
@@ -42,7 +42,7 @@ cargo build --release
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
-cargo run -p saorsa-app
+cargo run -p saorsa
 ```
 
 ### Use as a library
@@ -87,7 +87,7 @@ saorsa-agent = "0.1"  # Agent runtime
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│                   saorsa-app (Application)                    │
+│                     saorsa (Application)                      │
 │  CLI parsing, TUI event loop, slash commands, settings       │
 └──────────┬──────────────┬──────────────┬────────────────────┘
            │              │              │

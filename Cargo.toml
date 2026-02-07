@@ -4,7 +4,7 @@ members = [
     "crates/saorsa-core",
     "crates/saorsa-ai",
     "crates/saorsa-agent",
-    "crates/saorsa-app",
+    "crates/saorsa",
     "crates/saorsa-cli",
 ]
 
@@ -84,7 +84,7 @@ chrono = { version = "0.4", features = ["serde"] }
 saorsa-core = { version = "0.1.0", path = "crates/saorsa-core" }
 saorsa-ai = { version = "0.1.0", path = "crates/saorsa-ai" }
 saorsa-agent = { version = "0.1.0", path = "crates/saorsa-agent" }
-saorsa-app = { version = "0.1.0", path = "crates/saorsa-app" }
+saorsa = { version = "0.1.0", path = "crates/saorsa" }
 
 [workspace.lints.clippy]
 unwrap_used = { level = "deny", priority = 1 }

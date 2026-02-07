@@ -1,4 +1,4 @@
-//! saorsa-app: The AI coding agent application.
+//! saorsa: The AI coding agent application.
 
 use std::io::Write;
 
@@ -16,10 +16,10 @@ use saorsa_ai::{AnthropicProvider, ProviderConfig, ProviderKind};
 use saorsa_core::render_context::RenderContext;
 use saorsa_core::terminal::{CrosstermBackend, Terminal};
 
-use saorsa_app::app::{AppState, AppStatus};
-use saorsa_app::cli::Cli;
-use saorsa_app::input::{InputAction, handle_event};
-use saorsa_app::ui;
+use saorsa::app::{AppState, AppStatus};
+use saorsa::cli::Cli;
+use saorsa::input::{InputAction, handle_event};
+use saorsa::ui;
 
 /// Type alias for session loading result
 type SessionLoadResult = Result<Option<(String, Vec<Message>)>, Box<dyn std::error::Error>>;

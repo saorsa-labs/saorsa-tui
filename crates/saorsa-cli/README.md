@@ -8,9 +8,9 @@ Thin CLI entry point for the saorsa-tui AI coding agent.
 
 ## Overview
 
-**saorsa-cli** is the command-line entry point for the saorsa-tui project. It is a thin wrapper that delegates to `saorsa-app` for all application logic.
+**saorsa-cli** is the command-line entry point for the saorsa-tui project. It is a thin wrapper that delegates to `saorsa` for all application logic.
 
-This crate exists as a separate binary to keep the CLI entry point minimal and to allow `saorsa-app` to be used as both a library and a binary.
+This crate exists as a separate binary to keep the CLI entry point minimal and to allow `saorsa` to be used as both a library and a binary.
 
 ## Installation
 
@@ -24,17 +24,17 @@ cargo install saorsa-cli
 # Run the AI coding agent
 saorsa-cli
 
-# For the full interactive experience, run saorsa-app directly:
-saorsa-app
+# For the full interactive experience, run saorsa directly:
+saorsa
 ```
 
-See the [saorsa-app README](../saorsa-app/README.md) for complete usage documentation including CLI arguments, slash commands, and keybindings.
+See the [saorsa README](../saorsa/README.md) for complete usage documentation including CLI arguments, slash commands, and keybindings.
 
 ## Architecture
 
 ```
 saorsa-cli (thin binary)
-    └→ saorsa-app (application logic + TUI)
+    └→ saorsa (application logic + TUI)
          ├→ saorsa-core (TUI framework)
          ├→ saorsa-ai (LLM providers)
          └→ saorsa-agent (agent runtime + tools)

@@ -1,9 +1,9 @@
-//! Integration tests for saorsa-app features.
+//! Integration tests for saorsa features.
 
-use saorsa_app::autocomplete::Autocomplete;
-use saorsa_app::keybindings::KeybindingMap;
-use saorsa_app::operating_mode::OperatingMode;
-use saorsa_app::widgets::{MessageQueue, ModelSelector, Settings, SettingsScreen};
+use saorsa::autocomplete::Autocomplete;
+use saorsa::keybindings::KeybindingMap;
+use saorsa::operating_mode::OperatingMode;
+use saorsa::widgets::{MessageQueue, ModelSelector, Settings, SettingsScreen};
 use std::str::FromStr;
 
 #[test]
