@@ -15,6 +15,13 @@ async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tracing = { workspace = true }
+similar = "2.6"
+regex = "1.11"
+walkdir = "2.5"
+globset = "0.4"
+
+[dev-dependencies]
+tempfile = { workspace = true }
 
 [lints]
 workspace = true
