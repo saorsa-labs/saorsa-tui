@@ -7,6 +7,10 @@
 //! - Skills system for on-demand capabilities
 //! - Prompt templates
 
+pub mod agents;
 pub mod discovery;
+pub mod types;
 
+pub use agents::AgentsContext;
 pub use discovery::ContextDiscovery;
+pub use types::{MergeStrategy, SystemMode};
