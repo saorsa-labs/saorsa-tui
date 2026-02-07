@@ -10,6 +10,7 @@
 
 pub mod command_registry;
 pub mod keybinding_registry;
+pub mod package_manager;
 pub mod registry;
 pub mod tool_registry;
 pub mod widget_registry;
@@ -18,6 +19,7 @@ use crate::error::Result;
 
 pub use command_registry::{CommandDefinition, CommandHandler, CommandRegistry};
 pub use keybinding_registry::{KeybindingDefinition, KeybindingHandler, KeybindingRegistry};
+pub use package_manager::{ExtensionPackage, PackageManager};
 pub use registry::{ExtensionRegistry, SharedExtensionRegistry, shared_registry};
 pub use tool_registry::{ToolDefinition, ToolHandler, ToolParameter, ToolRegistry};
 pub use widget_registry::{OverlayConfig, WidgetFactory, WidgetRegistry};
@@ -75,7 +77,7 @@ pub trait Extension: Send + Sync {
 }
 
 /// Metadata describing an extension.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ExtensionMetadata {
     /// Unique extension name.
     pub name: String,
