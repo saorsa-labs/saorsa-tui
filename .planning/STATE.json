@@ -20,9 +20,8 @@
   "review": {
     "status": "passed",
     "iteration": 1,
-    "last_verdict": null,
-    "verdict": "APPROVED"
+    "last_verdict": "APPROVED"
   },
-  "status": "reviewing",
-  "last_updated": "2026-02-07T15:00:00Z"
+  "status": "complete",
+  "last_updated": "2026-02-07T15:30:00Z"
 }
