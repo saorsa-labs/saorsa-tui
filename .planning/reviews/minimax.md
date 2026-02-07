@@ -1,7 +1,5 @@
 # MiniMax External Review
-**Date**: 2026-02-07 14:20:27
-**Status**: SKIPPED
-
-External reviewer not required for internal phase review.
+**Date**: 2026-02-07
+**Status**: SKIPPED (CLI unavailable)
 
 ## Grade: N/A
