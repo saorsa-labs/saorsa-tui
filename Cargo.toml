@@ -34,11 +34,14 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # Terminal
-crossterm = "0.28"
+crossterm = { version = "0.28", features = ["event-stream"] }
 
 # Unicode
 unicode-width = "0.2"
 unicode-segmentation = "1.12"
+
+# CLI
+clap = { version = "4.5", features = ["derive", "env"] }
 
 # Logging
 tracing = "0.1"

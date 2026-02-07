@@ -10,6 +10,7 @@ repository.workspace = true
 [dependencies]
 anyhow = { workspace = true }
 fae-app = { workspace = true }
+tokio = { workspace = true }
 
 [lints]
 workspace = true

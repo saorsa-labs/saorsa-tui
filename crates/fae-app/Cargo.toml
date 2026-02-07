@@ -13,7 +13,11 @@ fae-core = { workspace = true }
 fae-ai = { workspace = true }
 fae-agent = { workspace = true }
 tokio = { workspace = true }
+clap = { workspace = true }
+crossterm = { workspace = true }
+futures = { workspace = true }
 tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 
 [lints]
 workspace = true

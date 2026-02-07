@@ -249,3 +249,66 @@
 - **Zero clippy warnings**
 - **Zero compilation errors**
 - **All formatting clean**
+
+---
+
+## Phase 1.6: Minimal Chat App (fae-app)
+
+### Task 1: CLI Arguments
+- `cli.rs`: Clap-based argument parsing with derive macros
+- Options: --model, --api-key (env=ANTHROPIC_API_KEY), --system-prompt, --max-tokens, --max-turns, --print
+- api_key() method returns Result for clear error when missing
+- 5 tests
+
+### Task 2: Application State
+- `app.rs`: AppState with messages, input buffer, cursor, status, model info
+- ChatMessage with ChatRole (User/Assistant/Tool/System)
+- AppStatus enum (Idle/Thinking/ToolRunning)
+- Input editing: insert_char, delete_char_before, cursor_left/right, take_input
+- 10 tests
+
+### Task 3: UI Rendering
+- `ui.rs`: Three-panel layout (header, messages, input)
+- Header bar: model name + status indicator
+- Message display with role-based coloring (green user, cyan assistant, yellow tool, magenta system)
+- Streaming text display during agent response
+- Container-bordered input area with contextual title
+- 7 tests
+
+### Task 4: Input Handling
+- `input.rs`: Event dispatch to InputAction (None/Submit/Quit/Redraw)
+- Ctrl-C always quits, Ctrl-D quits on empty input
+- Enter submits, Escape clears, Home/End cursor movement
+- Character input guarded against Ctrl/Alt modifiers
+- 12 tests
+
+### Task 5: Main Application Loop
+- `main.rs`: Async tokio runtime with two modes
+- Print mode: single prompt → stdout, no TUI
+- Interactive mode: crossterm EventStream, terminal raw mode, mouse capture
+- Agent interaction: spawns AgentLoop, processes AgentEvents for live UI updates
+- Double-buffered rendering via RenderContext + CrosstermBackend
+
+### Task 6: Wire Up lib.rs & fae-cli
+- `lib.rs`: Exports app, cli, input, ui modules
+- `fae-cli/src/main.rs`: Thin binary wrapper
+
+### Summary
+- **240 tests passing** (33 new in fae-app)
+- **Zero clippy warnings**
+- **Zero compilation errors**
+- **All formatting clean**
+
+---
+
+## Milestone 1: Foundation — COMPLETE
+
+All 6 phases completed:
+- Phase 1.1: Workspace & Core Types (48 tests)
+- Phase 1.2: Screen Buffer & Rendering (91 tests)
+- Phase 1.3: Basic Layout & Widgets (148 tests)
+- Phase 1.4: Anthropic Provider (182 tests)
+- Phase 1.5: Agent Loop (207 tests)
+- Phase 1.6: Minimal Chat App (240 tests)
+
+Total: **240 tests, zero warnings, zero errors**

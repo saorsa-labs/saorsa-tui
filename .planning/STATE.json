@@ -4,12 +4,13 @@
   "active": true,
   "milestone": {
     "number": 1,
-    "name": "Foundation"
+    "name": "Foundation",
+    "status": "complete"
   },
   "phase": {
-    "number": "1.5",
-    "name": "Agent Loop (fae-agent)",
-    "plan": "PLAN-phase-1.5.md"
+    "number": "1.6",
+    "name": "Minimal Chat App (fae-app)",
+    "plan": "PLAN-phase-1.6.md"
   },
   "progress": {
     "total_tasks": 6,
@@ -19,8 +20,8 @@
   "review": {
     "status": "passed",
     "iteration": 1,
-    "last_verdict": "207 tests, 0 warnings"
+    "last_verdict": "240 tests, 0 warnings"
   },
-  "status": "phase_complete",
-  "last_updated": "2026-02-07T00:45:00Z"
+  "status": "milestone_complete",
+  "last_updated": "2026-02-07T01:30:00Z"
 }
