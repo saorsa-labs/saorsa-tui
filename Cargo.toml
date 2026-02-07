@@ -52,6 +52,9 @@ taffy = "0.7"
 # Text editing
 ropey = "1.6"
 
+# Fuzzy matching
+fuzzy-matcher = "0.3"
+
 # Markdown parsing
 pulldown-cmark = "0.12"
 
