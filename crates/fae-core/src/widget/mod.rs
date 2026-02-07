@@ -1,10 +1,12 @@
 //! Widget traits and built-in widgets.
 
 pub mod border;
+pub mod collapsible;
 pub mod container;
 pub mod data_table;
 pub mod diff_view;
 pub mod directory_tree;
+pub mod form_controls;
 pub mod label;
 pub mod loading_indicator;
 pub mod markdown;
@@ -19,10 +21,12 @@ pub mod toast;
 pub mod tooltip;
 pub mod tree;
 
+pub use collapsible::Collapsible;
 pub use container::{BorderStyle, Container};
 pub use data_table::{Column, DataTable};
 pub use diff_view::{DiffMode, DiffView};
 pub use directory_tree::DirectoryTree;
+pub use form_controls::{Checkbox, RadioButton, Switch};
 pub use label::{Alignment, Label};
 pub use loading_indicator::{IndicatorStyle, LoadingIndicator};
 pub use markdown::MarkdownRenderer;

@@ -57,9 +57,10 @@ pub use text_buffer::TextBuffer;
 pub use undo::{EditOperation, UndoStack};
 pub use viewport::Viewport;
 pub use widget::{
-    Alignment, BorderStyle, Column, Container, DataTable, DiffMode, DiffView, DirectoryTree,
-    EventResult, IndicatorStyle, Label, LoadingIndicator, MarkdownRenderer, Modal, ProgressBar,
-    ProgressMode, RichLog, SelectList, StaticWidget, Tab, TabBarPosition, Tabs, TextArea, Toast,
-    ToastPosition, Tooltip, Tree, TreeNode, Widget,
+    Alignment, BorderStyle, Checkbox, Collapsible, Column, Container, DataTable, DiffMode,
+    DiffView, DirectoryTree, EventResult, IndicatorStyle, Label, LoadingIndicator,
+    MarkdownRenderer, Modal, ProgressBar, ProgressMode, RadioButton, RichLog, SelectList,
+    StaticWidget, Switch, Tab, TabBarPosition, Tabs, TextArea, Toast, ToastPosition, Tooltip, Tree,
+    TreeNode, Widget,
 };
 pub use wrap::{WrapLine, WrapResult, line_number_width, wrap_line, wrap_lines};
