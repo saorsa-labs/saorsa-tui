@@ -6,5 +6,6 @@
 
 pub mod app;
 pub mod cli;
+pub mod commands;
 pub mod input;
 pub mod ui;
