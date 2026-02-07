@@ -16,6 +16,7 @@ pub mod geometry;
 pub mod highlight;
 pub mod layout;
 pub mod overlay;
+pub mod reactive;
 pub mod render_context;
 pub mod renderer;
 pub mod segment;
@@ -44,6 +45,7 @@ pub use layout::{
     ScrollManager, ScrollState,
 };
 pub use overlay::{OverlayConfig, OverlayId, OverlayPosition, Placement, ScreenStack};
+pub use reactive::{Computed, Effect, ReactiveScope, Signal, batch};
 pub use render_context::RenderContext;
 pub use renderer::{DeltaBatch, Renderer, batch_changes, build_sgr_sequence};
 pub use segment::Segment;

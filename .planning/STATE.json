@@ -3,13 +3,13 @@
   "project": "fae",
   "active": true,
   "milestone": {
-    "number": 4,
-    "name": "Widget Library"
+    "number": 5,
+    "name": "Reactive System"
   },
   "phase": {
-    "number": "4.3",
-    "name": "UI Widgets",
-    "plan": "PLAN-phase-4.3.md",
+    "number": "5.1",
+    "name": "Signals & Computed",
+    "plan": "PLAN-phase-5.1.md",
     "status": "complete"
   },
   "progress": {
@@ -18,10 +18,10 @@
     "current_task": 8
   },
   "review": {
-    "status": "passed",
-    "iteration": 1,
-    "last_verdict": "approved"
+    "status": "pending",
+    "iteration": 0,
+    "last_verdict": null
   },
-  "status": "milestone_complete",
-  "last_updated": "2026-02-07T16:38:00Z"
+  "status": "reviewing",
+  "last_updated": "2026-02-07T18:00:00Z"
 }

@@ -33,6 +33,10 @@ pub enum FaeCoreError {
     #[error("unicode error: {0}")]
     Unicode(String),
 
+    /// Reactive system error.
+    #[error("reactive error: {0}")]
+    Reactive(String),
+
     /// Internal error.
     #[error("internal error: {0}")]
     Internal(String),
