@@ -1,0 +1,17 @@
+# Cross-compilation configuration for fae
+#
+# Native builds:
+#   cargo build --release
+#
+# Cross-compile for Linux from macOS:
+#   cargo zigbuild --release --target x86_64-unknown-linux-gnu -p fae-cli
+#   cargo zigbuild --release --target aarch64-unknown-linux-gnu -p fae-cli
+#
+# Cross-compile using `cross` (for CI):
+#   cross build --release --target aarch64-unknown-linux-gnu -p fae-cli
+
+[target.aarch64-unknown-linux-gnu]
+linker = "aarch64-linux-gnu-gcc"
+
+[target.x86_64-unknown-linux-gnu]
+linker = "x86_64-linux-gnu-gcc"
