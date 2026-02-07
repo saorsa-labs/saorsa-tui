@@ -4,6 +4,10 @@
 
 use std::fmt;
 
+use cssparser::{Parser, ParserInput, Token};
+
+use crate::tcss::error::TcssError;
+
 /// A single simple selector component.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SimpleSelector {
@@ -221,6 +225,24 @@ impl SelectorList {
         Self { selectors }
     }
 
+    /// Parse a comma-separated selector list from a CSS string.
+    pub fn parse(input: &str) -> Result<Self, TcssError> {
+        let mut parser_input = ParserInput::new(input);
+        let mut parser = Parser::new(&mut parser_input);
+        Self::parse_from(&mut parser)
+    }
+
+    /// Parse a selector list from a cssparser `Parser`.
+    pub fn parse_from(input: &mut Parser<'_, '_>) -> Result<Self, TcssError> {
+        let mut selectors = vec![parse_selector(input)?];
+
+        while input.try_parse(|p| p.expect_comma()).is_ok() {
+            selectors.push(parse_selector(input)?);
+        }
+
+        Ok(Self { selectors })
+    }
+
     /// Return the highest specificity among all selectors in the list.
     pub fn max_specificity(&self) -> (u16, u16, u16) {
         self.selectors
@@ -240,6 +262,136 @@ impl fmt::Display for SelectorList {
             write!(f, "{selector}")?;
         }
         Ok(())
+    }
+}
+
+/// Parse a single complex selector from CSS input.
+///
+/// A complex selector is one or more compound selectors joined by combinators.
+fn parse_selector(input: &mut Parser<'_, '_>) -> Result<Selector, TcssError> {
+    let mut compounds = vec![parse_compound_selector(input)?];
+    let mut combinators = Vec::new();
+
+    loop {
+        // Try to detect a combinator: `>` for child, whitespace for descendant.
+        let combinator = input.try_parse(|input| {
+            if input.try_parse(|p| p.expect_delim('>')).is_ok() {
+                Ok(Combinator::Child)
+            } else {
+                // Check if there's another compound selector following (descendant combinator).
+                // We peek at the next token — if it's an ident, `.`, `#`, `*`, or `:`,
+                // there's a descendant relationship.
+                let state = input.state();
+                match input.next() {
+                    Ok(
+                        Token::Ident(_)
+                        | Token::Delim('.')
+                        | Token::Delim('*')
+                        | Token::Colon
+                        | Token::IDHash(_),
+                    ) => {
+                        input.reset(&state);
+                        Ok(Combinator::Descendant)
+                    }
+                    _ => {
+                        input.reset(&state);
+                        Err(input.new_error_for_next_token::<()>())
+                    }
+                }
+            }
+        });
+
+        match combinator {
+            Ok(c) => {
+                combinators.push(c);
+                compounds.push(parse_compound_selector(input)?);
+            }
+            Err(_) => break,
+        }
+    }
+
+    // Build the selector: the last compound is the head (subject),
+    // earlier compounds form the chain with their combinators.
+    let head = compounds.pop().ok_or_else(|| {
+        TcssError::SelectorError("expected at least one selector component".into())
+    })?;
+
+    let chain: Vec<(Combinator, CompoundSelector)> = combinators
+        .into_iter()
+        .zip(compounds)
+        .collect();
+
+    Ok(Selector { head, chain })
+}
+
+/// Parse a compound selector (no combinators).
+fn parse_compound_selector(input: &mut Parser<'_, '_>) -> Result<CompoundSelector, TcssError> {
+    let mut components = Vec::new();
+
+    // Parse the first component (required).
+    components.push(parse_simple_selector(input)?);
+
+    // Parse additional components that are directly attached (no whitespace).
+    loop {
+        let result: Result<SimpleSelector, cssparser::ParseError<'_, ()>> =
+            input.try_parse(|input| {
+                let token = input.next_including_whitespace()?.clone();
+
+                match &token {
+                    Token::Delim('.') => {
+                        let name = input.expect_ident()?.to_string();
+                        Ok(SimpleSelector::Class(name))
+                    }
+                    Token::Colon => {
+                        let name = input.expect_ident()?.to_string();
+                        PseudoClass::from_name(&name)
+                            .map(SimpleSelector::PseudoClass)
+                            .ok_or_else(|| input.new_error_for_next_token::<()>())
+                    }
+                    Token::IDHash(name) => Ok(SimpleSelector::Id(name.to_string())),
+                    _ => Err(input.new_error_for_next_token::<()>()),
+                }
+            });
+
+        match result {
+            Ok(component) => components.push(component),
+            Err(_) => break,
+        }
+    }
+
+    Ok(CompoundSelector::new(components))
+}
+
+/// Parse a single simple selector.
+fn parse_simple_selector(input: &mut Parser<'_, '_>) -> Result<SimpleSelector, TcssError> {
+    let token = input
+        .next()
+        .map_err(|e| TcssError::SelectorError(format!("{e:?}")))?
+        .clone();
+
+    match &token {
+        Token::Ident(name) => Ok(SimpleSelector::Type(name.to_string())),
+        Token::Delim('*') => Ok(SimpleSelector::Universal),
+        Token::Delim('.') => {
+            let name = input
+                .expect_ident()
+                .map_err(|e| TcssError::SelectorError(format!("{e:?}")))?
+                .to_string();
+            Ok(SimpleSelector::Class(name))
+        }
+        Token::IDHash(name) => Ok(SimpleSelector::Id(name.to_string())),
+        Token::Colon => {
+            let name = input
+                .expect_ident()
+                .map_err(|e| TcssError::SelectorError(format!("{e:?}")))?
+                .to_string();
+            PseudoClass::from_name(&name)
+                .map(SimpleSelector::PseudoClass)
+                .ok_or_else(|| TcssError::SelectorError(format!("unknown pseudo-class: {name}")))
+        }
+        other => Err(TcssError::SelectorError(format!(
+            "expected selector, got {other:?}"
+        ))),
     }
 }
 
@@ -400,5 +552,153 @@ mod tests {
         assert_eq!(PseudoClass::Focus.to_string(), ":focus");
         assert_eq!(PseudoClass::NthChild(3).to_string(), ":nth-child(3)");
         assert_eq!(PseudoClass::FirstChild.to_string(), ":first-child");
+    }
+
+    // --- Parsing tests ---
+
+    /// Helper to parse and assert success, returning the selector list.
+    fn parse_ok(input: &str) -> SelectorList {
+        let result = SelectorList::parse(input);
+        assert!(result.is_ok(), "parse failed for '{input}': {result:?}");
+        // Safe: we just asserted Ok above.
+        match result {
+            Ok(list) => list,
+            Err(_) => unreachable!(),
+        }
+    }
+
+    #[test]
+    fn parse_type_selector() {
+        let list = parse_ok("Label");
+        assert_eq!(list.selectors.len(), 1);
+        assert_eq!(list.selectors[0].head.components.len(), 1);
+        assert_eq!(
+            list.selectors[0].head.components[0],
+            SimpleSelector::Type("Label".into())
+        );
+    }
+
+    #[test]
+    fn parse_class_selector() {
+        let list = parse_ok(".error");
+        assert_eq!(
+            list.selectors[0].head.components[0],
+            SimpleSelector::Class("error".into())
+        );
+    }
+
+    #[test]
+    fn parse_id_selector() {
+        let list = parse_ok("#sidebar");
+        assert_eq!(
+            list.selectors[0].head.components[0],
+            SimpleSelector::Id("sidebar".into())
+        );
+    }
+
+    #[test]
+    fn parse_universal_selector() {
+        let list = parse_ok("*");
+        assert_eq!(
+            list.selectors[0].head.components[0],
+            SimpleSelector::Universal
+        );
+    }
+
+    #[test]
+    fn parse_pseudo_class_focus() {
+        let list = parse_ok(":focus");
+        assert_eq!(
+            list.selectors[0].head.components[0],
+            SimpleSelector::PseudoClass(PseudoClass::Focus)
+        );
+    }
+
+    #[test]
+    fn parse_pseudo_class_hover() {
+        let list = parse_ok(":hover");
+        assert_eq!(
+            list.selectors[0].head.components[0],
+            SimpleSelector::PseudoClass(PseudoClass::Hover)
+        );
+    }
+
+    #[test]
+    fn parse_compound_type_and_class() {
+        let list = parse_ok("Label.error");
+        let head = &list.selectors[0].head;
+        assert_eq!(head.components.len(), 2);
+        assert_eq!(head.components[0], SimpleSelector::Type("Label".into()));
+        assert_eq!(head.components[1], SimpleSelector::Class("error".into()));
+    }
+
+    #[test]
+    fn parse_child_combinator() {
+        let list = parse_ok("Container > Label");
+        let sel = &list.selectors[0];
+        assert_eq!(
+            sel.head.components[0],
+            SimpleSelector::Type("Label".into())
+        );
+        assert_eq!(sel.chain.len(), 1);
+        assert_eq!(sel.chain[0].0, Combinator::Child);
+        assert_eq!(
+            sel.chain[0].1.components[0],
+            SimpleSelector::Type("Container".into())
+        );
+    }
+
+    #[test]
+    fn parse_descendant_combinator() {
+        let list = parse_ok("Container Label");
+        let sel = &list.selectors[0];
+        assert_eq!(
+            sel.head.components[0],
+            SimpleSelector::Type("Label".into())
+        );
+        assert_eq!(sel.chain.len(), 1);
+        assert_eq!(sel.chain[0].0, Combinator::Descendant);
+    }
+
+    #[test]
+    fn parse_selector_list_comma() {
+        let list = parse_ok("Label, Container");
+        assert_eq!(list.selectors.len(), 2);
+    }
+
+    #[test]
+    fn parse_complex_selector() {
+        let list = parse_ok("Container > Label.error:focus");
+        let sel = &list.selectors[0];
+        // head = Label.error:focus
+        assert_eq!(sel.head.components.len(), 3);
+        assert_eq!(
+            sel.head.components[0],
+            SimpleSelector::Type("Label".into())
+        );
+        assert_eq!(
+            sel.head.components[1],
+            SimpleSelector::Class("error".into())
+        );
+        assert_eq!(
+            sel.head.components[2],
+            SimpleSelector::PseudoClass(PseudoClass::Focus)
+        );
+        // chain = Container >
+        assert_eq!(sel.chain.len(), 1);
+        assert_eq!(sel.chain[0].0, Combinator::Child);
+    }
+
+    #[test]
+    fn parse_invalid_selector() {
+        let result = SelectorList::parse("123");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_specificity_after_parse() {
+        let list = parse_ok("Container > Label.error#main");
+        // Container(0,0,1) + Label(0,0,1) + .error(0,1,0) + #main(1,0,0) = (1,1,2)
+        assert_eq!(list.selectors[0].specificity(), (1, 1, 2));
     }
 }
