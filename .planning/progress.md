@@ -203,3 +203,49 @@
 - **Zero clippy warnings**
 - **Zero compilation errors**
 - **All formatting clean**
+
+---
+
+## Phase 1.5: Agent Loop (fae-agent)
+
+### Task 1: Tool Trait & Registry
+- `tool.rs`: Tool async trait with name, description, input_schema, execute
+- ToolRegistry: register, get, definitions, names, len/is_empty
+- to_definition() converts Tool to fae-ai ToolDefinition
+- 6 tests
+
+### Task 2: Bash Tool
+- `tools/bash.rs`: Shell command execution via tokio::process::Command
+- Stdout/stderr capture, exit code reporting
+- Configurable timeout (default 120s), output truncation (100KB)
+- Working directory support
+- 8 tests
+
+### Task 3: Agent Events
+- `event.rs`: AgentEvent enum (TurnStart/TextDelta/ToolCall/ToolResult/TextComplete/TurnEnd/Error)
+- TurnEndReason enum (EndTurn/ToolUse/MaxTurns/MaxTokens/Error)
+- EventSender/EventReceiver type aliases, event_channel() factory
+- 4 tests
+
+### Task 4: Agent Loop
+- `agent.rs`: AgentLoop with streaming provider integration
+- run() method: send user message, stream response, handle tool calls, loop
+- Collects text deltas and tool calls from StreamEvent variants
+- Tool execution with registry lookup, error handling for unknown tools
+- Maximum turn limit safety, conversation history tracking
+- 3 tests (with MockProvider for isolated testing)
+
+### Task 5: Agent Configuration
+- `config.rs`: AgentConfig with model, system_prompt, max_turns, max_tokens
+- Builder pattern with defaults (claude-sonnet-4-5, 10 turns, 4096 tokens)
+- 3 tests
+
+### Task 6: Wire Up lib.rs
+- All modules declared: agent, config, error, event, tool, tools
+- Re-exported: AgentLoop, AgentConfig, AgentEvent, Tool, ToolRegistry, BashTool
+
+### Summary
+- **207 tests passing** (25 new in fae-agent)
+- **Zero clippy warnings**
+- **Zero compilation errors**
+- **All formatting clean**

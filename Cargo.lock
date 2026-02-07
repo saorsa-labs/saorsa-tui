@@ -157,6 +157,7 @@ dependencies = [
 name = "fae-agent"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "fae-ai",
  "serde",
  "serde_json",

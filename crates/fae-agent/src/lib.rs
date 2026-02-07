@@ -1,8 +1,18 @@
 //! fae-agent: AI coding agent runtime.
 //!
-//! Provides the agent loop, built-in tools (read, write, edit, bash),
-//! session management, and context engineering for AI coding agents.
+//! Provides the agent loop, built-in tools (bash),
+//! event system for UI integration, and tool registry.
 
+pub mod agent;
+pub mod config;
 pub mod error;
+pub mod event;
+pub mod tool;
+pub mod tools;
 
+pub use agent::AgentLoop;
+pub use config::AgentConfig;
 pub use error::{FaeAgentError, Result};
+pub use event::{AgentEvent, EventReceiver, EventSender, TurnEndReason, event_channel};
+pub use tool::{Tool, ToolRegistry};
+pub use tools::BashTool;

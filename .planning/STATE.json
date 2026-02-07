@@ -7,9 +7,9 @@
     "name": "Foundation"
   },
   "phase": {
-    "number": "1.4",
-    "name": "Anthropic Provider (fae-ai)",
-    "plan": "PLAN-phase-1.4.md"
+    "number": "1.5",
+    "name": "Agent Loop (fae-agent)",
+    "plan": "PLAN-phase-1.5.md"
   },
   "progress": {
     "total_tasks": 6,
@@ -19,8 +19,8 @@
   "review": {
     "status": "passed",
     "iteration": 1,
-    "last_verdict": "182 tests, 0 warnings"
+    "last_verdict": "207 tests, 0 warnings"
   },
   "status": "phase_complete",
-  "last_updated": "2026-02-07T00:30:00Z"
+  "last_updated": "2026-02-07T00:45:00Z"
 }
