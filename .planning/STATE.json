@@ -3,25 +3,24 @@
   "project": "fae",
   "active": true,
   "milestone": {
-    "number": 1,
-    "name": "Foundation",
-    "status": "complete"
+    "number": 2,
+    "name": "CSS & Layout Engine"
   },
   "phase": {
-    "number": "1.6",
-    "name": "Minimal Chat App (fae-app)",
-    "plan": "PLAN-phase-1.6.md"
+    "number": "2.1",
+    "name": "TCSS Parser",
+    "plan": "PLAN-phase-2.1.md"
   },
   "progress": {
-    "total_tasks": 6,
-    "completed_tasks": 6,
-    "current_task": 6
+    "total_tasks": 8,
+    "completed_tasks": 0,
+    "current_task": 1
   },
   "review": {
-    "status": "passed",
-    "iteration": 1,
-    "last_verdict": "240 tests, 0 warnings"
+    "status": "pending",
+    "iteration": 0,
+    "last_verdict": null
   },
-  "status": "milestone_complete",
-  "last_updated": "2026-02-07T01:30:00Z"
+  "status": "executing",
+  "last_updated": "2026-02-07T01:40:00Z"
 }

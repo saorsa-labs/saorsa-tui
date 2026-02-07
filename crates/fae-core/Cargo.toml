@@ -12,6 +12,7 @@ thiserror = { workspace = true }
 crossterm = { workspace = true }
 unicode-width = { workspace = true }
 unicode-segmentation = { workspace = true }
+cssparser = { workspace = true }
 tracing = { workspace = true }
 
 [lints]

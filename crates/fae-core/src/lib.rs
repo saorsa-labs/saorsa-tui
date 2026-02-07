@@ -16,6 +16,7 @@ pub mod render_context;
 pub mod renderer;
 pub mod segment;
 pub mod style;
+pub mod tcss;
 pub mod terminal;
 pub mod widget;
 
