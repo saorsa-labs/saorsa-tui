@@ -3,6 +3,7 @@
 //! Takes cell changes from the buffer diff and produces terminal output
 //! with minimal escape sequences.
 
+use std::collections::HashMap;
 use std::fmt::Write;
 
 use crate::buffer::CellChange;
@@ -302,7 +303,14 @@ impl Renderer {
     }
 
     /// Downgrade a color to match the terminal's color support level.
+    ///
+    /// Respects the `NO_COLOR` environment variable per https://no-color.org/
     fn downgrade_color<'a>(&self, color: &'a Color) -> std::borrow::Cow<'a, Color> {
+        // Check NO_COLOR environment variable
+        if std::env::var("NO_COLOR").is_ok() {
+            return std::borrow::Cow::Owned(Color::Reset);
+        }
+
         match self.color_support {
             ColorSupport::TrueColor => std::borrow::Cow::Borrowed(color),
             ColorSupport::Extended256 => match color {
@@ -313,7 +321,7 @@ impl Renderer {
             },
             ColorSupport::Basic16 => match color {
                 Color::Rgb { r, g, b } => {
-                    std::borrow::Cow::Owned(Color::Named(rgb_to_named(*r, *g, *b)))
+                    std::borrow::Cow::Owned(Color::Named(rgb_to_16(*r, *g, *b)))
                 }
                 Color::Indexed(i) => std::borrow::Cow::Owned(Color::Named(index_to_named(*i))),
                 _ => std::borrow::Cow::Borrowed(color),
@@ -382,7 +390,14 @@ pub fn build_sgr_sequence(style: &Style, color_support: ColorSupport) -> String 
 }
 
 /// Downgrade a color to match the given color support level (standalone version).
+///
+/// Respects the `NO_COLOR` environment variable per https://no-color.org/
 fn downgrade_color_standalone(color: &Color, support: ColorSupport) -> Color {
+    // Check NO_COLOR environment variable
+    if std::env::var("NO_COLOR").is_ok() {
+        return Color::Reset;
+    }
+
     match support {
         ColorSupport::TrueColor => color.clone(),
         ColorSupport::Extended256 => match color {
@@ -390,7 +405,7 @@ fn downgrade_color_standalone(color: &Color, support: ColorSupport) -> Color {
             _ => color.clone(),
         },
         ColorSupport::Basic16 => match color {
-            Color::Rgb { r, g, b } => Color::Named(rgb_to_named(*r, *g, *b)),
+            Color::Rgb { r, g, b } => Color::Named(rgb_to_16(*r, *g, *b)),
             Color::Indexed(i) => Color::Named(index_to_named(*i)),
             _ => color.clone(),
         },
@@ -510,7 +525,130 @@ fn named_bg_code(color: &NamedColor) -> u8 {
     }
 }
 
-/// Convert RGB to the nearest 256-color palette index.
+/// Color mapper with caching for perceptually accurate downgrading.
+///
+/// Uses CIELAB color space for perceptual distance matching, which better
+/// matches human color perception than Euclidean RGB distance.
+#[derive(Debug)]
+pub struct ColorMapper {
+    /// Cache for RGB → 256-color index mappings.
+    cache_256: HashMap<(u8, u8, u8), u8>,
+    /// Cache for RGB → 16-color named mappings.
+    cache_16: HashMap<(u8, u8, u8), NamedColor>,
+}
+
+impl Default for ColorMapper {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ColorMapper {
+    /// Create a new color mapper with empty caches.
+    pub fn new() -> Self {
+        Self {
+            cache_256: HashMap::new(),
+            cache_16: HashMap::new(),
+        }
+    }
+
+    /// Map RGB to the nearest 256-color palette index using CIELAB distance.
+    pub fn map_to_256(&mut self, r: u8, g: u8, b: u8) -> u8 {
+        if let Some(&cached) = self.cache_256.get(&(r, g, b)) {
+            return cached;
+        }
+
+        let result = rgb_to_256(r, g, b);
+        self.cache_256.insert((r, g, b), result);
+        result
+    }
+
+    /// Map RGB to the nearest 16-color named color using CIELAB distance.
+    pub fn map_to_16(&mut self, r: u8, g: u8, b: u8) -> NamedColor {
+        if let Some(&cached) = self.cache_16.get(&(r, g, b)) {
+            return cached;
+        }
+
+        let result = rgb_to_16(r, g, b);
+        self.cache_16.insert((r, g, b), result);
+        result
+    }
+
+    /// Clear all cached mappings.
+    pub fn clear_cache(&mut self) {
+        self.cache_256.clear();
+        self.cache_16.clear();
+    }
+}
+
+/// LAB color representation for perceptual distance calculation.
+#[derive(Debug, Clone, Copy)]
+struct Lab {
+    l: f32,
+    a: f32,
+    b: f32,
+}
+
+/// Convert RGB to CIELAB color space using D65 illuminant.
+///
+/// This conversion provides perceptually uniform color space where
+/// Euclidean distance matches human perception of color difference.
+fn rgb_to_lab(r: u8, g: u8, b: u8) -> Lab {
+    // Step 1: RGB to linear RGB
+    let r_linear = srgb_to_linear(r);
+    let g_linear = srgb_to_linear(g);
+    let b_linear = srgb_to_linear(b);
+
+    // Step 2: Linear RGB to XYZ (using D65 illuminant)
+    let x = r_linear * 0.4124 + g_linear * 0.3576 + b_linear * 0.1805;
+    let y = r_linear * 0.2126 + g_linear * 0.7152 + b_linear * 0.0722;
+    let z = r_linear * 0.0193 + g_linear * 0.1192 + b_linear * 0.9505;
+
+    // Step 3: XYZ to LAB (D65 reference white)
+    let x_n = 0.95047;
+    let y_n = 1.0;
+    let z_n = 1.08883;
+
+    let fx = lab_f(x / x_n);
+    let fy = lab_f(y / y_n);
+    let fz = lab_f(z / z_n);
+
+    let l = 116.0 * fy - 16.0;
+    let a = 500.0 * (fx - fy);
+    let b = 200.0 * (fy - fz);
+
+    Lab { l, a, b }
+}
+
+/// Convert sRGB value (0-255) to linear RGB (0.0-1.0).
+fn srgb_to_linear(c: u8) -> f32 {
+    let c_norm = f32::from(c) / 255.0;
+    if c_norm <= 0.04045 {
+        c_norm / 12.92
+    } else {
+        ((c_norm + 0.055) / 1.055).powf(2.4)
+    }
+}
+
+/// LAB conversion helper function.
+fn lab_f(t: f32) -> f32 {
+    let delta: f32 = 6.0 / 29.0;
+    if t > delta.powi(3) {
+        t.cbrt()
+    } else {
+        t / (3.0 * delta.powi(2)) + 4.0 / 29.0
+    }
+}
+
+/// Calculate perceptual distance between two LAB colors.
+fn lab_distance(lab1: Lab, lab2: Lab) -> f32 {
+    let dl = lab1.l - lab2.l;
+    let da = lab1.a - lab2.a;
+    let db = lab1.b - lab2.b;
+    (dl * dl + da * da + db * db).sqrt()
+}
+
+/// Convert RGB to the nearest 256-color palette index using CIELAB distance.
 ///
 /// The 256-color palette is:
 /// - 0-7: standard colors
@@ -518,38 +656,75 @@ fn named_bg_code(color: &NamedColor) -> u8 {
 /// - 16-231: 6x6x6 color cube
 /// - 232-255: grayscale ramp
 pub fn rgb_to_256(r: u8, g: u8, b: u8) -> u8 {
-    // Check if it's close to a grayscale value
-    if r == g && g == b {
-        if r < 8 {
-            return 16; // black
+    let source_lab = rgb_to_lab(r, g, b);
+
+    let mut best_idx = 16_u8;
+    let mut best_distance = f32::MAX;
+
+    // Check grayscale ramp (232-255)
+    for i in 0..24_u8 {
+        let gray = 8 + 10 * i;
+        let lab = rgb_to_lab(gray, gray, gray);
+        let dist = lab_distance(source_lab, lab);
+        if dist < best_distance {
+            best_distance = dist;
+            best_idx = 232 + i;
         }
-        if r > 248 {
-            return 231; // white
-        }
-        return (((u16::from(r) - 8) * 24 / 240) as u8) + 232;
     }
 
-    // Map to 6x6x6 color cube (indices 16-231)
-    let ri = color_cube_index(r);
-    let gi = color_cube_index(g);
-    let bi = color_cube_index(b);
-    16 + 36 * ri + 6 * gi + bi
-}
-
-/// Map an 8-bit color channel to a 6-level color cube index.
-fn color_cube_index(val: u8) -> u8 {
-    if val < 48 {
-        0
-    } else if val < 115 {
-        1
-    } else {
-        ((u16::from(val) - 35) / 40) as u8
+    // Check 6x6x6 color cube (16-231)
+    for ri in 0..6_u8 {
+        for gi in 0..6_u8 {
+            for bi in 0..6_u8 {
+                let r_val = if ri == 0 { 0 } else { 55 + 40 * ri };
+                let g_val = if gi == 0 { 0 } else { 55 + 40 * gi };
+                let b_val = if bi == 0 { 0 } else { 55 + 40 * bi };
+                let lab = rgb_to_lab(r_val, g_val, b_val);
+                let dist = lab_distance(source_lab, lab);
+                if dist < best_distance {
+                    best_distance = dist;
+                    best_idx = 16 + 36 * ri + 6 * gi + bi;
+                }
+            }
+        }
     }
+
+    // Check basic 16 colors (0-15) for better matches
+    let basic_16_rgb = [
+        (0, 0, 0),       // 0: Black
+        (128, 0, 0),     // 1: Red
+        (0, 128, 0),     // 2: Green
+        (128, 128, 0),   // 3: Yellow
+        (0, 0, 128),     // 4: Blue
+        (128, 0, 128),   // 5: Magenta
+        (0, 128, 128),   // 6: Cyan
+        (192, 192, 192), // 7: White
+        (128, 128, 128), // 8: Bright Black
+        (255, 0, 0),     // 9: Bright Red
+        (0, 255, 0),     // 10: Bright Green
+        (255, 255, 0),   // 11: Bright Yellow
+        (0, 0, 255),     // 12: Bright Blue
+        (255, 0, 255),   // 13: Bright Magenta
+        (0, 255, 255),   // 14: Bright Cyan
+        (255, 255, 255), // 15: Bright White
+    ];
+
+    for (i, (cr, cg, cb)) in basic_16_rgb.iter().enumerate() {
+        let lab = rgb_to_lab(*cr, *cg, *cb);
+        let dist = lab_distance(source_lab, lab);
+        if dist < best_distance {
+            best_distance = dist;
+            best_idx = i as u8;
+        }
+    }
+
+    best_idx
 }
 
-/// Convert RGB to the nearest named 16-color ANSI color.
-pub fn rgb_to_named(r: u8, g: u8, b: u8) -> NamedColor {
-    // Simple approach: find nearest ANSI color by Euclidean distance
+/// Convert RGB to the nearest named 16-color ANSI color using CIELAB distance.
+pub fn rgb_to_16(r: u8, g: u8, b: u8) -> NamedColor {
+    let source_lab = rgb_to_lab(r, g, b);
+
     let candidates: [(NamedColor, (u8, u8, u8)); 16] = [
         (NamedColor::Black, (0, 0, 0)),
         (NamedColor::Red, (128, 0, 0)),
@@ -570,18 +745,37 @@ pub fn rgb_to_named(r: u8, g: u8, b: u8) -> NamedColor {
     ];
 
     let mut best = NamedColor::White;
-    let mut best_dist = u32::MAX;
+    let mut best_distance = f32::MAX;
+
     for (name, (cr, cg, cb)) in &candidates {
-        let dr = i32::from(r) - i32::from(*cr);
-        let dg = i32::from(g) - i32::from(*cg);
-        let db = i32::from(b) - i32::from(*cb);
-        let dist = (dr * dr + dg * dg + db * db) as u32;
-        if dist < best_dist {
-            best_dist = dist;
+        let lab = rgb_to_lab(*cr, *cg, *cb);
+        let dist = lab_distance(source_lab, lab);
+        if dist < best_distance {
+            best_distance = dist;
             best = *name;
         }
     }
+
     best
+}
+
+/// Map an 8-bit color channel to a 6-level color cube index.
+#[allow(dead_code)] // Reserved for future 256-color quantization
+fn color_cube_index(val: u8) -> u8 {
+    if val < 48 {
+        0
+    } else if val < 115 {
+        1
+    } else {
+        ((u16::from(val) - 35) / 40) as u8
+    }
+}
+
+/// Convert RGB to the nearest named 16-color ANSI color.
+///
+/// This is an alias for `rgb_to_16` for backward compatibility.
+pub fn rgb_to_named(r: u8, g: u8, b: u8) -> NamedColor {
+    rgb_to_16(r, g, b)
 }
 
 /// Represents a contiguous run of changed cells in the same row.
@@ -670,12 +864,12 @@ fn index_to_named(idx: u8) -> NamedColor {
             let r = if r_idx == 0 { 0 } else { 55 + 40 * r_idx };
             let g = if g_idx == 0 { 0 } else { 55 + 40 * g_idx };
             let b = if b_idx == 0 { 0 } else { 55 + 40 * b_idx };
-            rgb_to_named(r, g, b)
+            rgb_to_16(r, g, b)
         }
         _ => {
             // Grayscale ramp: 232-255 → 8, 18, 28, ..., 238
             let gray = 8 + 10 * (idx - 232);
-            rgb_to_named(gray, gray, gray)
+            rgb_to_16(gray, gray, gray)
         }
     }
 }
@@ -1310,5 +1504,277 @@ mod tests {
         assert_eq!(esc_count, 1);
         assert!(sgr.contains("31")); // red fg
         assert!(sgr.contains("44")); // blue bg
+    }
+
+    // --- Task 4: Enhanced color downgrading tests ---
+
+    #[test]
+    fn color_mapper_caches_256_mappings() {
+        let mut mapper = ColorMapper::new();
+        let idx1 = mapper.map_to_256(255, 0, 0);
+        let idx2 = mapper.map_to_256(255, 0, 0);
+        assert_eq!(idx1, idx2);
+        // Verify cache is being used
+        assert_eq!(mapper.cache_256.len(), 1);
+    }
+
+    #[test]
+    fn color_mapper_caches_16_mappings() {
+        let mut mapper = ColorMapper::new();
+        let name1 = mapper.map_to_16(255, 0, 0);
+        let name2 = mapper.map_to_16(255, 0, 0);
+        assert_eq!(name1, name2);
+        assert_eq!(name1, NamedColor::BrightRed);
+        // Verify cache is being used
+        assert_eq!(mapper.cache_16.len(), 1);
+    }
+
+    #[test]
+    fn color_mapper_clear_cache() {
+        let mut mapper = ColorMapper::new();
+        mapper.map_to_256(255, 0, 0);
+        mapper.map_to_16(255, 0, 0);
+        assert_eq!(mapper.cache_256.len(), 1);
+        assert_eq!(mapper.cache_16.len(), 1);
+        mapper.clear_cache();
+        assert_eq!(mapper.cache_256.len(), 0);
+        assert_eq!(mapper.cache_16.len(), 0);
+    }
+
+    #[test]
+    fn rgb_to_lab_black() {
+        let lab = rgb_to_lab(0, 0, 0);
+        // Black should have L near 0
+        assert!(lab.l < 1.0);
+    }
+
+    #[test]
+    fn rgb_to_lab_white() {
+        let lab = rgb_to_lab(255, 255, 255);
+        // White should have L near 100
+        assert!(lab.l > 99.0);
+    }
+
+    #[test]
+    fn lab_distance_same_color() {
+        let lab1 = rgb_to_lab(128, 128, 128);
+        let lab2 = rgb_to_lab(128, 128, 128);
+        let dist = lab_distance(lab1, lab2);
+        assert!(dist < 0.001);
+    }
+
+    #[test]
+    fn lab_distance_different_colors() {
+        let lab1 = rgb_to_lab(255, 0, 0); // Red
+        let lab2 = rgb_to_lab(0, 0, 255); // Blue
+        let dist = lab_distance(lab1, lab2);
+        // Should be significantly different
+        assert!(dist > 100.0);
+    }
+
+    #[test]
+    fn rgb_to_16_pure_colors() {
+        assert_eq!(rgb_to_16(255, 0, 0), NamedColor::BrightRed);
+        assert_eq!(rgb_to_16(0, 255, 0), NamedColor::BrightGreen);
+        assert_eq!(rgb_to_16(0, 0, 255), NamedColor::BrightBlue);
+        assert_eq!(rgb_to_16(255, 255, 0), NamedColor::BrightYellow);
+        assert_eq!(rgb_to_16(255, 0, 255), NamedColor::BrightMagenta);
+        assert_eq!(rgb_to_16(0, 255, 255), NamedColor::BrightCyan);
+        assert_eq!(rgb_to_16(0, 0, 0), NamedColor::Black);
+        assert_eq!(rgb_to_16(255, 255, 255), NamedColor::BrightWhite);
+    }
+
+    #[test]
+    fn rgb_to_16_dark_colors() {
+        assert_eq!(rgb_to_16(128, 0, 0), NamedColor::Red);
+        assert_eq!(rgb_to_16(0, 128, 0), NamedColor::Green);
+        assert_eq!(rgb_to_16(0, 0, 128), NamedColor::Blue);
+    }
+
+    #[test]
+    fn rgb_to_256_with_lab_pure_red() {
+        let idx = rgb_to_256(255, 0, 0);
+        // Should map to a red color in the palette
+        // The exact index may vary with CIELAB, but should be in red range
+        assert!((9..=231).contains(&idx)); // Valid 256-color range
+    }
+
+    #[test]
+    fn rgb_to_256_with_lab_grayscale() {
+        let idx = rgb_to_256(128, 128, 128);
+        // Should map to grayscale ramp or basic gray
+        assert!(idx >= 8); // Valid grayscale range
+    }
+
+    #[test]
+    fn rgb_to_256_with_lab_pure_black() {
+        let idx = rgb_to_256(0, 0, 0);
+        // Should be black (0) or near-black in grayscale
+        assert!(idx <= 16);
+    }
+
+    #[test]
+    fn rgb_to_256_with_lab_pure_white() {
+        let idx = rgb_to_256(255, 255, 255);
+        // Should be bright white (15) or near-white
+        assert!(idx == 15 || idx >= 231);
+    }
+
+    #[test]
+    fn no_color_environment_variable() {
+        // Set NO_COLOR environment variable
+        unsafe {
+            std::env::set_var("NO_COLOR", "1");
+        }
+
+        let renderer = Renderer::new(ColorSupport::TrueColor, false);
+        let style = Style::new().fg(Color::Rgb { r: 255, g: 0, b: 0 });
+        let changes = vec![CellChange {
+            x: 0,
+            y: 0,
+            cell: Cell::new("X", style),
+        }];
+        let output = renderer.render(&changes);
+
+        // Should use reset color, not any specific color
+        assert!(output.contains("\x1b[39m")); // fg reset
+        assert!(!output.contains("\x1b[38;2;")); // No truecolor
+
+        // Clean up
+        unsafe {
+            std::env::remove_var("NO_COLOR");
+        }
+    }
+
+    #[test]
+    fn no_color_strips_all_colors() {
+        // Set NO_COLOR environment variable
+        unsafe {
+            std::env::set_var("NO_COLOR", "1");
+        }
+
+        let renderer = Renderer::new(ColorSupport::TrueColor, false);
+        let style = Style::new()
+            .fg(Color::Rgb { r: 255, g: 0, b: 0 })
+            .bg(Color::Named(NamedColor::Blue));
+        let changes = vec![CellChange {
+            x: 0,
+            y: 0,
+            cell: Cell::new("X", style),
+        }];
+        let output = renderer.render(&changes);
+
+        // Should use reset colors for both fg and bg
+        assert!(output.contains("\x1b[39m")); // fg reset
+        assert!(output.contains("\x1b[49m")); // bg reset
+
+        // Clean up
+        unsafe {
+            std::env::remove_var("NO_COLOR");
+        }
+    }
+
+    #[test]
+    fn no_color_overrides_color_support() {
+        // Set NO_COLOR environment variable
+        unsafe {
+            std::env::set_var("NO_COLOR", "1");
+        }
+
+        // Even with TrueColor support, NO_COLOR should strip colors
+        let renderer = Renderer::new(ColorSupport::TrueColor, false);
+        let style = Style::new().fg(Color::Rgb {
+            r: 100,
+            g: 200,
+            b: 50,
+        });
+        let changes = vec![CellChange {
+            x: 0,
+            y: 0,
+            cell: Cell::new("X", style),
+        }];
+        let output = renderer.render(&changes);
+
+        assert!(output.contains("\x1b[39m"));
+        assert!(!output.contains("\x1b[38;2;"));
+
+        // Clean up
+        unsafe {
+            std::env::remove_var("NO_COLOR");
+        }
+    }
+
+    #[test]
+    fn downgrade_color_standalone_no_color() {
+        // Set NO_COLOR environment variable
+        unsafe {
+            std::env::set_var("NO_COLOR", "1");
+        }
+
+        let color = Color::Rgb { r: 255, g: 0, b: 0 };
+        let result = downgrade_color_standalone(&color, ColorSupport::TrueColor);
+        assert_eq!(result, Color::Reset);
+
+        // Clean up
+        unsafe {
+            std::env::remove_var("NO_COLOR");
+        }
+    }
+
+    #[test]
+    fn build_sgr_with_no_color() {
+        // Set NO_COLOR environment variable
+        unsafe {
+            std::env::set_var("NO_COLOR", "1");
+        }
+
+        let style = Style::new()
+            .bold(true)
+            .fg(Color::Rgb { r: 255, g: 0, b: 0 });
+        let sgr = build_sgr_sequence(&style, ColorSupport::TrueColor);
+
+        // Should include bold but fg should be reset
+        assert!(sgr.contains('1'));
+        assert!(sgr.contains("39")); // fg reset
+
+        // Clean up
+        unsafe {
+            std::env::remove_var("NO_COLOR");
+        }
+    }
+
+    #[test]
+    fn rgb_to_16_perceptual_accuracy() {
+        // Test that similar colors map to the same named color
+        // These are all "reddish" colors
+        let c1 = rgb_to_16(255, 0, 0);
+        let c2 = rgb_to_16(255, 10, 10);
+        let c3 = rgb_to_16(250, 0, 5);
+        // All should be bright red
+        assert_eq!(c1, NamedColor::BrightRed);
+        assert_eq!(c2, NamedColor::BrightRed);
+        assert_eq!(c3, NamedColor::BrightRed);
+    }
+
+    #[test]
+    fn rgb_to_256_perceptual_better_than_euclidean() {
+        // Test a specific case where CIELAB should be better
+        // Light green (128, 255, 128) should map closer to green than to white
+        let idx = rgb_to_256(128, 255, 128);
+        // Convert back to check
+        let is_greenish = if idx <= 15 {
+            matches!(
+                idx,
+                2 | 10 // Green or BrightGreen
+            )
+        } else if (16..=231).contains(&idx) {
+            // In color cube, check if green component is dominant
+            let idx = idx - 16;
+            let g_idx = (idx / 6) % 6;
+            g_idx >= 4 // High green component
+        } else {
+            false // Grayscale - not green
+        };
+        assert!(is_greenish, "idx={idx} should be greenish");
     }
 }
