@@ -32,8 +32,8 @@ pub use selector::{
 };
 pub use theme::{Theme, ThemeManager};
 pub use themes::{
-    catppuccin_frappe, catppuccin_latte, catppuccin_macchiato, catppuccin_mocha, ThemeColors,
-    ThemeRegistry, ThemeVariant,
+    ThemeColors, ThemeRegistry, ThemeVariant, catppuccin_frappe, catppuccin_latte,
+    catppuccin_macchiato, catppuccin_mocha,
 };
 pub use tree::{WidgetNode, WidgetState, WidgetTree};
 pub use value::{CssValue, Length};

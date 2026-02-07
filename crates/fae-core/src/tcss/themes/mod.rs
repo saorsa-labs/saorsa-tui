@@ -4,12 +4,18 @@
 //! theme metadata (name, author, variant), and a registry for managing multiple themes.
 
 pub mod catppuccin;
+pub mod dracula;
+pub mod nord;
+pub mod solarized;
 
 use std::collections::HashMap;
 
 use crate::Color;
 
 pub use catppuccin::{catppuccin_frappe, catppuccin_latte, catppuccin_macchiato, catppuccin_mocha};
+pub use dracula::{dracula_dark, dracula_light};
+pub use nord::nord_dark;
+pub use solarized::{solarized_dark, solarized_light};
 
 /// Semantic color slots for a theme.
 ///
