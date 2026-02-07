@@ -18,6 +18,7 @@ crossterm = { workspace = true }
 futures = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+fuzzy-matcher = "0.3"
 
 [lints]
 workspace = true
