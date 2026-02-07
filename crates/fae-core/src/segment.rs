@@ -45,12 +45,26 @@ impl Segment {
         }
     }
 
+    /// Create a blank segment (spaces) of the given width.
+    pub fn blank(width: u16) -> Self {
+        Self {
+            text: " ".repeat(width as usize),
+            style: Style::default(),
+            is_control: false,
+        }
+    }
+
     /// Display width in terminal cells.
     pub fn width(&self) -> usize {
         if self.is_control {
             return 0;
         }
         UnicodeWidthStr::width(self.text.as_str())
+    }
+
+    /// Display width in terminal cells (alias for width()).
+    pub fn display_width(&self) -> usize {
+        self.width()
     }
 
     /// Returns true if the segment has no text.

@@ -140,11 +140,7 @@ mod tests {
 
     #[test]
     fn empty_segments_skipped() {
-        let segments = vec![
-            Segment::new(""),
-            Segment::new("hello"),
-            Segment::new(""),
-        ];
+        let segments = vec![Segment::new(""), Segment::new("hello"), Segment::new("")];
         let result = chop_segments(&segments, 0, 0, 5);
 
         assert!(result.len() == 1);
@@ -164,10 +160,7 @@ mod tests {
 
     #[test]
     fn multiple_segments() {
-        let segments = vec![
-            Segment::new("hello "),
-            Segment::new("world"),
-        ];
+        let segments = vec![Segment::new("hello "), Segment::new("world")];
         let result = chop_segments(&segments, 0, 0, 11);
 
         assert!(result.len() == 2);
