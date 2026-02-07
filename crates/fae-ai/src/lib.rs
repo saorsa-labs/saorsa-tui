@@ -13,7 +13,7 @@ pub mod types;
 pub use anthropic::AnthropicProvider;
 pub use error::{FaeAiError, Result};
 pub use message::{ContentBlock, Message, Role, ToolDefinition};
-pub use provider::{Provider, ProviderConfig, StreamingProvider};
+pub use provider::{Provider, ProviderConfig, ProviderKind, ProviderRegistry, StreamingProvider};
 pub use types::{
     CompletionRequest, CompletionResponse, ContentDelta, StopReason, StreamEvent, Usage,
 };

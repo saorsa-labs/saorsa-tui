@@ -359,7 +359,11 @@ mod tests {
 
     #[test]
     fn provider_creation() {
-        let config = ProviderConfig::new("sk-test", "claude-sonnet-4-5-20250929");
+        let config = ProviderConfig::new(
+            crate::provider::ProviderKind::Anthropic,
+            "sk-test",
+            "claude-sonnet-4-5-20250929",
+        );
         let provider = AnthropicProvider::new(config);
         assert!(provider.is_ok());
     }

@@ -10,7 +10,7 @@ use tracing::debug;
 use fae_agent::{
     AgentConfig, AgentEvent, AgentLoop, BashTool, ToolRegistry, TurnEndReason, event_channel,
 };
-use fae_ai::{AnthropicProvider, ProviderConfig};
+use fae_ai::{AnthropicProvider, ProviderConfig, ProviderKind};
 use fae_core::render_context::RenderContext;
 use fae_core::terminal::{CrosstermBackend, Terminal};
 
@@ -46,7 +46,7 @@ async fn main() -> anyhow::Result<()> {
 
 /// Run in print mode: send a single prompt and print the response.
 async fn run_print_mode(cli: &Cli, api_key: &str, prompt: &str) -> anyhow::Result<()> {
-    let provider_config = ProviderConfig::new(api_key, &cli.model);
+    let provider_config = ProviderConfig::new(ProviderKind::Anthropic, api_key, &cli.model);
     let provider = AnthropicProvider::new(provider_config).context("Failed to create provider")?;
 
     let agent_config = AgentConfig::new(&cli.model)
@@ -186,7 +186,7 @@ async fn run_agent_interaction(
     max_tokens: u32,
     prompt: &str,
 ) {
-    let provider_config = ProviderConfig::new(api_key, model);
+    let provider_config = ProviderConfig::new(ProviderKind::Anthropic, api_key, model);
     let provider = match AnthropicProvider::new(provider_config) {
         Ok(p) => p,
         Err(e) => {
