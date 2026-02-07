@@ -1,31 +1,28 @@
 # Task Specification Review
-**Date**: 2026-02-07 17:26:00
-**Task**: Task 1 - Session Types and Core Structures
+**Date**: 2026-02-07 17:48:00
+**Task**: Task 2 - Filesystem Layout and Serialization
 
 ## Spec Compliance
 
 Required files:
-- [x] crates/fae-agent/src/session/mod.rs
-- [x] crates/fae-agent/src/session/types.rs
-- [x] crates/fae-agent/src/lib.rs (exports session module)
+- [x] crates/fae-agent/src/session/storage.rs
+- [x] crates/fae-agent/src/session/path.rs
 
-Required types:
-- [x] SessionId (UUID-based wrapper)
-- [x] SessionMetadata (timestamps, title, tags)
-- [x] SessionNode (tree relationships)
-- [x] Message enum (User, Assistant, ToolCall, ToolResult)
-
-Required traits:
-- [x] All types derive Debug, Clone, Serialize, Deserialize
-- [x] SessionId implements Display and FromStr
-- [x] Timestamps use chrono
+Required components:
+- [x] SessionStorage struct managing base path
+- [x] manifest.json with all metadata fields
+- [x] messages/ directory with {index}-{type}.json naming
+- [x] tree.json for parent/child relationships
+- [x] Atomic writes (write to temp, rename)
+- [x] XDG base directory support (~/.fae or $XDG_DATA_HOME/fae)
 
 Required tests:
-- [x] Session ID generation uniqueness
-- [x] SessionNode parent-child relationships
-- [x] Message type serialization round-trips
-- [x] Metadata clone and equality
+- [x] Directory creation on first use
+- [x] Message serialization to individual files
+- [x] Manifest read/write round-trip
+- [x] Tree structure persistence
+- [x] Path construction for various session IDs
 
 ## Grade: A
 
-All task requirements met. Implementation matches specification exactly.
+All task requirements met exactly as specified.
