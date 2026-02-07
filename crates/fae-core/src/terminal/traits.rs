@@ -30,6 +30,14 @@ pub struct TerminalCapabilities {
     pub kitty_keyboard: bool,
     /// Whether mouse events are available.
     pub mouse: bool,
+    /// Whether bracketed paste mode is supported (CSI ?2004h).
+    pub bracketed_paste: bool,
+    /// Whether focus in/out events are available (CSI ?1004h).
+    pub focus_events: bool,
+    /// Whether OSC 8 hyperlinks are supported.
+    pub hyperlinks: bool,
+    /// Whether Sixel graphics are supported.
+    pub sixel: bool,
 }
 
 impl Default for TerminalCapabilities {
@@ -40,6 +48,10 @@ impl Default for TerminalCapabilities {
             synchronized_output: false,
             kitty_keyboard: false,
             mouse: true,
+            bracketed_paste: true,
+            focus_events: true,
+            hyperlinks: true,
+            sixel: false,
         }
     }
 }

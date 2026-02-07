@@ -53,7 +53,11 @@ pub use render_context::RenderContext;
 pub use renderer::{DeltaBatch, Renderer, batch_changes, build_sgr_sequence};
 pub use segment::Segment;
 pub use style::Style;
-pub use terminal::{CrosstermBackend, Terminal, TestBackend};
+pub use terminal::{
+    CrosstermBackend, MultiplexerKind, Terminal, TerminalCapabilities, TerminalInfo, TerminalKind,
+    TestBackend, detect, detect_multiplexer, detect_terminal, merge_multiplexer_limits,
+    profile_for,
+};
 pub use text::{
     TextConfig, expand_tabs, filter_control_chars, preprocess, string_display_width,
     truncate_to_char_boundary, truncate_to_display_width,

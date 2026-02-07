@@ -103,6 +103,10 @@ fn detect_capabilities() -> TerminalCapabilities {
         synchronized_output: false,
         kitty_keyboard: false,
         mouse: true,
+        bracketed_paste: true,
+        focus_events: true,
+        hyperlinks: true,
+        sixel: false,
     }
 }
 
