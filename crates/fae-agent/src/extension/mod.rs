@@ -12,6 +12,8 @@ pub mod command_registry;
 pub mod keybinding_registry;
 pub mod package_manager;
 pub mod registry;
+#[cfg(test)]
+mod tests;
 pub mod tool_registry;
 pub mod widget_registry;
 

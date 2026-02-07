@@ -25,6 +25,14 @@ pub use config::AgentConfig;
 pub use context::{AgentsContext, ContextBuilder, ContextBundle, ContextDiscovery, SystemContext};
 pub use error::{FaeAgentError, Result};
 pub use event::{AgentEvent, EventReceiver, EventSender, TurnEndReason, event_channel};
+pub use extension::{
+    CommandDefinition, CommandHandler, CommandRegistry, Extension, ExtensionMetadata,
+    ExtensionPackage, ExtensionRegistry, KeybindingDefinition, KeybindingHandler,
+    KeybindingRegistry, OverlayConfig, PackageManager, SharedExtensionRegistry,
+    ToolDefinition as ExtensionToolDefinition, ToolHandler as ExtensionToolHandler,
+    ToolParameter as ExtensionToolParameter, ToolRegistry as ExtensionToolRegistry, WidgetFactory,
+    WidgetRegistry, shared_registry,
+};
 pub use session::{
     Bookmark, BookmarkManager, Message, SessionId, SessionMetadata, SessionNode, SessionStorage,
     TreeNode, TreeRenderOptions, auto_fork_on_edit, build_session_tree, export_to_html,
