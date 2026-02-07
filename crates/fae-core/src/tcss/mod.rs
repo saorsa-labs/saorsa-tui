@@ -11,22 +11,28 @@ pub mod error;
 pub mod matcher;
 pub mod parser;
 pub mod property;
+pub mod reload;
 pub mod selector;
+pub mod theme;
 pub mod tree;
 pub mod value;
+pub mod variable;
 
-pub use ast::{Rule, Stylesheet};
+pub use ast::{Rule, Stylesheet, VariableDefinition};
 pub use cache::MatchCache;
 pub use cascade::{CascadeResolver, ComputedStyle};
 pub use error::TcssError;
 pub use matcher::{MatchedRule, StyleMatcher};
-pub use parser::{parse_declaration, parse_stylesheet};
+pub use parser::{extract_root_variables, parse_declaration, parse_stylesheet};
 pub use property::{Declaration, PropertyName};
+pub use reload::{StylesheetEvent, StylesheetLoader};
 pub use selector::{
     Combinator, CompoundSelector, PseudoClass, Selector, SelectorList, SimpleSelector,
 };
+pub use theme::{Theme, ThemeManager};
 pub use tree::{WidgetNode, WidgetState, WidgetTree};
 pub use value::{CssValue, Length};
+pub use variable::{VariableEnvironment, VariableMap};
 
 #[cfg(test)]
 mod integration_tests {
@@ -425,5 +431,239 @@ mod pipeline_tests {
         );
         cache.insert(1, matched);
         assert!(cache.get(1).is_some());
+    }
+}
+
+#[cfg(test)]
+mod themed_pipeline_tests {
+    use super::*;
+    use crate::Color;
+    use crate::color::NamedColor;
+    use crate::tcss::theme::extract_themes;
+
+    fn sheet(css: &str) -> Stylesheet {
+        let result = parse_stylesheet(css);
+        assert!(result.is_ok(), "parse failed: {result:?}");
+        match result {
+            Ok(s) => s,
+            Err(_) => unreachable!(),
+        }
+    }
+
+    #[test]
+    fn themed_pipeline_simple() {
+        let css = r#"
+            :root { $fg: white; $bg: #1e1e2e; }
+            .dark { $fg: red; }
+            Label { color: $fg; background: $bg; }
+        "#;
+        let stylesheet = sheet(css);
+        let (globals, themes) = extract_themes(&stylesheet);
+        let matcher = StyleMatcher::new(&stylesheet);
+
+        let mut mgr = ThemeManager::new();
+        for theme in themes {
+            mgr.register(theme);
+        }
+        let result = mgr.set_active("dark");
+        assert!(result.is_ok());
+
+        let env = mgr.build_environment(&globals);
+
+        let mut tree = WidgetTree::new();
+        tree.add_node(WidgetNode::new(1, "Label"));
+
+        let matched = matcher.match_widget(&tree, 1);
+        let style = CascadeResolver::resolve_with_variables(&matched, &env);
+
+        // $fg resolved from dark theme (red), $bg from global (#1e1e2e).
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Color(Color::Named(NamedColor::Red)))
+        );
+        assert!(style.has(&PropertyName::Background));
+    }
+
+    #[test]
+    fn themed_pipeline_switch() {
+        let css = r#"
+            :root { $fg: white; }
+            .dark { $fg: red; }
+            .light { $fg: blue; }
+            Label { color: $fg; }
+        "#;
+        let stylesheet = sheet(css);
+        let (globals, themes) = extract_themes(&stylesheet);
+        let matcher = StyleMatcher::new(&stylesheet);
+
+        let mut mgr = ThemeManager::new();
+        for theme in themes {
+            mgr.register(theme);
+        }
+
+        let mut tree = WidgetTree::new();
+        tree.add_node(WidgetNode::new(1, "Label"));
+        let matched = matcher.match_widget(&tree, 1);
+
+        // Dark theme.
+        let result = mgr.set_active("dark");
+        assert!(result.is_ok());
+        let env = mgr.build_environment(&globals);
+        let style = CascadeResolver::resolve_with_variables(&matched, &env);
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Color(Color::Named(NamedColor::Red)))
+        );
+
+        // Switch to light.
+        let result = mgr.set_active("light");
+        assert!(result.is_ok());
+        let env = mgr.build_environment(&globals);
+        let style = CascadeResolver::resolve_with_variables(&matched, &env);
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Color(Color::Named(NamedColor::Blue)))
+        );
+    }
+
+    #[test]
+    fn themed_pipeline_variable_in_property() {
+        let css = r#"
+            :root { $fg: green; }
+            Label { color: $fg; }
+        "#;
+        let stylesheet = sheet(css);
+        let globals = extract_root_variables(&stylesheet);
+        let env = VariableEnvironment::with_global(globals);
+        let matcher = StyleMatcher::new(&stylesheet);
+
+        let mut tree = WidgetTree::new();
+        tree.add_node(WidgetNode::new(1, "Label"));
+
+        let matched = matcher.match_widget(&tree, 1);
+        let style = CascadeResolver::resolve_with_variables(&matched, &env);
+
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Color(Color::Named(NamedColor::Green)))
+        );
+    }
+
+    #[test]
+    fn themed_pipeline_root_globals() {
+        let css = r#"
+            :root { $fg: yellow; }
+            Label { color: $fg; }
+        "#;
+        let stylesheet = sheet(css);
+        let globals = extract_root_variables(&stylesheet);
+        let env = VariableEnvironment::with_global(globals);
+        let matcher = StyleMatcher::new(&stylesheet);
+
+        let mut tree = WidgetTree::new();
+        tree.add_node(WidgetNode::new(1, "Label"));
+
+        let matched = matcher.match_widget(&tree, 1);
+        let style = CascadeResolver::resolve_with_variables(&matched, &env);
+
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Color(Color::Named(NamedColor::Yellow)))
+        );
+    }
+
+    #[test]
+    fn themed_pipeline_theme_overrides_root() {
+        let css = r#"
+            :root { $fg: white; }
+            .dark { $fg: red; }
+            Label { color: $fg; }
+        "#;
+        let stylesheet = sheet(css);
+        let (globals, themes) = extract_themes(&stylesheet);
+
+        let mut mgr = ThemeManager::new();
+        for theme in themes {
+            mgr.register(theme);
+        }
+        let result = mgr.set_active("dark");
+        assert!(result.is_ok());
+        let env = mgr.build_environment(&globals);
+        let matcher = StyleMatcher::new(&stylesheet);
+
+        let mut tree = WidgetTree::new();
+        tree.add_node(WidgetNode::new(1, "Label"));
+
+        let matched = matcher.match_widget(&tree, 1);
+        let style = CascadeResolver::resolve_with_variables(&matched, &env);
+
+        // Theme's $fg (red) overrides :root's $fg (white).
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Color(Color::Named(NamedColor::Red)))
+        );
+    }
+
+    #[test]
+    fn themed_pipeline_no_theme() {
+        let css = r#"
+            :root { $fg: white; }
+            Label { color: $fg; }
+        "#;
+        let stylesheet = sheet(css);
+        let (globals, _themes) = extract_themes(&stylesheet);
+
+        // No active theme — only globals resolve.
+        let mgr = ThemeManager::new();
+        let env = mgr.build_environment(&globals);
+        let matcher = StyleMatcher::new(&stylesheet);
+
+        let mut tree = WidgetTree::new();
+        tree.add_node(WidgetNode::new(1, "Label"));
+
+        let matched = matcher.match_widget(&tree, 1);
+        let style = CascadeResolver::resolve_with_variables(&matched, &env);
+
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Color(Color::Named(NamedColor::White)))
+        );
+    }
+
+    #[test]
+    fn themed_pipeline_loader() {
+        let css = r#"
+            :root { $fg: white; $bg: #1e1e2e; }
+            .dark { $fg: red; }
+            Label { color: $fg; }
+        "#;
+        let result = StylesheetLoader::load_string(css);
+        assert!(result.is_ok());
+        let loader = match result {
+            Ok(l) => l,
+            Err(_) => unreachable!(),
+        };
+
+        assert_eq!(loader.globals().len(), 2);
+        assert_eq!(loader.themes().len(), 1);
+        assert_eq!(loader.generation(), 1);
+    }
+
+    #[test]
+    fn themed_pipeline_generation() {
+        let css1 = ":root { $fg: white; }";
+        let result = StylesheetLoader::load_string(css1);
+        assert!(result.is_ok());
+        let mut loader = match result {
+            Ok(l) => l,
+            Err(_) => unreachable!(),
+        };
+        assert_eq!(loader.generation(), 1);
+
+        let css2 = ":root { $fg: red; $bg: black; }";
+        let event = loader.reload_string(css2);
+        assert!(event.is_ok());
+        assert_eq!(loader.generation(), 2);
+        assert_eq!(loader.globals().len(), 2);
     }
 }

@@ -5,11 +5,12 @@
 use cssparser::{Parser, ParserInput, Token};
 
 use crate::color::Color;
-use crate::tcss::ast::{Rule, Stylesheet};
+use crate::tcss::ast::{Rule, Stylesheet, VariableDefinition};
 use crate::tcss::error::TcssError;
 use crate::tcss::property::{Declaration, PropertyName};
 use crate::tcss::selector::SelectorList;
 use crate::tcss::value::{CssValue, Length};
+use crate::tcss::variable::VariableMap;
 
 /// Parse a color value from CSS input.
 ///
@@ -92,6 +93,8 @@ pub fn parse_length(input: &mut Parser<'_, '_>) -> Result<Length, TcssError> {
             Ok(Length::Cells(val))
         }
         Token::Number { value, .. } => {
+            // CSS float tokens used as cell counts: truncation to u16 is intentional
+            // (fractional cells are not meaningful in terminal layout).
             #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
             let val = *value as u16;
             Ok(Length::Cells(val))
@@ -123,13 +126,33 @@ pub fn parse_keyword(input: &mut Parser<'_, '_>) -> Result<String, TcssError> {
         .map_err(|e| TcssError::Parse(format!("{e:?}")))
 }
 
+/// Try to parse a variable reference ($name).
+///
+/// Returns `Some(CssValue::Variable(name))` if the next tokens are `$ident`,
+/// otherwise returns `None` (parser state restored).
+fn try_parse_variable(input: &mut Parser<'_, '_>) -> Option<CssValue> {
+    input
+        .try_parse(|p| -> Result<CssValue, cssparser::ParseError<'_, ()>> {
+            p.expect_delim('$')?;
+            let name = p.expect_ident()?.to_string();
+            Ok(CssValue::Variable(name))
+        })
+        .ok()
+}
+
 /// Parse a property value given the property name.
 ///
 /// Routes to the appropriate parser based on the property type.
+/// Checks for `$variable` references before type-specific parsing.
 pub fn parse_property_value(
     property: &PropertyName,
     input: &mut Parser<'_, '_>,
 ) -> Result<CssValue, TcssError> {
+    // Try variable reference first.
+    if let Some(var) = try_parse_variable(input) {
+        return Ok(var);
+    }
+
     match property {
         // Color properties
         PropertyName::Color | PropertyName::Background | PropertyName::BorderColor => {
@@ -213,7 +236,13 @@ pub fn parse_stylesheet(input: &str) -> Result<Stylesheet, TcssError> {
     Ok(stylesheet)
 }
 
-/// Parse a single CSS rule: `selectors { declarations }`.
+/// Internal enum for items parsed inside a rule block.
+enum BlockItem {
+    Declaration(Declaration),
+    Variable(VariableDefinition),
+}
+
+/// Parse a single CSS rule: `selectors { declarations and/or variable definitions }`.
 fn parse_rule(input: &mut Parser<'_, '_>) -> Result<Rule, TcssError> {
     // Parse selector list (everything before `{`).
     let selectors = SelectorList::parse_from(input)?;
@@ -223,14 +252,20 @@ fn parse_rule(input: &mut Parser<'_, '_>) -> Result<Rule, TcssError> {
         .expect_curly_bracket_block()
         .map_err(|e| TcssError::Parse(format!("expected '{{': {e:?}")))?;
 
-    // Parse declarations inside the block.
-    let declarations: Result<Vec<Declaration>, cssparser::ParseError<'_, ()>> = input
-        .parse_nested_block(|input| {
-            let mut decls = Vec::new();
+    // Parse declarations and variable definitions inside the block.
+    let items: Result<Vec<BlockItem>, cssparser::ParseError<'_, ()>> =
+        input.parse_nested_block(|input| {
+            let mut items = Vec::new();
 
             while !input.is_exhausted() {
+                // Try variable definition first ($name: value;).
+                if let Ok(vardef) = try_parse_variable_definition(input) {
+                    items.push(BlockItem::Variable(vardef));
+                    continue;
+                }
+                // Otherwise try a regular declaration.
                 match parse_declaration_inner(input) {
-                    Ok(decl) => decls.push(decl),
+                    Ok(decl) => items.push(BlockItem::Declaration(decl)),
                     Err(_) => {
                         // Skip to next semicolon or end of block.
                         while input.next().is_ok_and(|t| !matches!(t, Token::Semicolon)) {}
@@ -238,12 +273,104 @@ fn parse_rule(input: &mut Parser<'_, '_>) -> Result<Rule, TcssError> {
                 }
             }
 
-            Ok(decls)
+            Ok(items)
         });
 
-    let declarations = declarations.map_err(|e| TcssError::Parse(format!("{e:?}")))?;
+    let items = items.map_err(|e| TcssError::Parse(format!("{e:?}")))?;
 
-    Ok(Rule::new(selectors, declarations))
+    let mut declarations = Vec::new();
+    let mut variables = Vec::new();
+    for item in items {
+        match item {
+            BlockItem::Declaration(d) => declarations.push(d),
+            BlockItem::Variable(v) => variables.push(v),
+        }
+    }
+
+    if variables.is_empty() {
+        Ok(Rule::new(selectors, declarations))
+    } else {
+        Ok(Rule::with_variables(selectors, declarations, variables))
+    }
+}
+
+/// Try to parse a variable definition: `$name: value;`.
+///
+/// Returns `Ok(VariableDefinition)` if the next tokens form a variable
+/// definition, otherwise `Err` (parser state restored via `try_parse`).
+fn try_parse_variable_definition<'i>(
+    input: &mut Parser<'i, '_>,
+) -> Result<VariableDefinition, cssparser::ParseError<'i, ()>> {
+    input.try_parse(|p| {
+        p.expect_delim('$')?;
+        let name = p.expect_ident()?.to_string();
+        p.expect_colon()?;
+
+        // Parse the value — try common value types.
+        let value = parse_variable_value(p)?;
+
+        // Consume optional semicolon.
+        let _ = p.try_parse(|p| p.expect_semicolon());
+
+        Ok(VariableDefinition { name, value })
+    })
+}
+
+/// Parse a value for a variable definition.
+///
+/// Since variables are untyped (no property context), we try the
+/// value types in order: color, length, float, integer, keyword.
+fn parse_variable_value<'i>(
+    input: &mut Parser<'i, '_>,
+) -> Result<CssValue, cssparser::ParseError<'i, ()>> {
+    // Try variable reference first ($name referencing another variable).
+    if let Ok(var) = input.try_parse(|p| -> Result<CssValue, cssparser::ParseError<'_, ()>> {
+        p.expect_delim('$')?;
+        let name = p.expect_ident()?.to_string();
+        Ok(CssValue::Variable(name))
+    }) {
+        return Ok(var);
+    }
+
+    // Peek at the next token to determine type.
+    let token = input.next()?.clone();
+    match &token {
+        // Named color or keyword.
+        Token::Ident(name) => {
+            let name_str = name.to_string();
+            if name_str.eq_ignore_ascii_case("auto") {
+                Ok(CssValue::Length(Length::Auto))
+            } else if let Some(color) = Color::from_css_name(&name_str) {
+                Ok(CssValue::Color(color))
+            } else {
+                Ok(CssValue::Keyword(name_str))
+            }
+        }
+        // Hex color.
+        Token::Hash(hash) | Token::IDHash(hash) => {
+            let hash_str = hash.to_string();
+            Color::from_hex(&hash_str)
+                .map(CssValue::Color)
+                .map_err(|_| input.new_custom_error(()))
+        }
+        // Number (integer or float).
+        Token::Number {
+            int_value: Some(v), ..
+        } => {
+            let val = u16::try_from(*v).map_err(|_| input.new_custom_error(()))?;
+            Ok(CssValue::Length(Length::Cells(val)))
+        }
+        Token::Number { value, .. } => Ok(CssValue::Float(*value)),
+        // Percentage.
+        Token::Percentage { unit_value, .. } => {
+            Ok(CssValue::Length(Length::Percent(*unit_value * 100.0)))
+        }
+        // rgb() function.
+        Token::Function(name) if name.eq_ignore_ascii_case("rgb") => parse_rgb_block(input)
+            .map(CssValue::Color)
+            .map_err(|_| input.new_custom_error(())),
+        _ => Err(input.new_custom_error(())),
+    }
 }
 
 /// Parse a single declaration inside a rule block.
@@ -299,6 +426,33 @@ fn skip_to_next_rule(input: &mut Parser<'_, '_>) -> Result<(), ()> {
     } else {
         Err(())
     }
+}
+
+/// Extract all variable definitions from `:root` rules in a stylesheet.
+///
+/// Scans all rules for those with a `:root` pseudo-class selector
+/// and collects their variable definitions into a [`VariableMap`].
+pub fn extract_root_variables(stylesheet: &Stylesheet) -> VariableMap {
+    use crate::tcss::selector::{PseudoClass, SimpleSelector};
+
+    let mut vars = VariableMap::new();
+    for rule in stylesheet.rules() {
+        // Check if any selector in the rule is :root.
+        let is_root = rule.selectors.selectors.iter().any(|sel| {
+            sel.chain.is_empty()
+                && sel.head.components.len() == 1
+                && matches!(
+                    &sel.head.components[0],
+                    SimpleSelector::PseudoClass(PseudoClass::Root)
+                )
+        });
+        if is_root {
+            for vardef in &rule.variables {
+                vars.set(&vardef.name, vardef.value.clone());
+            }
+        }
+    }
+    vars
 }
 
 /// Parse a single CSS declaration from a string.
@@ -635,5 +789,142 @@ mod tests {
         let decl = parse_decl("color: red !important");
         assert_eq!(decl.property, PropertyName::Color);
         assert!(decl.important);
+    }
+
+    // --- Variable parsing tests ---
+
+    #[test]
+    fn parse_variable_reference() {
+        let result = parse_with("$primary", |p| {
+            parse_property_value(&PropertyName::Color, p)
+        });
+        assert_eq!(result, Ok(CssValue::Variable("primary".into())));
+    }
+
+    #[test]
+    fn parse_variable_in_color() {
+        let sheet = parse_sheet("Label { color: $fg; }");
+        assert_eq!(sheet.len(), 1);
+        assert_eq!(
+            sheet.rules()[0].declarations[0].value,
+            CssValue::Variable("fg".into())
+        );
+    }
+
+    #[test]
+    fn parse_variable_in_width() {
+        let sheet = parse_sheet("Label { width: $sidebar-width; }");
+        assert_eq!(sheet.len(), 1);
+        assert_eq!(
+            sheet.rules()[0].declarations[0].value,
+            CssValue::Variable("sidebar-width".into())
+        );
+    }
+
+    #[test]
+    fn parse_variable_hyphenated() {
+        let result = parse_with("$my-var-name", |p| {
+            parse_property_value(&PropertyName::Color, p)
+        });
+        assert_eq!(result, Ok(CssValue::Variable("my-var-name".into())));
+    }
+
+    #[test]
+    fn parse_non_variable_still_works() {
+        let result = parse_with("red", |p| parse_property_value(&PropertyName::Color, p));
+        assert_eq!(result, Ok(CssValue::Color(Color::Named(NamedColor::Red))));
+    }
+
+    // --- Variable definition parsing tests ---
+
+    #[test]
+    fn parse_variable_definition_color() {
+        let css = ":root { $primary: red; }";
+        let sheet = parse_sheet(css);
+        assert_eq!(sheet.len(), 1);
+        assert_eq!(sheet.rules()[0].variables.len(), 1);
+        assert_eq!(sheet.rules()[0].variables[0].name, "primary");
+        assert_eq!(
+            sheet.rules()[0].variables[0].value,
+            CssValue::Color(Color::Named(NamedColor::Red))
+        );
+    }
+
+    #[test]
+    fn parse_variable_definition_hex() {
+        let css = ":root { $bg: #1e1e2e; }";
+        let sheet = parse_sheet(css);
+        assert_eq!(sheet.rules()[0].variables.len(), 1);
+        assert_eq!(
+            sheet.rules()[0].variables[0].value,
+            CssValue::Color(Color::Rgb {
+                r: 30,
+                g: 30,
+                b: 46
+            })
+        );
+    }
+
+    #[test]
+    fn parse_variable_definition_length() {
+        let css = ":root { $width: 30; }";
+        let sheet = parse_sheet(css);
+        assert_eq!(sheet.rules()[0].variables.len(), 1);
+        assert_eq!(
+            sheet.rules()[0].variables[0].value,
+            CssValue::Length(Length::Cells(30))
+        );
+    }
+
+    #[test]
+    fn parse_root_block_multiple() {
+        let css = ":root { $fg: white; $bg: #1e1e2e; }";
+        let sheet = parse_sheet(css);
+        assert_eq!(sheet.len(), 1);
+        assert_eq!(sheet.rules()[0].variables.len(), 2);
+    }
+
+    #[test]
+    fn parse_extract_root_variables() {
+        let css = r#"
+            :root { $fg: white; $bg: #1e1e2e; }
+            Label { color: $fg; }
+        "#;
+        let sheet = parse_sheet(css);
+        let vars = extract_root_variables(&sheet);
+        assert_eq!(vars.len(), 2);
+        assert!(vars.contains("fg"));
+        assert!(vars.contains("bg"));
+    }
+
+    #[test]
+    fn parse_mixed_variables_and_properties() {
+        let css = "Label { $theme-color: red; color: $theme-color; width: 20; }";
+        let sheet = parse_sheet(css);
+        assert_eq!(sheet.rules()[0].variables.len(), 1);
+        assert_eq!(sheet.rules()[0].declarations.len(), 2);
+    }
+
+    #[test]
+    fn parse_variable_in_non_root_block() {
+        let css = ".dark { $fg: white; $bg: #1e1e2e; }";
+        let sheet = parse_sheet(css);
+        assert_eq!(sheet.rules()[0].variables.len(), 2);
+    }
+
+    #[test]
+    fn parse_multiple_root_blocks_merge() {
+        let css = r#"
+            :root { $fg: white; }
+            :root { $fg: red; $bg: black; }
+        "#;
+        let sheet = parse_sheet(css);
+        let vars = extract_root_variables(&sheet);
+        // Later :root block overrides earlier.
+        assert_eq!(
+            vars.get("fg"),
+            Some(&CssValue::Color(Color::Named(NamedColor::Red)))
+        );
+        assert!(vars.contains("bg"));
     }
 }

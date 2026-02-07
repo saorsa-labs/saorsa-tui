@@ -131,6 +131,7 @@ pub fn matches_pseudo_class(tree: &WidgetTree, node: &WidgetNode, pseudo: &Pseud
         }
         PseudoClass::Even => tree.child_index(node.id).is_some_and(|i| (i + 1) % 2 == 0),
         PseudoClass::Odd => tree.child_index(node.id).is_some_and(|i| (i + 1) % 2 == 1),
+        PseudoClass::Root => tree.root() == Some(node.id),
     }
 }
 

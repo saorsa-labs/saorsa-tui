@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use crate::tcss::matcher::MatchedRule;
 use crate::tcss::property::PropertyName;
 use crate::tcss::value::CssValue;
+use crate::tcss::variable::VariableEnvironment;
 
 /// The computed style for a widget — final resolved property values.
 ///
@@ -53,6 +54,34 @@ impl ComputedStyle {
     /// Iterate over all property-value pairs.
     pub fn iter(&self) -> impl Iterator<Item = (&PropertyName, &CssValue)> {
         self.properties.iter()
+    }
+
+    /// Resolve all variable references using the given environment.
+    ///
+    /// Replaces `CssValue::Variable(name)` entries with the resolved
+    /// value from the environment. Unresolved variables remain as-is.
+    pub fn resolve_variables(&mut self, env: &VariableEnvironment) {
+        let resolved: Vec<(PropertyName, CssValue)> = self
+            .properties
+            .iter()
+            .filter_map(|(prop, value)| {
+                if let CssValue::Variable(name) = value {
+                    env.resolve(name).map(|v| (prop.clone(), v.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        for (prop, value) in resolved {
+            self.properties.insert(prop, value);
+        }
+    }
+
+    /// Check if any property has an unresolved variable reference.
+    pub fn has_unresolved_variables(&self) -> bool {
+        self.properties
+            .values()
+            .any(|v| matches!(v, CssValue::Variable(_)))
     }
 }
 
@@ -115,6 +144,19 @@ impl CascadeResolver {
 
         style
     }
+
+    /// Resolve matched rules into a computed style, resolving variable references.
+    ///
+    /// First applies the standard cascade, then resolves any
+    /// `CssValue::Variable` references using the given environment.
+    pub fn resolve_with_variables(
+        matches: &[MatchedRule],
+        env: &VariableEnvironment,
+    ) -> ComputedStyle {
+        let mut style = Self::resolve(matches);
+        style.resolve_variables(env);
+        style
+    }
 }
 
 #[cfg(test)]
@@ -124,6 +166,7 @@ mod tests {
     use crate::color::NamedColor;
     use crate::tcss::property::Declaration;
     use crate::tcss::value::Length;
+    use crate::tcss::variable::VariableEnvironment;
 
     fn matched_rule(
         specificity: (u16, u16, u16),
@@ -356,6 +399,153 @@ mod tests {
         style.set(PropertyName::Width, CssValue::Length(Length::Cells(10)));
         let pairs: Vec<_> = style.iter().collect();
         assert_eq!(pairs.len(), 2);
+    }
+
+    // --- Variable resolution tests ---
+
+    #[test]
+    fn resolve_with_no_variables() {
+        let rules = vec![matched_rule(
+            (0, 0, 1),
+            0,
+            vec![Declaration::new(
+                PropertyName::Color,
+                CssValue::Color(Color::Named(NamedColor::Red)),
+            )],
+        )];
+        let env = VariableEnvironment::new();
+        let style = CascadeResolver::resolve_with_variables(&rules, &env);
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Color(Color::Named(NamedColor::Red)))
+        );
+    }
+
+    #[test]
+    fn resolve_variable_from_global() {
+        let rules = vec![matched_rule(
+            (0, 0, 1),
+            0,
+            vec![Declaration::new(
+                PropertyName::Color,
+                CssValue::Variable("fg".into()),
+            )],
+        )];
+        let mut env = VariableEnvironment::new();
+        env.set_global("fg", CssValue::Color(Color::Named(NamedColor::White)));
+        let style = CascadeResolver::resolve_with_variables(&rules, &env);
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Color(Color::Named(NamedColor::White)))
+        );
+    }
+
+    #[test]
+    fn resolve_variable_from_theme() {
+        let rules = vec![matched_rule(
+            (0, 0, 1),
+            0,
+            vec![Declaration::new(
+                PropertyName::Color,
+                CssValue::Variable("fg".into()),
+            )],
+        )];
+        let mut env = VariableEnvironment::new();
+        env.set_global("fg", CssValue::Color(Color::Named(NamedColor::White)));
+        env.set_theme("fg", CssValue::Color(Color::Named(NamedColor::Red)));
+        let style = CascadeResolver::resolve_with_variables(&rules, &env);
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Color(Color::Named(NamedColor::Red)))
+        );
+    }
+
+    #[test]
+    fn resolve_variable_missing_stays_variable() {
+        let rules = vec![matched_rule(
+            (0, 0, 1),
+            0,
+            vec![Declaration::new(
+                PropertyName::Color,
+                CssValue::Variable("missing".into()),
+            )],
+        )];
+        let env = VariableEnvironment::new();
+        let style = CascadeResolver::resolve_with_variables(&rules, &env);
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Variable("missing".into()))
+        );
+    }
+
+    #[test]
+    fn resolve_multiple_variables() {
+        let rules = vec![matched_rule(
+            (0, 0, 1),
+            0,
+            vec![
+                Declaration::new(PropertyName::Color, CssValue::Variable("fg".into())),
+                Declaration::new(PropertyName::Background, CssValue::Variable("bg".into())),
+            ],
+        )];
+        let mut env = VariableEnvironment::new();
+        env.set_global("fg", CssValue::Color(Color::Named(NamedColor::White)));
+        env.set_global("bg", CssValue::Color(Color::Named(NamedColor::Black)));
+        let style = CascadeResolver::resolve_with_variables(&rules, &env);
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Color(Color::Named(NamedColor::White)))
+        );
+        assert_eq!(
+            style.get(&PropertyName::Background),
+            Some(&CssValue::Color(Color::Named(NamedColor::Black)))
+        );
+    }
+
+    #[test]
+    fn resolve_mixed_variables_and_concrete() {
+        let rules = vec![matched_rule(
+            (0, 0, 1),
+            0,
+            vec![
+                Declaration::new(PropertyName::Color, CssValue::Variable("fg".into())),
+                Declaration::new(PropertyName::Width, CssValue::Length(Length::Cells(20))),
+            ],
+        )];
+        let mut env = VariableEnvironment::new();
+        env.set_global("fg", CssValue::Color(Color::Named(NamedColor::Red)));
+        let style = CascadeResolver::resolve_with_variables(&rules, &env);
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Color(Color::Named(NamedColor::Red)))
+        );
+        assert_eq!(
+            style.get(&PropertyName::Width),
+            Some(&CssValue::Length(Length::Cells(20)))
+        );
+    }
+
+    #[test]
+    fn has_unresolved_true() {
+        let mut style = ComputedStyle::new();
+        style.set(PropertyName::Color, CssValue::Variable("fg".into()));
+        assert!(style.has_unresolved_variables());
+    }
+
+    #[test]
+    fn has_unresolved_false() {
+        let mut style = ComputedStyle::new();
+        style.set(
+            PropertyName::Color,
+            CssValue::Color(Color::Named(NamedColor::Red)),
+        );
+        assert!(!style.has_unresolved_variables());
+    }
+
+    #[test]
+    fn has_unresolved_empty() {
+        let style = ComputedStyle::new();
+        assert!(!style.has_unresolved_variables());
     }
 
     #[test]

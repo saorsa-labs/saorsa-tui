@@ -30,6 +30,8 @@ pub enum CssValue {
     Fr(f32),
     /// A string value.
     String(String),
+    /// A variable reference ($name), resolved during cascade.
+    Variable(String),
 }
 
 #[cfg(test)]
@@ -107,6 +109,19 @@ mod tests {
     #[test]
     fn value_clone() {
         let val = CssValue::Integer(42);
+        let val2 = val.clone();
+        assert_eq!(val, val2);
+    }
+
+    #[test]
+    fn value_variable() {
+        let val = CssValue::Variable("primary".into());
+        assert_eq!(val, CssValue::Variable("primary".into()));
+    }
+
+    #[test]
+    fn value_variable_clone_and_eq() {
+        let val = CssValue::Variable("fg-color".into());
         let val2 = val.clone();
         assert_eq!(val, val2);
     }

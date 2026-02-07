@@ -5,6 +5,16 @@
 
 use crate::tcss::property::Declaration;
 use crate::tcss::selector::SelectorList;
+use crate::tcss::value::CssValue;
+
+/// A parsed variable definition (`$name: value;`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct VariableDefinition {
+    /// Variable name (without `$` prefix).
+    pub name: String,
+    /// Variable value.
+    pub value: CssValue,
+}
 
 /// A CSS rule: selector list paired with declarations.
 #[derive(Clone, Debug, PartialEq)]
@@ -13,14 +23,30 @@ pub struct Rule {
     pub selectors: SelectorList,
     /// The declarations (property-value pairs) in this rule.
     pub declarations: Vec<Declaration>,
+    /// Variable definitions (`$name: value;`) in this rule.
+    pub variables: Vec<VariableDefinition>,
 }
 
 impl Rule {
-    /// Create a new rule.
+    /// Create a new rule (no variable definitions).
     pub fn new(selectors: SelectorList, declarations: Vec<Declaration>) -> Self {
         Self {
             selectors,
             declarations,
+            variables: Vec::new(),
+        }
+    }
+
+    /// Create a new rule with variable definitions.
+    pub fn with_variables(
+        selectors: SelectorList,
+        declarations: Vec<Declaration>,
+        variables: Vec<VariableDefinition>,
+    ) -> Self {
+        Self {
+            selectors,
+            declarations,
+            variables,
         }
     }
 }
@@ -125,10 +151,7 @@ mod tests {
             ))]),
             vec![
                 Declaration::new(PropertyName::Color, CssValue::Keyword("red".into())),
-                Declaration::new(
-                    PropertyName::Background,
-                    CssValue::Keyword("blue".into()),
-                ),
+                Declaration::new(PropertyName::Background, CssValue::Keyword("blue".into())),
                 Declaration::new(PropertyName::TextStyle, CssValue::Keyword("bold".into())),
             ],
         );

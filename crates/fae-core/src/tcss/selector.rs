@@ -44,6 +44,8 @@ pub enum PseudoClass {
     Even,
     /// `:odd` — odd-positioned child.
     Odd,
+    /// `:root` — matches the root element (used for variable/theme definitions).
+    Root,
 }
 
 impl PseudoClass {
@@ -58,6 +60,7 @@ impl PseudoClass {
             "last-child" => Some(Self::LastChild),
             "even" => Some(Self::Even),
             "odd" => Some(Self::Odd),
+            "root" => Some(Self::Root),
             _ => None,
         }
     }
@@ -75,6 +78,7 @@ impl fmt::Display for PseudoClass {
             Self::NthChild(n) => write!(f, ":nth-child({n})"),
             Self::Even => write!(f, ":even"),
             Self::Odd => write!(f, ":odd"),
+            Self::Root => write!(f, ":root"),
         }
     }
 }
@@ -316,10 +320,8 @@ fn parse_selector(input: &mut Parser<'_, '_>) -> Result<Selector, TcssError> {
         TcssError::SelectorError("expected at least one selector component".into())
     })?;
 
-    let chain: Vec<(Combinator, CompoundSelector)> = combinators
-        .into_iter()
-        .zip(compounds)
-        .collect();
+    let chain: Vec<(Combinator, CompoundSelector)> =
+        combinators.into_iter().zip(compounds).collect();
 
     Ok(Selector { head, chain })
 }
@@ -403,10 +405,7 @@ mod tests {
     fn simple_type_selector() {
         let sel = CompoundSelector::type_selector("Label");
         assert_eq!(sel.components.len(), 1);
-        assert_eq!(
-            sel.components[0],
-            SimpleSelector::Type("Label".into())
-        );
+        assert_eq!(sel.components[0], SimpleSelector::Type("Label".into()));
     }
 
     #[test]
@@ -636,10 +635,7 @@ mod tests {
     fn parse_child_combinator() {
         let list = parse_ok("Container > Label");
         let sel = &list.selectors[0];
-        assert_eq!(
-            sel.head.components[0],
-            SimpleSelector::Type("Label".into())
-        );
+        assert_eq!(sel.head.components[0], SimpleSelector::Type("Label".into()));
         assert_eq!(sel.chain.len(), 1);
         assert_eq!(sel.chain[0].0, Combinator::Child);
         assert_eq!(
@@ -652,10 +648,7 @@ mod tests {
     fn parse_descendant_combinator() {
         let list = parse_ok("Container Label");
         let sel = &list.selectors[0];
-        assert_eq!(
-            sel.head.components[0],
-            SimpleSelector::Type("Label".into())
-        );
+        assert_eq!(sel.head.components[0], SimpleSelector::Type("Label".into()));
         assert_eq!(sel.chain.len(), 1);
         assert_eq!(sel.chain[0].0, Combinator::Descendant);
     }
@@ -672,10 +665,7 @@ mod tests {
         let sel = &list.selectors[0];
         // head = Label.error:focus
         assert_eq!(sel.head.components.len(), 3);
-        assert_eq!(
-            sel.head.components[0],
-            SimpleSelector::Type("Label".into())
-        );
+        assert_eq!(sel.head.components[0], SimpleSelector::Type("Label".into()));
         assert_eq!(
             sel.head.components[1],
             SimpleSelector::Class("error".into())
