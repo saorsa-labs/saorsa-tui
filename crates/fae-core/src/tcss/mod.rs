@@ -6,8 +6,12 @@
 
 pub mod error;
 pub mod property;
+pub mod selector;
 pub mod value;
 
 pub use error::TcssError;
 pub use property::{Declaration, PropertyName};
+pub use selector::{
+    Combinator, CompoundSelector, PseudoClass, Selector, SelectorList, SimpleSelector,
+};
 pub use value::{CssValue, Length};
