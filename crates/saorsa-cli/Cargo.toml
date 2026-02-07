@@ -1,7 +1,7 @@
 [package]
 name = "saorsa-cli"
 description = "Thin CLI wrapper for saorsa-tui"
-version.workspace = true
+version = "0.1.1"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
