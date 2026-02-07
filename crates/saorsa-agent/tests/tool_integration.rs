@@ -139,6 +139,7 @@ async fn workflow_list_directory() {
     assert!(listing.contains("file2.txt") || listing.contains("subdir/file2.txt"));
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn workflow_bash_and_read() {
     let temp_dir = TempDir::new().unwrap();
@@ -224,13 +225,16 @@ async fn error_handling_across_tools() {
         .await;
     assert!(result.is_err());
 
-    // Bash: command failure
-    let bash_tool = tools.get("bash").unwrap();
-    let result = bash_tool
-        .execute(serde_json::json!({
-            "command": "exit 1"
-        }))
-        .await;
-    // Bash tool returns Ok with stderr output, so this won't error
-    assert!(result.is_ok());
+    // Bash: command failure (Unix only — bash not available on Windows)
+    #[cfg(unix)]
+    {
+        let bash_tool = tools.get("bash").unwrap();
+        let result = bash_tool
+            .execute(serde_json::json!({
+                "command": "exit 1"
+            }))
+            .await;
+        // Bash tool returns Ok with stderr output, so this won't error
+        assert!(result.is_ok());
+    }
 }
