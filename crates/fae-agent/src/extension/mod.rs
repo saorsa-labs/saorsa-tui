@@ -9,12 +9,14 @@
 //! WASM-backed implementations without adding heavy dependencies now.
 
 pub mod command_registry;
+pub mod keybinding_registry;
 pub mod registry;
 pub mod tool_registry;
 
 use crate::error::Result;
 
 pub use command_registry::{CommandDefinition, CommandHandler, CommandRegistry};
+pub use keybinding_registry::{KeybindingDefinition, KeybindingHandler, KeybindingRegistry};
 pub use registry::{ExtensionRegistry, SharedExtensionRegistry, shared_registry};
 pub use tool_registry::{ToolDefinition, ToolHandler, ToolParameter, ToolRegistry};
 
