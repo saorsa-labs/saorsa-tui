@@ -25,6 +25,19 @@ similar = { workspace = true }
 tempfile = { workspace = true }
 insta = { version = "1", features = ["glob"] }
 proptest = { workspace = true }
+criterion = { workspace = true }
+
+[[bench]]
+name = "rendering"
+harness = false
+
+[[bench]]
+name = "layout"
+harness = false
+
+[[bench]]
+name = "css_parsing"
+harness = false
 
 [lints]
 workspace = true
