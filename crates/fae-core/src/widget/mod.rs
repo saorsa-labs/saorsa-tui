@@ -1,6 +1,7 @@
 //! Widget traits and built-in widgets.
 
 pub mod container;
+pub mod data_table;
 pub mod label;
 pub mod markdown;
 pub mod modal;
@@ -12,6 +13,7 @@ pub mod toast;
 pub mod tooltip;
 
 pub use container::{BorderStyle, Container};
+pub use data_table::{Column, DataTable};
 pub use label::{Alignment, Label};
 pub use markdown::MarkdownRenderer;
 pub use modal::Modal;
