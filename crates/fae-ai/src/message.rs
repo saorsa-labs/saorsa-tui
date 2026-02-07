@@ -26,9 +26,7 @@ impl Message {
     pub fn user(text: impl Into<String>) -> Self {
         Self {
             role: Role::User,
-            content: vec![ContentBlock::Text {
-                text: text.into(),
-            }],
+            content: vec![ContentBlock::Text { text: text.into() }],
         }
     }
 
@@ -36,9 +34,7 @@ impl Message {
     pub fn assistant(text: impl Into<String>) -> Self {
         Self {
             role: Role::Assistant,
-            content: vec![ContentBlock::Text {
-                text: text.into(),
-            }],
+            content: vec![ContentBlock::Text { text: text.into() }],
         }
     }
 
@@ -116,10 +112,11 @@ mod tests {
         let msg = Message::user("Hello");
         assert_eq!(msg.role, Role::User);
         assert_eq!(msg.content.len(), 1);
-        if let ContentBlock::Text { text } = &msg.content[0] {
-            assert_eq!(text, "Hello");
-        } else {
-            panic!("Expected Text content block");
+        match &msg.content[0] {
+            ContentBlock::Text { text } => {
+                assert_eq!(text, "Hello");
+            }
+            _ => panic!("Expected Text content block"),
         }
     }
 
@@ -157,15 +154,15 @@ mod tests {
     fn tool_result_message() {
         let msg = Message::tool_result("tool_1", "file.txt");
         assert_eq!(msg.role, Role::User);
-        if let ContentBlock::ToolResult {
-            tool_use_id,
-            content,
-        } = &msg.content[0]
-        {
-            assert_eq!(tool_use_id, "tool_1");
-            assert_eq!(content, "file.txt");
-        } else {
-            panic!("Expected ToolResult content block");
+        match &msg.content[0] {
+            ContentBlock::ToolResult {
+                tool_use_id,
+                content,
+            } => {
+                assert_eq!(tool_use_id, "tool_1");
+                assert_eq!(content, "file.txt");
+            }
+            _ => panic!("Expected ToolResult content block"),
         }
     }
 

@@ -100,17 +100,15 @@ mod tests {
     #[tokio::test]
     async fn event_channel_send_receive() {
         let (tx, mut rx) = event_channel(8);
-        let send_result = tx
-            .send(AgentEvent::TurnStart { turn: 1 })
-            .await;
+        let send_result = tx.send(AgentEvent::TurnStart { turn: 1 }).await;
         assert!(send_result.is_ok());
 
         let event = rx.recv().await;
-        assert!(event.is_some());
-        if let Some(AgentEvent::TurnStart { turn }) = event {
-            assert_eq!(turn, 1);
-        } else {
-            panic!("Expected TurnStart event");
+        match event {
+            Some(AgentEvent::TurnStart { turn }) => {
+                assert_eq!(turn, 1);
+            }
+            _ => panic!("Expected TurnStart event"),
         }
     }
 
@@ -123,10 +121,11 @@ mod tests {
             })
             .await;
 
-        if let Some(AgentEvent::TextDelta { text }) = rx.recv().await {
-            assert_eq!(text, "Hello");
-        } else {
-            panic!("Expected TextDelta event");
+        match rx.recv().await {
+            Some(AgentEvent::TextDelta { text }) => {
+                assert_eq!(text, "Hello");
+            }
+            _ => panic!("Expected TextDelta event"),
         }
     }
 
@@ -142,19 +141,19 @@ mod tests {
             })
             .await;
 
-        if let Some(AgentEvent::ToolResult {
-            id,
-            name,
-            output,
-            success,
-        }) = rx.recv().await
-        {
-            assert_eq!(id, "tool_1");
-            assert_eq!(name, "bash");
-            assert_eq!(output, "done");
-            assert!(success);
-        } else {
-            panic!("Expected ToolResult event");
+        match rx.recv().await {
+            Some(AgentEvent::ToolResult {
+                id,
+                name,
+                output,
+                success,
+            }) => {
+                assert_eq!(id, "tool_1");
+                assert_eq!(name, "bash");
+                assert_eq!(output, "done");
+                assert!(success);
+            }
+            _ => panic!("Expected ToolResult event"),
         }
     }
 

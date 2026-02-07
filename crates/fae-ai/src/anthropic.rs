@@ -1,6 +1,6 @@
 //! Anthropic Messages API provider.
 
-use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
+use reqwest::header::{CONTENT_TYPE, HeaderMap, HeaderValue};
 use serde::Deserialize;
 use tracing::debug;
 
@@ -55,13 +55,11 @@ impl AnthropicProvider {
         match event_type {
             "message_start" => {
                 let parsed: std::result::Result<SseMessageStart, _> = serde_json::from_str(data);
-                parsed
-                    .ok()
-                    .map(|m| StreamEvent::MessageStart {
-                        id: m.message.id,
-                        model: m.message.model,
-                        usage: m.message.usage,
-                    })
+                parsed.ok().map(|m| StreamEvent::MessageStart {
+                    id: m.message.id,
+                    model: m.message.model,
+                    usage: m.message.usage,
+                })
             }
             "content_block_start" => {
                 let parsed: std::result::Result<SseContentBlockStart, _> =
@@ -139,13 +137,10 @@ impl Provider for AnthropicProvider {
             };
         }
 
-        let resp: CompletionResponse = response
-            .json()
-            .await
-            .map_err(|e| FaeAiError::Provider {
-                provider: "anthropic".into(),
-                message: format!("response parse error: {e}"),
-            })?;
+        let resp: CompletionResponse = response.json().await.map_err(|e| FaeAiError::Provider {
+            provider: "anthropic".into(),
+            message: format!("response parse error: {e}"),
+        })?;
 
         Ok(resp)
     }
@@ -198,9 +193,7 @@ impl StreamingProvider for AnthropicProvider {
                 let chunk = match chunk {
                     Ok(c) => c,
                     Err(e) => {
-                        let _ = tx
-                            .send(Err(FaeAiError::Streaming(e.to_string())))
-                            .await;
+                        let _ = tx.send(Err(FaeAiError::Streaming(e.to_string()))).await;
                         break;
                     }
                 };
@@ -292,31 +285,31 @@ mod tests {
     fn parse_message_start() {
         let data = r#"{"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","content":[],"model":"claude-sonnet-4-5-20250929","stop_reason":null,"usage":{"input_tokens":10,"output_tokens":0}}}"#;
         let event = AnthropicProvider::parse_sse_event("message_start", data);
-        assert!(event.is_some());
-        if let Some(StreamEvent::MessageStart { id, model, usage }) = event {
-            assert_eq!(id, "msg_1");
-            assert_eq!(model, "claude-sonnet-4-5-20250929");
-            assert_eq!(usage.input_tokens, 10);
-        } else {
-            panic!("Expected MessageStart");
+        match event {
+            Some(StreamEvent::MessageStart { id, model, usage }) => {
+                assert_eq!(id, "msg_1");
+                assert_eq!(model, "claude-sonnet-4-5-20250929");
+                assert_eq!(usage.input_tokens, 10);
+            }
+            _ => panic!("Expected MessageStart"),
         }
     }
 
     #[test]
     fn parse_content_block_delta() {
-        let data =
-            r#"{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}"#;
+        let data = r#"{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}"#;
         let event = AnthropicProvider::parse_sse_event("content_block_delta", data);
-        assert!(event.is_some());
-        if let Some(StreamEvent::ContentBlockDelta { index, delta }) = event {
-            assert_eq!(index, 0);
-            if let ContentDelta::TextDelta { text } = delta {
-                assert_eq!(text, "Hello");
-            } else {
-                panic!("Expected TextDelta");
+        match event {
+            Some(StreamEvent::ContentBlockDelta { index, delta }) => {
+                assert_eq!(index, 0);
+                match delta {
+                    ContentDelta::TextDelta { text } => {
+                        assert_eq!(text, "Hello");
+                    }
+                    _ => panic!("Expected TextDelta"),
+                }
             }
-        } else {
-            panic!("Expected ContentBlockDelta");
+            _ => panic!("Expected ContentBlockDelta"),
         }
     }
 
@@ -334,13 +327,14 @@ mod tests {
 
     #[test]
     fn parse_error() {
-        let data = r#"{"type":"error","error":{"type":"rate_limit_error","message":"Rate limited"}}"#;
+        let data =
+            r#"{"type":"error","error":{"type":"rate_limit_error","message":"Rate limited"}}"#;
         let event = AnthropicProvider::parse_sse_event("error", data);
-        assert!(event.is_some());
-        if let Some(StreamEvent::Error { message }) = event {
-            assert_eq!(message, "Rate limited");
-        } else {
-            panic!("Expected Error event");
+        match event {
+            Some(StreamEvent::Error { message }) => {
+                assert_eq!(message, "Rate limited");
+            }
+            _ => panic!("Expected Error event"),
         }
     }
 
@@ -348,16 +342,12 @@ mod tests {
     fn parse_message_delta() {
         let data = r#"{"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":15}}"#;
         let event = AnthropicProvider::parse_sse_event("message_delta", data);
-        assert!(event.is_some());
-        if let Some(StreamEvent::MessageDelta {
-            stop_reason,
-            usage,
-        }) = event
-        {
-            assert_eq!(stop_reason, Some(StopReason::EndTurn));
-            assert_eq!(usage.output_tokens, 15);
-        } else {
-            panic!("Expected MessageDelta");
+        match event {
+            Some(StreamEvent::MessageDelta { stop_reason, usage }) => {
+                assert_eq!(stop_reason, Some(StopReason::EndTurn));
+                assert_eq!(usage.output_tokens, 15);
+            }
+            _ => panic!("Expected MessageDelta"),
         }
     }
 
