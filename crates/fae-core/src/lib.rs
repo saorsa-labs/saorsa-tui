@@ -59,8 +59,8 @@ pub use viewport::Viewport;
 pub use widget::{
     Alignment, BorderStyle, Checkbox, Collapsible, Column, Container, DataTable, DiffMode,
     DiffView, DirectoryTree, EventResult, IndicatorStyle, Label, LoadingIndicator,
-    MarkdownRenderer, Modal, ProgressBar, ProgressMode, RadioButton, RichLog, SelectList,
-    StaticWidget, Switch, Tab, TabBarPosition, Tabs, TextArea, Toast, ToastPosition, Tooltip, Tree,
-    TreeNode, Widget,
+    MarkdownRenderer, Modal, OptionList, ProgressBar, ProgressMode, RadioButton, RichLog,
+    SelectList, Sparkline, StaticWidget, Switch, Tab, TabBarPosition, Tabs, TextArea, Toast,
+    ToastPosition, Tooltip, Tree, TreeNode, Widget,
 };
 pub use wrap::{WrapLine, WrapResult, line_number_width, wrap_line, wrap_lines};
