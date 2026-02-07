@@ -373,6 +373,7 @@ dependencies = [
  "pulldown-cmark",
  "ropey",
  "taffy",
+ "tempfile",
  "thiserror 2.0.18",
  "tracing",
  "unicode-segmentation",

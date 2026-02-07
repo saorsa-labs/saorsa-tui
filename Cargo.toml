@@ -55,6 +55,9 @@ ropey = "1.6"
 # Fuzzy matching
 fuzzy-matcher = "0.3"
 
+# Testing
+tempfile = "3"
+
 # Markdown parsing
 pulldown-cmark = "0.12"
 
