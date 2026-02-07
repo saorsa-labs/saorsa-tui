@@ -2,6 +2,8 @@
 
 /// Automatic session saving with debouncing and retry logic.
 pub mod autosave;
+/// Session bookmarking.
+pub mod bookmark;
 /// Session branching and forking.
 pub mod branch;
 /// Filesystem path utilities.
@@ -16,6 +18,7 @@ pub mod tree;
 pub mod types;
 
 pub use autosave::{AutoSaveConfig, AutoSaveManager};
+pub use bookmark::{Bookmark, BookmarkManager};
 pub use branch::{auto_fork_on_edit, fork_session};
 pub use resume::{find_last_active_session, find_session_by_prefix, restore_session};
 pub use storage::SessionStorage;

@@ -17,8 +17,8 @@ pub use config::AgentConfig;
 pub use error::{FaeAgentError, Result};
 pub use event::{AgentEvent, EventReceiver, EventSender, TurnEndReason, event_channel};
 pub use session::{
-    Message, SessionId, SessionMetadata, SessionNode, SessionStorage, TreeNode,
-    TreeRenderOptions, auto_fork_on_edit, build_session_tree, find_in_tree,
+    Bookmark, BookmarkManager, Message, SessionId, SessionMetadata, SessionNode, SessionStorage,
+    TreeNode, TreeRenderOptions, auto_fork_on_edit, build_session_tree, find_in_tree,
     find_last_active_session, find_session_by_prefix, fork_session, render_tree, restore_session,
 };
 pub use tool::{Tool, ToolRegistry};
