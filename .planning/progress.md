@@ -113,3 +113,93 @@
 - **Zero clippy warnings**
 - **Zero compilation errors**
 - **All formatting clean**
+
+---
+
+## Phase 1.3: Basic Layout & Widgets
+
+### Task 1: Event System
+- `event.rs`: Event, KeyEvent, KeyCode, Modifiers, MouseEvent
+- Crossterm event conversion via From trait
+- 9 tests
+
+### Task 3: Widget Trait
+- `widget/mod.rs`: Widget, SizedWidget, InteractiveWidget traits
+- EventResult enum (Ignored, Consumed, Callback)
+- 2 tests
+
+### Task 4: Layout System
+- `layout.rs`: Direction, Constraint (Fixed/Percentage/Min/Max/Fill), Layout::split(), Layout::dock()
+- Dock enum (Top/Bottom/Left/Right) with area splitting
+- 13 tests
+
+### Task 5: Label Widget
+- `widget/label.rs`: Label with Alignment (Left/Center/Right)
+- Truncation with ellipsis for overflow text
+- 7 tests
+
+### Task 6: StaticWidget
+- `widget/static_widget.rs`: Pre-rendered Segment display
+- Multi-line support, area-bounded truncation
+- 6 tests
+
+### Task 7: Container Widget
+- `widget/container.rs`: Borders (None/Single/Double/Rounded/Heavy)
+- Title rendering, padding support, inner_area() calculation
+- 11 tests
+
+### Task 8: Focus Management
+- `focus.rs`: FocusManager with register/unregister
+- focus_next/focus_previous with wraparound, Tab/Shift-Tab handling
+- 10 tests
+
+### Summary
+- **148 tests passing** (57 new)
+- **Zero clippy warnings**
+- **Zero compilation errors**
+- **All formatting clean**
+
+---
+
+## Phase 1.4: Anthropic Provider (fae-ai)
+
+### Task 1: Message Types
+- `message.rs`: Role (User/Assistant), Message, ContentBlock (Text/ToolUse/ToolResult)
+- ToolDefinition with JSON Schema input_schema
+- Serde serialization with tagged enum variants
+- 6 tests
+
+### Task 2: Request/Response Types
+- `types.rs`: CompletionRequest (builder pattern), CompletionResponse, Usage, StopReason
+- StreamEvent enum (MessageStart/ContentBlockStart/Delta/Stop/MessageDelta/MessageStop/Ping/Error)
+- ContentDelta (TextDelta/InputJsonDelta) with tagged serde
+- 7 tests
+
+### Task 3: Provider Trait
+- `provider.rs`: async Provider trait (complete), StreamingProvider trait (stream → mpsc::Receiver)
+- ProviderConfig with builder pattern (api_key, model, base_url, max_tokens)
+- 2 tests
+
+### Task 4: Anthropic Provider
+- `anthropic.rs`: AnthropicProvider implementing Provider + StreamingProvider
+- HTTP client with x-api-key and anthropic-version headers
+- SSE line-based parser: event type + data extraction
+- parse_sse_event() handling all 7 Anthropic event types
+- Error categorization: 401→Auth, 429→RateLimit, other→Provider
+- 8 tests
+
+### Task 5: Token Estimation
+- `tokens.rs`: estimate_tokens (chars/4 heuristic), estimate_message_tokens, estimate_conversation_tokens
+- context_window() lookup for known Claude model prefixes
+- fits_in_context() with max_output_tokens reservation
+- 8 tests
+
+### Task 6: Wire Up lib.rs
+- All modules declared and key types re-exported
+- Public API: AnthropicProvider, FaeAiError, Message, ContentBlock, CompletionRequest, etc.
+
+### Summary
+- **182 tests passing** (34 new: 32 fae-ai + 2 fae-agent)
+- **Zero clippy warnings**
+- **Zero compilation errors**
+- **All formatting clean**

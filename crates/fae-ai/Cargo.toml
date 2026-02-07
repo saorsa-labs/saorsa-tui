@@ -10,8 +10,12 @@ repository.workspace = true
 [dependencies]
 thiserror = { workspace = true }
 tokio = { workspace = true }
+futures = { workspace = true }
+async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+reqwest = { workspace = true }
+reqwest-eventsource = { workspace = true }
 tracing = { workspace = true }
 
 [lints]
