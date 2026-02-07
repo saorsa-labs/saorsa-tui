@@ -50,11 +50,7 @@ impl GrepTool {
     }
 
     /// Search a single file for pattern matches.
-    fn search_file(
-        file_path: &Path,
-        regex: &Regex,
-        matches: &mut Vec<String>,
-    ) -> Result<()> {
+    fn search_file(file_path: &Path, regex: &Regex, matches: &mut Vec<String>) -> Result<()> {
         // Only search text files (skip binary files)
         let content = match fs::read_to_string(file_path) {
             Ok(c) => c,
@@ -67,12 +63,7 @@ impl GrepTool {
             }
 
             if regex.is_match(line) {
-                matches.push(format!(
-                    "{}:{}:{}",
-                    file_path.display(),
-                    line_num + 1,
-                    line
-                ));
+                matches.push(format!("{}:{}:{}", file_path.display(), line_num + 1, line));
             }
         }
 

@@ -459,7 +459,10 @@ mod tests {
 
     #[test]
     fn default_tools_registers_all() {
-        let registry = super::default_tools(std::env::current_dir().unwrap());
+        let cwd = std::env::current_dir();
+        assert!(cwd.is_ok());
+        let Ok(dir) = cwd else { unreachable!() };
+        let registry = super::default_tools(dir);
 
         // Verify all 7 tools are registered
         assert_eq!(registry.len(), 7);

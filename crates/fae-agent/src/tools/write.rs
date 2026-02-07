@@ -114,8 +114,9 @@ impl Tool for WriteTool {
 
         // Create parent directories if they don't exist
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|e| FaeAgentError::Tool(format!("Failed to create parent directories: {e}")))?;
+            fs::create_dir_all(parent).map_err(|e| {
+                FaeAgentError::Tool(format!("Failed to create parent directories: {e}"))
+            })?;
         }
 
         // Write the file

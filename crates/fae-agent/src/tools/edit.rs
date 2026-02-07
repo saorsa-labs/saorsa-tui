@@ -144,8 +144,7 @@ impl Tool for EditTool {
         if match_count > 1 && !input.replace_all {
             return Err(FaeAgentError::Tool(format!(
                 "Ambiguous: found {} matches for '{}'. Use replace_all: true to replace all occurrences, or provide more context to make the match unique.",
-                match_count,
-                input.old_text
+                match_count, input.old_text
             )));
         }
 
@@ -183,8 +182,8 @@ impl Tool for EditTool {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use tempfile::NamedTempFile;
     use std::io::Write;
+    use tempfile::NamedTempFile;
 
     #[tokio::test]
     async fn edit_single_replacement() {

@@ -118,12 +118,11 @@ impl Tool for FindTool {
                 break;
             }
 
-            if entry.file_type().is_file() {
-                if let Some(file_name) = entry.file_name().to_str() {
-                    if matcher.is_match(file_name) {
-                        matches.push(entry.path().display().to_string());
-                    }
-                }
+            if entry.file_type().is_file()
+                && let Some(file_name) = entry.file_name().to_str()
+                && matcher.is_match(file_name)
+            {
+                matches.push(entry.path().display().to_string());
             }
         }
 
