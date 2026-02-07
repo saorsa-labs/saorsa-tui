@@ -179,6 +179,10 @@ impl Default for ProviderRegistry {
             let provider = crate::ollama::OllamaProvider::new(config)?;
             Ok(Box::new(provider))
         });
+        reg.register(ProviderKind::OpenAiCompatible, |config| {
+            let provider = crate::openai_compat::OpenAiCompatProvider::new(config)?;
+            Ok(Box::new(provider))
+        });
         reg
     }
 }
@@ -267,7 +271,7 @@ mod tests {
         assert!(reg.has_provider(ProviderKind::OpenAi));
         assert!(reg.has_provider(ProviderKind::Gemini));
         assert!(reg.has_provider(ProviderKind::Ollama));
-        assert!(!reg.has_provider(ProviderKind::OpenAiCompatible));
+        assert!(reg.has_provider(ProviderKind::OpenAiCompatible));
     }
 
     #[test]
@@ -308,10 +312,19 @@ mod tests {
 
     #[test]
     fn registry_create_unknown_returns_error() {
-        let reg = ProviderRegistry::default();
-        let config = ProviderConfig::new(ProviderKind::OpenAiCompatible, "", "model");
+        let reg = ProviderRegistry::new();
+        let config = ProviderConfig::new(ProviderKind::Anthropic, "key", "model");
         let result = reg.create(config);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn registry_create_openai_compatible() {
+        let reg = ProviderRegistry::default();
+        let config = ProviderConfig::new(ProviderKind::OpenAiCompatible, "key", "model")
+            .with_base_url("https://api.example.com");
+        let result = reg.create(config);
+        assert!(result.is_ok());
     }
 
     #[test]
