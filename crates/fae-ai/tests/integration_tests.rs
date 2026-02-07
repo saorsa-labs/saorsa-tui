@@ -3,6 +3,9 @@
 //! These tests verify that all providers work together correctly
 //! through the unified interface.
 
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::overly_complex_bool_expr)]
+
 use fae_ai::{
     message::Message,
     models::{lookup_model, lookup_model_by_prefix},
@@ -17,7 +20,11 @@ fn factory_creates_all_providers() {
     let registry = ProviderRegistry::default();
 
     // Test Anthropic
-    let config = ProviderConfig::new(ProviderKind::Anthropic, "test-key", "claude-3-5-sonnet-20241022");
+    let config = ProviderConfig::new(
+        ProviderKind::Anthropic,
+        "test-key",
+        "claude-3-5-sonnet-20241022",
+    );
     let result = registry.create(config);
     assert!(result.is_ok(), "Failed to create Anthropic provider");
 
@@ -40,7 +47,10 @@ fn factory_creates_all_providers() {
     let config = ProviderConfig::new(ProviderKind::OpenAiCompatible, "test-key", "gpt-4")
         .with_base_url("https://api.openai.com/v1");
     let result = registry.create(config);
-    assert!(result.is_ok(), "Failed to create OpenAI Compatible provider");
+    assert!(
+        result.is_ok(),
+        "Failed to create OpenAI Compatible provider"
+    );
 }
 
 /// Test provider registry has all providers
@@ -94,7 +104,11 @@ fn model_lookup_prefix_versioned() {
 
     for (versioned_name, expected_prefix) in test_cases {
         let model = lookup_model_by_prefix(versioned_name);
-        assert!(model.is_some(), "Should find model via prefix: {}", versioned_name);
+        assert!(
+            model.is_some(),
+            "Should find model via prefix: {}",
+            versioned_name
+        );
 
         let model = model.unwrap();
         assert_eq!(model.name, expected_prefix);
@@ -132,7 +146,10 @@ fn openai_compat_builder() {
         .with_base_url("https://api.openai.com/v1");
     let builder = OpenAiCompatBuilder::new(config);
     let provider = builder.build();
-    assert!(provider.is_ok(), "Failed to build OpenAI Compatible provider");
+    assert!(
+        provider.is_ok(),
+        "Failed to build OpenAI Compatible provider"
+    );
 
     // Test builder with custom auth header
     let config = ProviderConfig::new(ProviderKind::OpenAiCompatible, "test-key", "gpt-4")
@@ -141,7 +158,10 @@ fn openai_compat_builder() {
         .auth_header("x-api-key")
         .extra_header("X-Custom-Header", "custom-value");
     let provider = builder.build();
-    assert!(provider.is_ok(), "Failed to build provider with custom auth");
+    assert!(
+        provider.is_ok(),
+        "Failed to build provider with custom auth"
+    );
 }
 
 /// Test provider configuration defaults
@@ -150,7 +170,10 @@ fn provider_config_defaults() {
     let configs = vec![
         (ProviderKind::Anthropic, "https://api.anthropic.com"),
         (ProviderKind::OpenAi, "https://api.openai.com"),
-        (ProviderKind::Gemini, "https://generativelanguage.googleapis.com/v1beta"),
+        (
+            ProviderKind::Gemini,
+            "https://generativelanguage.googleapis.com/v1beta",
+        ),
         (ProviderKind::Ollama, "http://localhost:11434"),
     ];
 
@@ -167,10 +190,10 @@ fn model_capability_flags() {
     use fae_ai::models::supports_vision;
 
     let test_cases = vec![
-        ("gpt-4o", true, true),     // OpenAI: supports tools and vision
-        ("claude-3-5-sonnet", true, true),  // Anthropic: supports tools and vision
-        ("llama3", true, false),  // Ollama: tools, no vision
-        ("gemini-1.5-flash", true, true), // Gemini: supports tools and vision
+        ("gpt-4o", true, true),            // OpenAI: supports tools and vision
+        ("claude-3-5-sonnet", true, true), // Anthropic: supports tools and vision
+        ("llama3", true, false),           // Ollama: tools, no vision
+        ("gemini-1.5-flash", true, true),  // Gemini: supports tools and vision
     ];
 
     for (model_name, expected_tools, expected_vision) in test_cases {
@@ -178,8 +201,16 @@ fn model_capability_flags() {
         assert!(model.is_some(), "Should find model: {}", model_name);
 
         let model = model.unwrap();
-        assert_eq!(model.supports_tools, expected_tools, "Model {} tools mismatch", model_name);
-        assert_eq!(model.supports_vision, expected_vision, "Model {} vision mismatch", model_name);
+        assert_eq!(
+            model.supports_tools, expected_tools,
+            "Model {} tools mismatch",
+            model_name
+        );
+        assert_eq!(
+            model.supports_vision, expected_vision,
+            "Model {} vision mismatch",
+            model_name
+        );
         // Use the imported functions
         let _ = supports_tools(model_name);
         let _ = supports_vision(model_name);
@@ -201,7 +232,11 @@ fn context_window_sizes() {
 
     for (model_name, expected_size) in test_cases {
         let size = get_context_window(model_name);
-        assert_eq!(size, expected_size, "Model {} context window mismatch", model_name);
+        assert_eq!(
+            size, expected_size,
+            "Model {} context window mismatch",
+            model_name
+        );
     }
 }
 
@@ -244,7 +279,10 @@ fn public_api_exports_compile() {
     // Use items from each module to verify they're exported
     use fae_ai::{
         message::{ContentBlock, Message, Role, ToolDefinition},
-        models::{get_context_window, lookup_model, lookup_model_by_prefix, supports_tools, supports_vision},
+        models::{
+            get_context_window, lookup_model, lookup_model_by_prefix, supports_tools,
+            supports_vision,
+        },
         provider::{ProviderConfig, ProviderKind, ProviderRegistry},
         types::{CompletionRequest, StopReason},
     };
@@ -254,7 +292,9 @@ fn public_api_exports_compile() {
     let _ = CompletionRequest::new("test-model", vec![], 100);
     let _ = ProviderConfig::new(ProviderKind::OpenAi, "test-key", "test-model");
     let _ = Role::User;
-    let _ = ContentBlock::Text { text: "test".to_string() };
+    let _ = ContentBlock::Text {
+        text: "test".to_string(),
+    };
     let _ = ToolDefinition {
         name: "test".to_string(),
         description: "test".to_string(),
