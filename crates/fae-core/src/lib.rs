@@ -13,6 +13,7 @@ pub mod event;
 pub mod focus;
 pub mod geometry;
 pub mod layout;
+pub mod overlay;
 pub mod render_context;
 pub mod renderer;
 pub mod segment;
@@ -35,6 +36,7 @@ pub use layout::{
     Constraint, Direction, Dock, Layout, LayoutEngine, LayoutError, LayoutRect, OverflowBehavior,
     ScrollManager, ScrollState,
 };
+pub use overlay::{OverlayConfig, OverlayId, OverlayPosition, Placement, ScreenStack};
 pub use render_context::RenderContext;
 pub use renderer::{DeltaBatch, Renderer, batch_changes, build_sgr_sequence};
 pub use segment::Segment;
@@ -42,4 +44,7 @@ pub use style::Style;
 pub use terminal::{CrosstermBackend, Terminal, TestBackend};
 pub use text::{TextConfig, expand_tabs, filter_control_chars, preprocess};
 pub use viewport::Viewport;
-pub use widget::{Alignment, BorderStyle, Container, EventResult, Label, StaticWidget, Widget};
+pub use widget::{
+    Alignment, BorderStyle, Container, EventResult, Label, Modal, StaticWidget, Toast,
+    ToastPosition, Tooltip, Widget,
+};

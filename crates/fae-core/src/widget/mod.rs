@@ -2,11 +2,17 @@
 
 pub mod container;
 pub mod label;
+pub mod modal;
 pub mod static_widget;
+pub mod toast;
+pub mod tooltip;
 
 pub use container::{BorderStyle, Container};
 pub use label::{Alignment, Label};
+pub use modal::Modal;
 pub use static_widget::StaticWidget;
+pub use toast::{Toast, ToastPosition};
+pub use tooltip::Tooltip;
 
 use crate::buffer::ScreenBuffer;
 use crate::event::Event;
@@ -83,5 +89,82 @@ mod tests {
     fn event_result_equality() {
         assert_eq!(EventResult::Consumed, EventResult::Consumed);
         assert_ne!(EventResult::Consumed, EventResult::Ignored);
+    }
+
+    // --- Widget module integration tests ---
+
+    #[test]
+    fn modal_create_and_render() {
+        let modal = Modal::new("Test Modal", 30, 10);
+        let lines = modal.render_to_lines();
+        assert!(lines.len() == 10);
+        assert!(!lines[0].is_empty());
+    }
+
+    #[test]
+    fn toast_create_and_render() {
+        let toast = Toast::new("Notification");
+        let lines = toast.render_to_lines();
+        assert!(lines.len() == 1);
+        let text: String = lines[0].iter().map(|s| &*s.text).collect();
+        assert!(text.contains("Notification"));
+    }
+
+    #[test]
+    fn tooltip_create_and_render() {
+        let tooltip = Tooltip::new("Help text", Rect::new(10, 10, 5, 2));
+        let lines = tooltip.render_to_lines();
+        assert!(lines.len() == 1);
+        assert!(lines[0][0].text == "Help text");
+    }
+
+    #[test]
+    fn modal_pushed_to_screen_stack() {
+        use crate::overlay::ScreenStack;
+
+        let modal = Modal::new("M", 20, 5);
+        let lines = modal.render_to_lines();
+        let config = modal.to_overlay_config();
+
+        let mut stack = ScreenStack::new();
+        let id = stack.push(config, lines);
+        assert!(id > 0);
+        assert!(stack.len() == 1);
+    }
+
+    #[test]
+    fn toast_pushed_to_screen_stack() {
+        use crate::overlay::ScreenStack;
+
+        let toast = Toast::new("T").with_width(10);
+        let screen = Size::new(80, 24);
+        let lines = toast.render_to_lines();
+        let config = toast.to_overlay_config(screen);
+
+        let mut stack = ScreenStack::new();
+        stack.push(config, lines);
+        assert!(stack.len() == 1);
+    }
+
+    #[test]
+    fn multiple_overlay_types_in_stack() {
+        use crate::overlay::{Placement, ScreenStack};
+
+        let mut stack = ScreenStack::new();
+        let screen = Size::new(80, 24);
+
+        // Add modal
+        let modal = Modal::new("M", 20, 5);
+        stack.push(modal.to_overlay_config(), modal.render_to_lines());
+
+        // Add toast
+        let toast = Toast::new("T").with_width(10);
+        stack.push(toast.to_overlay_config(screen), toast.render_to_lines());
+
+        // Add tooltip
+        let tooltip = Tooltip::new("tip", Rect::new(10, 10, 5, 2)).with_placement(Placement::Below);
+        stack.push(tooltip.to_overlay_config(screen), tooltip.render_to_lines());
+
+        assert!(stack.len() == 3);
     }
 }
