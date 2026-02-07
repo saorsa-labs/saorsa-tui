@@ -11,6 +11,8 @@ pub mod error;
 pub mod event;
 /// Session management for conversation history and persistence.
 pub mod session;
+/// Skills system for on-demand capabilities.
+pub mod skills;
 pub mod tool;
 pub mod tools;
 
@@ -25,5 +27,6 @@ pub use session::{
     find_in_tree, find_last_active_session, find_session_by_prefix, fork_session, render_tree,
     restore_session,
 };
+pub use skills::{Skill, SkillRegistry};
 pub use tool::{Tool, ToolRegistry};
 pub use tools::{BashTool, EditTool, FindTool, GrepTool, LsTool, ReadTool, WriteTool};
