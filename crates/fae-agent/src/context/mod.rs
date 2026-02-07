@@ -9,8 +9,10 @@
 
 pub mod agents;
 pub mod discovery;
+pub mod system;
 pub mod types;
 
 pub use agents::AgentsContext;
 pub use discovery::ContextDiscovery;
+pub use system::SystemContext;
 pub use types::{MergeStrategy, SystemMode};
