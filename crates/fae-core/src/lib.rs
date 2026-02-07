@@ -58,7 +58,8 @@ pub use undo::{EditOperation, UndoStack};
 pub use viewport::Viewport;
 pub use widget::{
     Alignment, BorderStyle, Column, Container, DataTable, DiffMode, DiffView, DirectoryTree,
-    EventResult, Label, MarkdownRenderer, Modal, RichLog, SelectList, StaticWidget, Tab,
-    TabBarPosition, Tabs, TextArea, Toast, ToastPosition, Tooltip, Tree, TreeNode, Widget,
+    EventResult, IndicatorStyle, Label, LoadingIndicator, MarkdownRenderer, Modal, ProgressBar,
+    ProgressMode, RichLog, SelectList, StaticWidget, Tab, TabBarPosition, Tabs, TextArea, Toast,
+    ToastPosition, Tooltip, Tree, TreeNode, Widget,
 };
 pub use wrap::{WrapLine, WrapResult, line_number_width, wrap_line, wrap_lines};
