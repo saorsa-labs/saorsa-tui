@@ -19,6 +19,7 @@ taffy = { workspace = true }
 ropey = { workspace = true }
 pulldown-cmark = { workspace = true }
 fuzzy-matcher = { workspace = true }
+similar = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }

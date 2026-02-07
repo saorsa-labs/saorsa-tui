@@ -55,6 +55,9 @@ ropey = "1.6"
 # Fuzzy matching
 fuzzy-matcher = "0.3"
 
+# Text diffing
+similar = "2.6"
+
 # Testing
 tempfile = "3"
 

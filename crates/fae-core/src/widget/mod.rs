@@ -2,6 +2,7 @@
 
 pub mod container;
 pub mod data_table;
+pub mod diff_view;
 pub mod directory_tree;
 pub mod label;
 pub mod markdown;
@@ -16,6 +17,7 @@ pub mod tree;
 
 pub use container::{BorderStyle, Container};
 pub use data_table::{Column, DataTable};
+pub use diff_view::{DiffMode, DiffView};
 pub use directory_tree::DirectoryTree;
 pub use label::{Alignment, Label};
 pub use markdown::MarkdownRenderer;
