@@ -5,7 +5,9 @@
 //! terminal rendering capabilities.
 
 pub mod error;
+pub mod property;
 pub mod value;
 
 pub use error::TcssError;
+pub use property::{Declaration, PropertyName};
 pub use value::{CssValue, Length};
