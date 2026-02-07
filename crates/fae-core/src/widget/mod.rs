@@ -2,15 +2,19 @@
 
 pub mod container;
 pub mod label;
+pub mod markdown;
 pub mod modal;
 pub mod static_widget;
+pub mod text_area;
 pub mod toast;
 pub mod tooltip;
 
 pub use container::{BorderStyle, Container};
 pub use label::{Alignment, Label};
+pub use markdown::MarkdownRenderer;
 pub use modal::Modal;
 pub use static_widget::StaticWidget;
+pub use text_area::TextArea;
 pub use toast::{Toast, ToastPosition};
 pub use tooltip::Tooltip;
 
