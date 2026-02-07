@@ -45,6 +45,13 @@ impl Cell {
         self.width > 1
     }
 
+    /// Returns true if this is a continuation cell (width == 0).
+    ///
+    /// Continuation cells occupy the second column of a wide character.
+    pub fn is_continuation(&self) -> bool {
+        self.width == 0
+    }
+
     /// Create a continuation cell (placeholder for the second cell of a wide character).
     pub fn continuation() -> Self {
         Self {
@@ -98,5 +105,90 @@ mod tests {
     fn space_default_is_blank() {
         let c = Cell::new(" ", Style::default());
         assert!(c.is_blank());
+    }
+
+    // --- Task 6: Unicode cell tests ---
+
+    #[test]
+    fn cell_from_emoji_width_two() {
+        let c = Cell::new("\u{1f389}", Style::default()); // 🎉
+        assert_eq!(c.width, 2);
+        assert!(c.is_wide());
+    }
+
+    #[test]
+    fn cell_from_combining_mark_width_zero() {
+        // U+0301 combining acute accent alone
+        let c = Cell::new("\u{0301}", Style::default());
+        assert_eq!(c.width, 0);
+    }
+
+    #[test]
+    fn cell_from_cjk_width_two() {
+        let c = Cell::new("\u{6f22}", Style::default()); // 漢
+        assert_eq!(c.width, 2);
+        assert!(c.is_wide());
+    }
+
+    #[test]
+    fn cell_from_ascii_width_one() {
+        let c = Cell::new("A", Style::default());
+        assert_eq!(c.width, 1);
+        assert!(!c.is_wide());
+    }
+
+    #[test]
+    fn cell_equality_same_grapheme_and_style() {
+        let style = Style::new().fg(Color::Named(NamedColor::Green));
+        let c1 = Cell::new("X", style.clone());
+        let c2 = Cell::new("X", style);
+        assert_eq!(c1, c2);
+    }
+
+    #[test]
+    fn cell_inequality_different_width() {
+        // ASCII "A" (width 1) vs CJK "世" (width 2)
+        let c1 = Cell::new("A", Style::default());
+        let c2 = Cell::new("\u{4e16}", Style::default());
+        assert_ne!(c1, c2);
+        assert_ne!(c1.width, c2.width);
+    }
+
+    // --- Multi-codepoint emoji cell tests ---
+
+    #[test]
+    fn cell_from_zwj_emoji_width_two() {
+        // ZWJ family emoji: man + ZWJ + woman + ZWJ + girl
+        let c = Cell::new(
+            "\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}",
+            Style::default(),
+        );
+        assert_eq!(c.width, 2);
+        assert!(c.is_wide());
+    }
+
+    #[test]
+    fn cell_from_flag_emoji_width_two() {
+        // US flag: regional indicator U + regional indicator S
+        let c = Cell::new("\u{1F1FA}\u{1F1F8}", Style::default());
+        assert_eq!(c.width, 2);
+        assert!(c.is_wide());
+    }
+
+    #[test]
+    fn cell_from_skin_tone_emoji_width_two() {
+        // Thumbs up + medium skin tone
+        let c = Cell::new("\u{1F44D}\u{1F3FD}", Style::default());
+        assert_eq!(c.width, 2);
+        assert!(c.is_wide());
+    }
+
+    #[test]
+    fn cell_continuation_after_emoji() {
+        // Continuation cell should be width 0 regardless of what preceded it
+        let cont = Cell::continuation();
+        assert!(cont.is_continuation());
+        assert_eq!(cont.width, 0);
+        assert!(cont.grapheme.is_empty());
     }
 }

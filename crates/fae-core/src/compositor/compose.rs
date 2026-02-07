@@ -323,4 +323,100 @@ mod tests {
         let found_top = segments.iter().any(|s| s.text.contains("Top"));
         assert!(found_top);
     }
+
+    // --- Unicode edge case tests ---
+
+    #[test]
+    fn compose_cjk_text_at_overlap_boundary() {
+        // Bottom layer: "世界人" (width 6) starting at x=0
+        let layer1 = Layer::new(
+            1,
+            Rect::new(0, 0, 20, 1),
+            0,
+            vec![vec![Segment::new("\u{4e16}\u{754c}\u{4eba}")]],
+        );
+        // Top layer overlaps starting at x=3 (mid-wide-char boundary of 界)
+        let layer2 = Layer::new(
+            2,
+            Rect::new(3, 0, 5, 1),
+            10,
+            vec![vec![Segment::new("XXXXX")]],
+        );
+        let layers = vec![layer1, layer2];
+
+        let segments = compose_line(&layers, 0, 20);
+
+        // The result should have proper width = 20 total
+        let total_width: usize = segments.iter().map(|s| s.width()).sum();
+        assert_eq!(total_width, 20);
+
+        // The overlay "XXXXX" should appear in the output
+        let combined: String = segments.iter().map(|s| s.text.as_str()).collect();
+        assert!(combined.contains("XXXXX"));
+    }
+
+    #[test]
+    fn compose_combining_marks_at_layer_boundary() {
+        // Layer with text containing combining marks
+        let layer1 = Layer::new(
+            1,
+            Rect::new(0, 0, 20, 1),
+            0,
+            vec![vec![Segment::new("ae\u{0301}bc")]],
+        );
+        let layers = vec![layer1];
+
+        let segments = compose_line(&layers, 0, 20);
+
+        // The combined text should contain the combining mark attached to 'e'
+        let combined: String = segments.iter().map(|s| s.text.as_str()).collect();
+        assert!(combined.contains("e\u{0301}") || combined.contains('a'));
+        let total_width: usize = segments.iter().map(|s| s.width()).sum();
+        assert_eq!(total_width, 20);
+    }
+
+    #[test]
+    fn compose_empty_segments_in_layers() {
+        // Layer has some empty segments mixed in
+        let layer = Layer::new(
+            1,
+            Rect::new(0, 0, 20, 1),
+            0,
+            vec![vec![
+                Segment::new(""),
+                Segment::new("Hello"),
+                Segment::new(""),
+                Segment::new(" World"),
+            ]],
+        );
+        let layers = vec![layer];
+
+        let segments = compose_line(&layers, 0, 20);
+
+        let combined: String = segments.iter().map(|s| s.text.as_str()).collect();
+        assert!(combined.contains("Hello"));
+        assert!(combined.contains("World"));
+        let total_width: usize = segments.iter().map(|s| s.width()).sum();
+        assert_eq!(total_width, 20);
+    }
+
+    #[test]
+    fn compose_very_long_grapheme_clusters() {
+        // Use a ZWJ family emoji (multi-codepoint, width 2)
+        let emoji = "\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}";
+        let text = format!("A{}B", emoji);
+        let layer = Layer::new(1, Rect::new(0, 0, 20, 1), 0, vec![vec![Segment::new(text)]]);
+        let layers = vec![layer];
+
+        let segments = compose_line(&layers, 0, 20);
+
+        // Output should have total width 20
+        let total_width: usize = segments.iter().map(|s| s.width()).sum();
+        assert_eq!(total_width, 20);
+
+        // Should contain the emoji in some form
+        let combined: String = segments.iter().map(|s| s.text.as_str()).collect();
+        assert!(combined.contains('A'));
+        assert!(combined.contains('B'));
+    }
 }

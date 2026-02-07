@@ -964,3 +964,378 @@ mod advanced_integration_tests {
         }
     }
 }
+
+#[cfg(test)]
+mod unicode_pipeline_tests {
+    use super::*;
+    use crate::color::{Color, NamedColor};
+    use crate::geometry::{Rect, Size};
+    use crate::segment::Segment;
+    use crate::style::Style;
+
+    /// Test 1: CJK text layer produces correct primary and continuation cells.
+    #[test]
+    fn cjk_text_layer_correct_cells() {
+        let mut compositor = Compositor::new(20, 3);
+        let region = Rect::new(0, 0, 20, 3);
+        // Three CJK chars: 世界人 — each width 2, total width 6
+        let lines = vec![vec![Segment::new("\u{4e16}\u{754c}\u{4eba}")]];
+        compositor.add_layer(Layer::new(1, region, 0, lines));
+
+        let mut buf = ScreenBuffer::new(Size::new(20, 3));
+        compositor.compose(&mut buf);
+
+        // Column 0: primary "世" width 2
+        match buf.get(0, 0) {
+            Some(c) => {
+                assert_eq!(c.grapheme, "\u{4e16}");
+                assert_eq!(c.width, 2);
+            }
+            None => unreachable!(),
+        }
+        // Column 1: continuation
+        match buf.get(1, 0) {
+            Some(c) => assert_eq!(c.width, 0),
+            None => unreachable!(),
+        }
+        // Column 2: primary "界" width 2
+        match buf.get(2, 0) {
+            Some(c) => {
+                assert_eq!(c.grapheme, "\u{754c}");
+                assert_eq!(c.width, 2);
+            }
+            None => unreachable!(),
+        }
+        // Column 3: continuation
+        match buf.get(3, 0) {
+            Some(c) => assert_eq!(c.width, 0),
+            None => unreachable!(),
+        }
+        // Column 4: primary "人" width 2
+        match buf.get(4, 0) {
+            Some(c) => {
+                assert_eq!(c.grapheme, "\u{4eba}");
+                assert_eq!(c.width, 2);
+            }
+            None => unreachable!(),
+        }
+        // Column 5: continuation
+        match buf.get(5, 0) {
+            Some(c) => assert_eq!(c.width, 0),
+            None => unreachable!(),
+        }
+        // Column 6: blank
+        match buf.get(6, 0) {
+            Some(c) => assert!(c.is_blank()),
+            None => unreachable!(),
+        }
+    }
+
+    /// Test 2: Emoji text layer produces correct cells.
+    #[test]
+    fn emoji_text_layer_correct_cells() {
+        let mut compositor = Compositor::new(20, 3);
+        let region = Rect::new(0, 0, 20, 3);
+        // Two emoji: 😀🎉 — each width 2
+        let lines = vec![vec![Segment::new("\u{1f600}\u{1f389}")]];
+        compositor.add_layer(Layer::new(1, region, 0, lines));
+
+        let mut buf = ScreenBuffer::new(Size::new(20, 3));
+        compositor.compose(&mut buf);
+
+        // Column 0: primary emoji, width 2
+        match buf.get(0, 0) {
+            Some(c) => {
+                assert_eq!(c.grapheme, "\u{1f600}");
+                assert_eq!(c.width, 2);
+            }
+            None => unreachable!(),
+        }
+        // Column 1: continuation
+        match buf.get(1, 0) {
+            Some(c) => assert_eq!(c.width, 0),
+            None => unreachable!(),
+        }
+        // Column 2: second emoji, width 2
+        match buf.get(2, 0) {
+            Some(c) => {
+                assert_eq!(c.grapheme, "\u{1f389}");
+                assert_eq!(c.width, 2);
+            }
+            None => unreachable!(),
+        }
+        // Column 3: continuation
+        match buf.get(3, 0) {
+            Some(c) => assert_eq!(c.width, 0),
+            None => unreachable!(),
+        }
+    }
+
+    /// Test 3: Mixed Latin + CJK + emoji in one layer — all widths correct.
+    #[test]
+    fn mixed_latin_cjk_emoji_widths() {
+        let mut compositor = Compositor::new(20, 3);
+        let region = Rect::new(0, 0, 20, 3);
+        // "Hi" (2) + "世" (2) + "😀" (2) = total width 6
+        let lines = vec![vec![Segment::new("Hi\u{4e16}\u{1f600}")]];
+        compositor.add_layer(Layer::new(1, region, 0, lines));
+
+        let mut buf = ScreenBuffer::new(Size::new(20, 3));
+        compositor.compose(&mut buf);
+
+        // Columns 0-1: "H", "i" (each width 1)
+        match buf.get(0, 0) {
+            Some(c) => {
+                assert_eq!(c.grapheme, "H");
+                assert_eq!(c.width, 1);
+            }
+            None => unreachable!(),
+        }
+        match buf.get(1, 0) {
+            Some(c) => {
+                assert_eq!(c.grapheme, "i");
+                assert_eq!(c.width, 1);
+            }
+            None => unreachable!(),
+        }
+        // Columns 2-3: CJK "世" (width 2) + continuation
+        match buf.get(2, 0) {
+            Some(c) => {
+                assert_eq!(c.grapheme, "\u{4e16}");
+                assert_eq!(c.width, 2);
+            }
+            None => unreachable!(),
+        }
+        match buf.get(3, 0) {
+            Some(c) => assert_eq!(c.width, 0),
+            None => unreachable!(),
+        }
+        // Columns 4-5: emoji "😀" (width 2) + continuation
+        match buf.get(4, 0) {
+            Some(c) => {
+                assert_eq!(c.grapheme, "\u{1f600}");
+                assert_eq!(c.width, 2);
+            }
+            None => unreachable!(),
+        }
+        match buf.get(5, 0) {
+            Some(c) => assert_eq!(c.width, 0),
+            None => unreachable!(),
+        }
+    }
+
+    /// Test 4: Wide char at screen right edge — clipped correctly (no crash).
+    #[test]
+    fn wide_char_at_screen_right_edge_clipped() {
+        // Screen width 5
+        let mut compositor = Compositor::new(5, 1);
+        let region = Rect::new(0, 0, 5, 1);
+        // "ABCD世" = width 6: the CJK char starts at column 4 but needs column 5 too
+        // The compositor writes 'A'(0), 'B'(1), 'C'(2), 'D'(3), then tries "世" at col 4
+        // Since "世" is width 2 and the screen width is 5, column 5 is out of bounds
+        // The buffer's set() will handle this by replacing with blank
+        let lines = vec![vec![Segment::new("ABCD\u{4e16}")]];
+        compositor.add_layer(Layer::new(1, region, 0, lines));
+
+        let mut buf = ScreenBuffer::new(Size::new(5, 1));
+        compositor.compose(&mut buf);
+
+        // Columns 0-3 should have A, B, C, D
+        match buf.get(0, 0) {
+            Some(c) => assert_eq!(c.grapheme, "A"),
+            None => unreachable!(),
+        }
+        match buf.get(3, 0) {
+            Some(c) => assert_eq!(c.grapheme, "D"),
+            None => unreachable!(),
+        }
+        // Column 4: the wide char can't fit, should be blank (buffer protection)
+        match buf.get(4, 0) {
+            Some(c) => {
+                // Buffer set() replaces wide chars at last column with blank
+                assert!(c.is_blank());
+            }
+            None => unreachable!(),
+        }
+        // No crash, no out-of-bounds
+        assert!(buf.get(5, 0).is_none());
+    }
+
+    /// Test 5: Combining marks in a layer — preserved in buffer cells.
+    #[test]
+    fn combining_marks_preserved_in_buffer() {
+        let mut compositor = Compositor::new(20, 3);
+        let region = Rect::new(0, 0, 20, 3);
+        // "e\u{0301}" = e with combining acute accent = single grapheme, width 1
+        let lines = vec![vec![Segment::new("e\u{0301}X")]];
+        compositor.add_layer(Layer::new(1, region, 0, lines));
+
+        let mut buf = ScreenBuffer::new(Size::new(20, 3));
+        compositor.compose(&mut buf);
+
+        // Column 0: the composed grapheme "e\u{0301}" should be there
+        match buf.get(0, 0) {
+            Some(c) => {
+                assert_eq!(c.grapheme, "e\u{0301}");
+                assert_eq!(c.width, 1);
+            }
+            None => unreachable!(),
+        }
+        // Column 1: "X"
+        match buf.get(1, 0) {
+            Some(c) => assert_eq!(c.grapheme, "X"),
+            None => unreachable!(),
+        }
+    }
+
+    /// Test 6: Styled wide chars — style preserved in buffer.
+    #[test]
+    fn styled_wide_chars_preserved() {
+        let mut compositor = Compositor::new(20, 3);
+        let region = Rect::new(0, 0, 20, 3);
+        let style = Style::new().fg(Color::Named(NamedColor::Red)).bold(true);
+        // CJK text with style
+        let lines = vec![vec![Segment::styled("\u{4e16}\u{754c}", style.clone())]];
+        compositor.add_layer(Layer::new(1, region, 0, lines));
+
+        let mut buf = ScreenBuffer::new(Size::new(20, 3));
+        compositor.compose(&mut buf);
+
+        // Column 0: "世" with red+bold style
+        match buf.get(0, 0) {
+            Some(c) => {
+                assert_eq!(c.grapheme, "\u{4e16}");
+                assert!(c.style.bold);
+                assert!(matches!(c.style.fg, Some(Color::Named(NamedColor::Red))));
+            }
+            None => unreachable!(),
+        }
+        // Column 2: "界" with same style
+        match buf.get(2, 0) {
+            Some(c) => {
+                assert_eq!(c.grapheme, "\u{754c}");
+                assert!(c.style.bold);
+                assert!(matches!(c.style.fg, Some(Color::Named(NamedColor::Red))));
+            }
+            None => unreachable!(),
+        }
+    }
+
+    /// Test 7: Overlapping layers with different Unicode scripts — topmost wins.
+    #[test]
+    fn overlapping_unicode_scripts_topmost_wins() {
+        let mut compositor = Compositor::new(20, 3);
+
+        // Bottom layer (z=0): CJK text
+        let bottom_region = Rect::new(0, 0, 20, 3);
+        let bottom_lines = vec![vec![Segment::new("\u{4e16}\u{754c}\u{4eba}\u{6c11}")]];
+        compositor.add_layer(Layer::new(1, bottom_region, 0, bottom_lines));
+
+        // Top layer (z=10): Latin text at same position, overlapping first 4 columns
+        let top_region = Rect::new(0, 0, 4, 3);
+        let top_lines = vec![vec![Segment::new("ABCD")]];
+        compositor.add_layer(Layer::new(2, top_region, 10, top_lines));
+
+        let mut buf = ScreenBuffer::new(Size::new(20, 3));
+        compositor.compose(&mut buf);
+
+        // Columns 0-3: should have "ABCD" from top layer
+        match buf.get(0, 0) {
+            Some(c) => assert_eq!(c.grapheme, "A"),
+            None => unreachable!(),
+        }
+        match buf.get(1, 0) {
+            Some(c) => assert_eq!(c.grapheme, "B"),
+            None => unreachable!(),
+        }
+        match buf.get(2, 0) {
+            Some(c) => assert_eq!(c.grapheme, "C"),
+            None => unreachable!(),
+        }
+        match buf.get(3, 0) {
+            Some(c) => assert_eq!(c.grapheme, "D"),
+            None => unreachable!(),
+        }
+
+        // Column 4 onwards: should have CJK from bottom layer
+        // CJK "世界人民": 世(0-1), 界(2-3), 人(4-5), 民(6-7)
+        // Since top layer covers 0-3, bottom layer columns 4-5 should show 人
+        match buf.get(4, 0) {
+            Some(c) => {
+                assert_eq!(c.grapheme, "\u{4eba}");
+                assert_eq!(c.width, 2);
+            }
+            None => unreachable!(),
+        }
+    }
+
+    /// Test 8: Multiple rows of CJK text — correct row-by-row rendering.
+    #[test]
+    fn multiple_rows_cjk_text() {
+        let mut compositor = Compositor::new(20, 5);
+        let region = Rect::new(0, 0, 20, 5);
+        let lines = vec![
+            vec![Segment::new("\u{4e16}\u{754c}")], // 世界 (row 0)
+            vec![Segment::new("\u{4eba}\u{6c11}")], // 人民 (row 1)
+            vec![Segment::new("\u{5927}\u{5b66}")], // 大学 (row 2)
+        ];
+        compositor.add_layer(Layer::new(1, region, 0, lines));
+
+        let mut buf = ScreenBuffer::new(Size::new(20, 5));
+        compositor.compose(&mut buf);
+
+        // Row 0: "世" at col 0, "界" at col 2
+        match buf.get(0, 0) {
+            Some(c) => {
+                assert_eq!(c.grapheme, "\u{4e16}");
+                assert_eq!(c.width, 2);
+            }
+            None => unreachable!(),
+        }
+        match buf.get(2, 0) {
+            Some(c) => {
+                assert_eq!(c.grapheme, "\u{754c}");
+                assert_eq!(c.width, 2);
+            }
+            None => unreachable!(),
+        }
+
+        // Row 1: "人" at col 0, "民" at col 2
+        match buf.get(0, 1) {
+            Some(c) => {
+                assert_eq!(c.grapheme, "\u{4eba}");
+                assert_eq!(c.width, 2);
+            }
+            None => unreachable!(),
+        }
+        match buf.get(2, 1) {
+            Some(c) => {
+                assert_eq!(c.grapheme, "\u{6c11}");
+                assert_eq!(c.width, 2);
+            }
+            None => unreachable!(),
+        }
+
+        // Row 2: "大" at col 0, "学" at col 2
+        match buf.get(0, 2) {
+            Some(c) => {
+                assert_eq!(c.grapheme, "\u{5927}");
+                assert_eq!(c.width, 2);
+            }
+            None => unreachable!(),
+        }
+        match buf.get(2, 2) {
+            Some(c) => {
+                assert_eq!(c.grapheme, "\u{5b66}");
+                assert_eq!(c.width, 2);
+            }
+            None => unreachable!(),
+        }
+
+        // Row 3: should be all blank (no content)
+        match buf.get(0, 3) {
+            Some(c) => assert!(c.is_blank()),
+            None => unreachable!(),
+        }
+    }
+}

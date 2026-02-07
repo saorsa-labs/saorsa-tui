@@ -251,4 +251,62 @@ mod tests {
         assert!(result.len() == 1);
         assert!(result[0].text == "te");
     }
+
+    // --- Unicode edge case tests ---
+
+    #[test]
+    fn chop_wide_char_at_cut_boundary() {
+        // Segment: "A世B" — A(1) + 世(2) + B(1) = width 4
+        // Cut at [0, 2): should get "A" + space padding (since 世 straddles boundary at col 1-2)
+        let segments = vec![Segment::new("A\u{4e16}B")];
+        let result = chop_segments(&segments, 0, 0, 2);
+
+        let total_width: usize = result.iter().map(|s| s.width()).sum();
+        assert_eq!(total_width, 2);
+    }
+
+    #[test]
+    fn chop_segment_with_combining_marks() {
+        // "ae\u{0301}b" = "a" + "e\u{0301}" + "b" (3 graphemes, width 3)
+        // Combining mark stays attached to 'e'
+        let segments = vec![Segment::new("ae\u{0301}b")];
+        let result = chop_segments(&segments, 0, 0, 2);
+
+        // Should get "ae\u{0301}" (width 2): "a" (1) + "e\u{0301}" (1)
+        let combined: String = result.iter().map(|s| s.text.as_str()).collect();
+        assert!(combined.contains("a"));
+        let total_width: usize = result.iter().map(|s| s.width()).sum();
+        assert_eq!(total_width, 2);
+    }
+
+    #[test]
+    fn chop_empty_segment() {
+        let segments = vec![Segment::new("")];
+        let result = chop_segments(&segments, 0, 0, 5);
+
+        // Empty segment is skipped, result should be all padding
+        assert!(!result.is_empty());
+        let total_width: usize = result.iter().map(|s| s.width()).sum();
+        assert_eq!(total_width, 5);
+    }
+
+    #[test]
+    fn chop_cut_exactly_aligns_with_wide_char_boundary() {
+        // Segment: "世界" — 世(2) + 界(2) = width 4
+        // Cut at [0, 2): should get exactly "世" (width 2) with no padding
+        let segments = vec![Segment::new("\u{4e16}\u{754c}")];
+        let result = chop_segments(&segments, 0, 0, 2);
+
+        let combined: String = result.iter().map(|s| s.text.as_str()).collect();
+        assert!(combined.contains("\u{4e16}"));
+        let total_width: usize = result.iter().map(|s| s.width()).sum();
+        assert_eq!(total_width, 2);
+
+        // Cut at [2, 4): should get exactly "界" (width 2)
+        let result2 = chop_segments(&segments, 0, 2, 2);
+        let combined2: String = result2.iter().map(|s| s.text.as_str()).collect();
+        assert!(combined2.contains("\u{754c}"));
+        let total_width2: usize = result2.iter().map(|s| s.width()).sum();
+        assert_eq!(total_width2, 2);
+    }
 }

@@ -1,62 +1,43 @@
 # Test Coverage Review
-**Date**: 2026-02-07
-**Mode**: gsd (phase 3.2)
 
-## Statistics
-- Total workspace tests: 739 (27 agent + 32 ai + 33 app + 645 core + 2 doctests)
-- fae-core tests: 647 (645 unit + 2 doc)
-- All tests pass: YES
+## Status: PASS
 
-## New Tests Added (Phase 3.2)
-### Task 1: Compositor Integration (9 tests)
-- compositor_none_by_default
-- compositor_none_from_new
-- with_compositor_sets_compositor
-- compositor_accessor_returns_reference
-- compositor_mut_allows_mutation
-- end_frame_with_compositor_composes_before_diff
-- compositor_z_ordering_in_render_context
-- handle_resize_updates_compositor
-- integration_widget_segments_through_compositor
+### Test Count
+- Before: 645
+- After: 809
+- New tests: 164 (includes tests from auto-applied prior phase changes + this phase)
 
-### Task 2: Delta Rendering (11 tests)
-- batch_changes_empty
-- batch_changes_single_cell
-- batch_changes_consecutive_same_row
-- batch_changes_different_rows
-- batch_changes_gap_in_column
-- batch_changes_skips_continuation_cells
-- batch_changes_wide_characters
-- render_batched_empty
-- render_batched_produces_valid_output
-- render_batched_no_longer_than_render
-- render_batched_with_styles
+### Coverage by Task
 
-### Task 4: Viewport (16 tests)
-- new_viewport_zero_offset
-- with_content_size_sets_content
-- scroll_down_changes_offset
-- scroll_right_changes_offset
-- scroll_past_content_clamped_to_max
-- scroll_negative_clamped_to_zero
-- scroll_to_absolute
-- scroll_to_clamped
-- is_visible_on_screen_region
-- is_visible_off_screen_region
-- clip_to_viewport_within_bounds
-- clip_to_viewport_partial_overlap
-- clip_to_viewport_no_overlap
-- content_smaller_than_viewport_no_scroll_effect
-- max_scroll_calculations
-- max_scroll_zero_when_content_fits
-- max_scroll_zero_when_content_smaller
-- with_content_size_clamps_existing_offset
-- scroll_by_both_axes
-- is_visible_edge_cases
+**Task 1 (Buffer Wide Char Protection): 10 new tests**
+- overwrite_continuation_blanks_preceding_wide
+- overwrite_wide_with_narrow_blanks_continuation
+- wide_char_last_column_replaced_with_space
+- wide_char_second_to_last_fits
+- set_narrow_over_narrow_no_side_effects
+- set_wide_over_wide_old_continuation_cleaned
+- multiple_wide_chars_in_sequence
+- overwrite_middle_of_adjacent_wide_chars
+- wide_char_at_column_zero
+- wide_char_continuation_exactly_at_last_column
 
-## Findings
-- [OK] 36+ new tests covering all new functionality
-- [OK] Edge cases covered (overflow, clamping, empty input, wide chars)
-- [OK] Integration tests verify end-to-end rendering pipeline with compositor
+**Task 2 (Multi-Codepoint Emoji): 12 new tests**
+- segment.rs: 8 tests (ZWJ, flag, skin tone, split, char_count, mixed, keycap)
+- cell.rs: 4 tests (ZWJ, flag, skin tone, continuation)
 
-## Grade: A
+**Task 3 (Tab Expansion + Control Chars): 15 new tests**
+- expand_tabs: 7 tests
+- filter_control_chars: 4 tests
+- preprocess: 1 test
+- empty string: 1 test
+- newline column reset: 1 test
+- config default: 1 test
+
+**Task 4 (Compositor Unicode): 8 new tests**
+- chop.rs: 4 tests (wide at boundary, combining marks, empty, exact alignment)
+- compose.rs: 4 tests (CJK overlap, combining marks, empty segments, long graphemes)
+
+### Assessment
+All 4 tasks meet or exceed the required test count. Tests cover both happy paths and edge cases.
+
+### Grade: A

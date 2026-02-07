@@ -97,6 +97,31 @@ impl Segment {
         self.text.graphemes(true).count()
     }
 
+    /// Truncate this segment to at most `max_width` display columns.
+    ///
+    /// If the segment is already within `max_width`, returns an identical segment.
+    /// If a wide character straddles the boundary, it is excluded (the result may
+    /// be slightly shorter than `max_width`).
+    pub fn truncate_to_width(&self, max_width: usize) -> Segment {
+        self.split_at(max_width).0
+    }
+
+    /// Pad this segment with trailing spaces to reach `target_width` display columns.
+    ///
+    /// If the segment is already at or wider than `target_width`, returns unchanged.
+    pub fn pad_to_width(&self, target_width: usize) -> Segment {
+        let current = self.width();
+        if current >= target_width {
+            return self.clone();
+        }
+        let padding = target_width - current;
+        let mut text = self.text.clone();
+        for _ in 0..padding {
+            text.push(' ');
+        }
+        Segment::styled(text, self.style.clone())
+    }
+
     /// Split this segment at the given display-width offset.
     ///
     /// Returns (left, right) where left has the specified display width.
@@ -353,5 +378,153 @@ mod tests {
     fn grapheme_widths_empty_for_control() {
         let s = Segment::control("\x1b[1m");
         assert!(s.grapheme_widths().is_empty());
+    }
+
+    // --- Task 5: truncate_to_width and pad_to_width tests ---
+
+    #[test]
+    fn truncate_to_width_ascii_exact_fit() {
+        let s = Segment::new("hello");
+        let truncated = s.truncate_to_width(5);
+        assert_eq!(truncated.text, "hello");
+        assert_eq!(truncated.width(), 5);
+    }
+
+    #[test]
+    fn truncate_to_width_cuts_before_wide_char_at_boundary() {
+        // "A" (1) + "世" (2) + "B" (1) = width 4
+        let s = Segment::new("A\u{4e16}B");
+        assert_eq!(s.width(), 4);
+        // Truncate to width 2 — the wide char starts at offset 1 and spans 1..3,
+        // so at max_width=2 it straddles the boundary. split_at pads left with space.
+        let truncated = s.truncate_to_width(2);
+        assert_eq!(truncated.width(), 2);
+        assert_eq!(truncated.text, "A ");
+    }
+
+    #[test]
+    fn truncate_to_width_zero_gives_empty() {
+        let s = Segment::new("hello");
+        let truncated = s.truncate_to_width(0);
+        assert_eq!(truncated.text, "");
+        assert_eq!(truncated.width(), 0);
+    }
+
+    #[test]
+    fn truncate_to_width_beyond_length_unchanged() {
+        let s = Segment::new("hi");
+        let truncated = s.truncate_to_width(100);
+        assert_eq!(truncated.text, "hi");
+        assert_eq!(truncated.width(), 2);
+    }
+
+    #[test]
+    fn pad_to_width_adds_trailing_spaces() {
+        let s = Segment::new("AB");
+        let padded = s.pad_to_width(5);
+        assert_eq!(padded.text, "AB   ");
+        assert_eq!(padded.width(), 5);
+    }
+
+    #[test]
+    fn pad_to_width_already_at_target_unchanged() {
+        let s = Segment::new("hello");
+        let padded = s.pad_to_width(5);
+        assert_eq!(padded.text, "hello");
+    }
+
+    #[test]
+    fn pad_to_width_already_wider_unchanged() {
+        let s = Segment::new("hello world");
+        let padded = s.pad_to_width(5);
+        assert_eq!(padded.text, "hello world");
+    }
+
+    #[test]
+    fn style_preserved_through_truncation_and_padding() {
+        let style = Style::new().bold(true);
+        let s = Segment::styled("hello world", style.clone());
+
+        let truncated = s.truncate_to_width(5);
+        assert!(truncated.style.bold);
+        assert_eq!(truncated.style, style);
+
+        let padded = s.pad_to_width(20);
+        assert!(padded.style.bold);
+        assert_eq!(padded.style, style);
+    }
+
+    // --- Multi-codepoint emoji tests ---
+
+    #[test]
+    fn zwj_family_emoji_width() {
+        // ZWJ family emoji: man + ZWJ + woman + ZWJ + girl
+        let s = Segment::new("\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}");
+        // Should be width 2 (rendered as a single 2-column-wide grapheme)
+        assert_eq!(s.width(), 2);
+    }
+
+    #[test]
+    fn zwj_family_emoji_grapheme_widths() {
+        let s = Segment::new("\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}");
+        let widths = s.grapheme_widths();
+        // Single grapheme cluster
+        assert_eq!(widths.len(), 1);
+        // Width should be 2
+        assert_eq!(widths[0].1, 2);
+    }
+
+    #[test]
+    fn flag_emoji_width() {
+        // US flag: regional indicator U + regional indicator S
+        let s = Segment::new("\u{1F1FA}\u{1F1F8}");
+        assert_eq!(s.width(), 2);
+    }
+
+    #[test]
+    fn skin_tone_emoji_width() {
+        // Thumbs up + medium skin tone modifier
+        let s = Segment::new("\u{1F44D}\u{1F3FD}");
+        assert_eq!(s.width(), 2);
+    }
+
+    #[test]
+    fn split_segment_at_zwj_emoji_boundary() {
+        // "A" (width 1) + ZWJ family emoji (width 2) + "B" (width 1) = width 4
+        let s = Segment::new("A\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}B");
+        assert_eq!(s.width(), 4);
+
+        // Split at offset 1 — just after "A", before emoji
+        let (l, r) = s.split_at(1);
+        assert_eq!(l.text, "A");
+        assert_eq!(l.width(), 1);
+        // Right should start with the family emoji
+        assert_eq!(r.width(), 3); // emoji(2) + B(1)
+    }
+
+    #[test]
+    fn char_count_with_complex_emoji() {
+        // ZWJ family is one grapheme cluster
+        let s = Segment::new("\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}");
+        assert_eq!(s.char_count(), 1);
+    }
+
+    #[test]
+    fn mixed_ascii_zwj_emoji_cjk() {
+        // "Hi" (2) + family emoji (2) + CJK 世 (2) + "!" (1) = 7
+        let s = Segment::new("Hi\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}\u{4e16}!");
+        assert_eq!(s.width(), 7);
+        assert_eq!(s.char_count(), 5); // H, i, family, 世, !
+    }
+
+    #[test]
+    fn keycap_sequence_handling() {
+        // Keycap "#": # + VS16 + combining enclosing keycap
+        let s = Segment::new("#\u{FE0F}\u{20E3}");
+        // This is a single grapheme cluster
+        assert_eq!(s.char_count(), 1);
+        // Width depends on unicode-width crate version, but should be reasonable
+        let w = s.width();
+        assert!((1..=2).contains(&w));
     }
 }

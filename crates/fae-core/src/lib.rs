@@ -19,6 +19,7 @@ pub mod segment;
 pub mod style;
 pub mod tcss;
 pub mod terminal;
+pub mod text;
 pub mod viewport;
 pub mod widget;
 
@@ -39,5 +40,6 @@ pub use renderer::{DeltaBatch, Renderer, batch_changes, build_sgr_sequence};
 pub use segment::Segment;
 pub use style::Style;
 pub use terminal::{CrosstermBackend, Terminal, TestBackend};
+pub use text::{TextConfig, expand_tabs, filter_control_chars, preprocess};
 pub use viewport::Viewport;
 pub use widget::{Alignment, BorderStyle, Container, EventResult, Label, StaticWidget, Widget};
