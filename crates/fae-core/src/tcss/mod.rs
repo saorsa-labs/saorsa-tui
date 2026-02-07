@@ -14,6 +14,7 @@ pub mod property;
 pub mod reload;
 pub mod selector;
 pub mod theme;
+pub mod themes;
 pub mod tree;
 pub mod value;
 pub mod variable;
@@ -30,6 +31,7 @@ pub use selector::{
     Combinator, CompoundSelector, PseudoClass, Selector, SelectorList, SimpleSelector,
 };
 pub use theme::{Theme, ThemeManager};
+pub use themes::{ThemeColors, ThemeRegistry, ThemeVariant};
 pub use tree::{WidgetNode, WidgetState, WidgetTree};
 pub use value::{CssValue, Length};
 pub use variable::{VariableEnvironment, VariableMap};
