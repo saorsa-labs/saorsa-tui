@@ -13,7 +13,7 @@ pub struct CommandDefinition {
     pub name: String,
     /// Human-readable description.
     pub description: String,
-    /// Usage string (e.g., "command [options] <args>").
+    /// Usage string (e.g., "command \[options\] \<args\>").
     pub usage: String,
     /// Command handler function.
     pub handler: CommandHandler,
