@@ -6,6 +6,7 @@
 
 pub mod ast;
 pub mod error;
+pub mod parser;
 pub mod property;
 pub mod selector;
 pub mod value;
