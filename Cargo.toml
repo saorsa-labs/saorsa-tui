@@ -71,6 +71,10 @@ clap = { version = "4.5", features = ["derive", "env"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
+# Session management
+uuid = { version = "1.11", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
 # Internal crates
 fae-core = { path = "crates/fae-core" }
 fae-ai = { path = "crates/fae-ai" }
