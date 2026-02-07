@@ -12,7 +12,7 @@ Add CSS custom property (variable) support, a theme system, and live stylesheet 
 
 ### New Files
 ```
-crates/fae-core/src/tcss/
+crates/saorsa-core/src/tcss/
 ├── variable.rs     # Variable storage, resolution, scoping
 ├── theme.rs        # Theme definitions, switching, built-in themes
 └── reload.rs       # Live stylesheet file watching & reloading
@@ -20,18 +20,18 @@ crates/fae-core/src/tcss/
 
 ### Modified Files
 ```
-crates/fae-core/src/tcss/value.rs      # Add CssValue::Variable variant
-crates/fae-core/src/tcss/parser.rs     # Parse $variable references
-crates/fae-core/src/tcss/cascade.rs    # Resolve variables during cascade
-crates/fae-core/src/tcss/mod.rs        # Add new module declarations + re-exports
-crates/fae-core/Cargo.toml             # Add notify crate for file watching
+crates/saorsa-core/src/tcss/value.rs      # Add CssValue::Variable variant
+crates/saorsa-core/src/tcss/parser.rs     # Parse $variable references
+crates/saorsa-core/src/tcss/cascade.rs    # Resolve variables during cascade
+crates/saorsa-core/src/tcss/mod.rs        # Add new module declarations + re-exports
+crates/saorsa-core/Cargo.toml             # Add notify crate for file watching
 ```
 
 ---
 
 ## Task 1: Variable Value Type (value.rs, parser.rs)
 
-**Files**: `crates/fae-core/src/tcss/value.rs`, `crates/fae-core/src/tcss/parser.rs`
+**Files**: `crates/saorsa-core/src/tcss/value.rs`, `crates/saorsa-core/src/tcss/parser.rs`
 
 Add a `Variable` variant to `CssValue` and parse `$variable-name` references.
 
@@ -85,7 +85,7 @@ pub fn parse_property_value(property: &PropertyName, input: &mut Parser<'_, '_>)
 
 ## Task 2: Variable Storage & Scoping (variable.rs)
 
-**File**: `crates/fae-core/src/tcss/variable.rs`
+**File**: `crates/saorsa-core/src/tcss/variable.rs`
 
 Create the variable storage system with scope support. Variables can be defined at different scopes (global/`:root`, theme, widget).
 
@@ -156,7 +156,7 @@ pub struct VariableEnvironment {
 
 ## Task 3: Variable Resolution in Cascade (cascade.rs)
 
-**File**: `crates/fae-core/src/tcss/cascade.rs`
+**File**: `crates/saorsa-core/src/tcss/cascade.rs`
 
 Update the cascade resolver to resolve `CssValue::Variable` references using a `VariableEnvironment`.
 
@@ -224,7 +224,7 @@ impl ComputedStyle {
 
 ## Task 4: Variable Declaration Parsing (parser.rs)
 
-**File**: `crates/fae-core/src/tcss/parser.rs`
+**File**: `crates/saorsa-core/src/tcss/parser.rs`
 
 Parse `:root` blocks and variable definitions. Variable declarations use the pattern `$name: value;`.
 
@@ -274,7 +274,7 @@ pub fn extract_root_variables(stylesheet: &Stylesheet) -> VariableMap {
 
 ## Task 5: Theme System (theme.rs)
 
-**File**: `crates/fae-core/src/tcss/theme.rs`
+**File**: `crates/saorsa-core/src/tcss/theme.rs`
 
 Implement the theme system that manages named themes with variable sets.
 
@@ -371,7 +371,7 @@ Light theme variables:
 
 ## Task 6: Theme Extraction from Stylesheets (theme.rs, parser.rs)
 
-**File**: `crates/fae-core/src/tcss/theme.rs`, `crates/fae-core/src/tcss/parser.rs`
+**File**: `crates/saorsa-core/src/tcss/theme.rs`, `crates/saorsa-core/src/tcss/parser.rs`
 
 Extract themes from stylesheet rules. Themes are defined as class-scoped variable blocks:
 ```css
@@ -409,13 +409,13 @@ This function:
 
 ## Task 7: Live Stylesheet Reloading (reload.rs)
 
-**File**: `crates/fae-core/src/tcss/reload.rs`
+**File**: `crates/saorsa-core/src/tcss/reload.rs`
 
 Implement file watching and live reloading of `.tcss` stylesheets.
 
 ### Dependencies
 
-Add to `crates/fae-core/Cargo.toml`:
+Add to `crates/saorsa-core/Cargo.toml`:
 ```toml
 [dependencies]
 notify = "7"
@@ -492,8 +492,8 @@ Note: File watcher integration tests are deferred to avoid test flakiness from f
 ## Task 8: Integration & Wire-Up
 
 **Files**:
-- `crates/fae-core/src/tcss/mod.rs` — add new module declarations and re-exports
-- `crates/fae-core/src/tcss/ast.rs` — add variables field to Rule
+- `crates/saorsa-core/src/tcss/mod.rs` — add new module declarations and re-exports
+- `crates/saorsa-core/src/tcss/ast.rs` — add variables field to Rule
 - Verify all modules compile and integrate
 
 ### Module Declarations

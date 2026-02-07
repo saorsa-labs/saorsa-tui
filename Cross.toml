@@ -1,4 +1,4 @@
-# Cross configuration for cross-compiling fae
+# Cross configuration for cross-compiling saorsa-tui
 # See: https://github.com/cross-rs/cross
 
 [target.aarch64-unknown-linux-gnu]

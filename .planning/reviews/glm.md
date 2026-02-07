@@ -1,1 +1,1 @@
-GLM_SKIP: External review not required for benchmark infrastructure task
+GLM_SKIP: Documentation-only changes

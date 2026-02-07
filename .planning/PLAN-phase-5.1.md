@@ -11,7 +11,7 @@ The reactive system introduces `Signal<T>`, `Computed<T>`, and `Effect` — core
 
 ### Design Principles
 
-1. **Interior mutability with `Rc<RefCell<...>>`** — Signals are cheaply cloneable handles (like `Rc`). No `Arc`/`Mutex` needed since fae-core is single-threaded (terminal UI event loop).
+1. **Interior mutability with `Rc<RefCell<...>>`** — Signals are cheaply cloneable handles (like `Rc`). No `Arc`/`Mutex` needed since saorsa-core is single-threaded (terminal UI event loop).
 2. **Push-based notification, pull-based evaluation** — When a signal changes, it marks dependents as dirty. Computed values re-evaluate lazily on next read.
 3. **Automatic dependency tracking** — Reading a signal inside a `Computed` or `Effect` closure automatically registers the dependency. No manual subscription.
 4. **Batched updates** — Multiple signal changes within a batch only trigger one round of effect re-runs.
@@ -19,7 +19,7 @@ The reactive system introduces `Signal<T>`, `Computed<T>`, and `Effect` — core
 
 ### Module Structure
 
-New module: `crates/fae-core/src/reactive/`
+New module: `crates/saorsa-core/src/reactive/`
 
 ```
 reactive/
@@ -277,7 +277,7 @@ pub use signal::Signal;
 - Add to re-exports: `Signal`, `Computed`, `Effect`, `ReactiveScope`, `batch`
 
 **error.rs additions:**
-- `Reactive(String)` variant to `FaeCoreError`
+- `Reactive(String)` variant to `SaorsaCoreError`
 
 **Ensure:**
 - All public types have doc comments
@@ -288,8 +288,8 @@ pub use signal::Signal;
 
 **Tests** (~8):
 - Full roundtrip: signal -> computed -> effect through public API
-- Public re-exports accessible from `fae_core::reactive::*`
-- Public re-exports accessible from `fae_core::Signal` etc.
+- Public re-exports accessible from `saorsa_core::reactive::*`
+- Public re-exports accessible from `saorsa_core::Signal` etc.
 - Error variant for reactive errors
 
 ---

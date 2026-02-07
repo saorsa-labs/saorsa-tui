@@ -8,7 +8,7 @@ ScrollView, Input). Add focus management.
 ## Tasks
 
 ### Task 1: Event System
-- `crates/fae-core/src/event.rs`
+- `crates/saorsa-core/src/event.rs`
 - `Event` enum: Key(KeyEvent), Mouse(MouseEvent), Resize(u16, u16), Paste(String)
 - `KeyEvent` struct: code(KeyCode), modifiers(Modifiers)
 - `KeyCode` enum: Char(char), Enter, Tab, Backspace, Escape, Up/Down/Left/Right, etc.
@@ -18,7 +18,7 @@ ScrollView, Input). Add focus management.
 - Tests: event creation, modifier checks, crossterm conversion
 
 ### Task 2: Event Loop
-- `crates/fae-core/src/event_loop.rs`
+- `crates/saorsa-core/src/event_loop.rs`
 - `EventLoop` that polls crossterm events and dispatches them
 - Integration with RenderContext for frame-based rendering
 - Resize event triggers buffer resize
@@ -27,7 +27,7 @@ ScrollView, Input). Add focus management.
 - Tests: event dispatch (using TestBackend + synthetic events)
 
 ### Task 3: Widget Trait
-- `crates/fae-core/src/widget/mod.rs`
+- `crates/saorsa-core/src/widget/mod.rs`
 - `Widget` trait: render(&self, area: Rect, buf: &mut ScreenBuffer)
 - `SizedWidget` trait: min_size(), max_size(), preferred_size()
 - `InteractiveWidget` trait: handle_event(&mut self, event: &Event) -> EventResult
@@ -36,7 +36,7 @@ ScrollView, Input). Add focus management.
 - Tests: widget trait impl with mock widget
 
 ### Task 4: Layout System
-- `crates/fae-core/src/layout.rs`
+- `crates/saorsa-core/src/layout.rs`
 - `Direction` enum: Vertical, Horizontal
 - `Constraint` enum: Fixed(u16), Min(u16), Max(u16), Percentage(u8), Fill
 - `Layout::split(area: Rect, direction: Direction, constraints: &[Constraint]) -> Vec<Rect>`
@@ -46,7 +46,7 @@ ScrollView, Input). Add focus management.
 - Tests: vertical split, horizontal split, fixed+fill, percentages, dock positions
 
 ### Task 5: Label Widget
-- `crates/fae-core/src/widget/label.rs`
+- `crates/saorsa-core/src/widget/label.rs`
 - Display a single line of styled text
 - Alignment: Left, Center, Right
 - Truncation with ellipsis when text exceeds width
@@ -54,14 +54,14 @@ ScrollView, Input). Add focus management.
 - Tests: rendering, alignment, truncation
 
 ### Task 6: Static Widget
-- `crates/fae-core/src/widget/static_widget.rs`
+- `crates/saorsa-core/src/widget/static_widget.rs`
 - Display pre-rendered content (Vec<Segment>) without interaction
 - Multi-line support
 - Implements Widget trait
 - Tests: rendering single and multi-line content
 
 ### Task 7: Container Widget
-- `crates/fae-core/src/widget/container.rs`
+- `crates/saorsa-core/src/widget/container.rs`
 - Box with optional border, title, padding
 - `BorderStyle` enum: None, Single, Double, Rounded, Heavy
 - Border characters: ┌┐└┘─│ (single), ╔╗╚╝═║ (double), ╭╮╰╯─│ (rounded)
@@ -69,7 +69,7 @@ ScrollView, Input). Add focus management.
 - Tests: border rendering, padding, title
 
 ### Task 8: Focus Management
-- `crates/fae-core/src/focus.rs`
+- `crates/saorsa-core/src/focus.rs`
 - `FocusManager` tracks which widget has focus
 - Tab/Shift-Tab navigation order
 - Focus ring (wraps around)

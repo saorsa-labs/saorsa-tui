@@ -18,9 +18,9 @@ Build interactive UI components for user interfaces: Tabs (tabbed content switch
 ## Task 1: Tabs Widget
 
 **Files:**
-- CREATE: `crates/fae-core/src/widget/tabs.rs`
-- MODIFY: `crates/fae-core/src/widget/mod.rs` (add module + export)
-- MODIFY: `crates/fae-core/src/lib.rs` (add Tabs to exports)
+- CREATE: `crates/saorsa-core/src/widget/tabs.rs`
+- MODIFY: `crates/saorsa-core/src/widget/mod.rs` (add module + export)
+- MODIFY: `crates/saorsa-core/src/lib.rs` (add Tabs to exports)
 
 **Description:**
 Create a tabbed content switcher widget with keyboard navigation (arrow keys, numbers) and mouse support (future).
@@ -117,9 +117,9 @@ InteractiveWidget event handling:
 ## Task 2: ProgressBar Widget
 
 **Files:**
-- CREATE: `crates/fae-core/src/widget/progress_bar.rs`
-- MODIFY: `crates/fae-core/src/widget/mod.rs` (add module + export)
-- MODIFY: `crates/fae-core/src/lib.rs` (add ProgressBar to exports)
+- CREATE: `crates/saorsa-core/src/widget/progress_bar.rs`
+- MODIFY: `crates/saorsa-core/src/widget/mod.rs` (add module + export)
+- MODIFY: `crates/saorsa-core/src/lib.rs` (add ProgressBar to exports)
 
 **Description:**
 Create a progress bar widget supporting both determinate (0-100%) and indeterminate (animated) modes.
@@ -195,9 +195,9 @@ Widget rendering (indeterminate):
 ## Task 3: LoadingIndicator Widget
 
 **Files:**
-- CREATE: `crates/fae-core/src/widget/loading_indicator.rs`
-- MODIFY: `crates/fae-core/src/widget/mod.rs` (add module + export)
-- MODIFY: `crates/fae-core/src/lib.rs` (add LoadingIndicator to exports)
+- CREATE: `crates/saorsa-core/src/widget/loading_indicator.rs`
+- MODIFY: `crates/saorsa-core/src/widget/mod.rs` (add module + export)
+- MODIFY: `crates/saorsa-core/src/lib.rs` (add LoadingIndicator to exports)
 
 **Description:**
 Create animated loading indicators (spinners, dots, etc.) for async operations.
@@ -265,9 +265,9 @@ Frame sequences:
 ## Task 4: Collapsible Widget
 
 **Files:**
-- CREATE: `crates/fae-core/src/widget/collapsible.rs`
-- MODIFY: `crates/fae-core/src/widget/mod.rs` (add module + export)
-- MODIFY: `crates/fae-core/src/lib.rs` (add Collapsible to exports)
+- CREATE: `crates/saorsa-core/src/widget/collapsible.rs`
+- MODIFY: `crates/saorsa-core/src/widget/mod.rs` (add module + export)
+- MODIFY: `crates/saorsa-core/src/lib.rs` (add Collapsible to exports)
 
 **Description:**
 Create a collapsible section widget with expandable/collapsible content.
@@ -336,9 +336,9 @@ InteractiveWidget event handling:
 ## Task 5: Form Controls — Switch, RadioButton, Checkbox
 
 **Files:**
-- CREATE: `crates/fae-core/src/widget/form_controls.rs`
-- MODIFY: `crates/fae-core/src/widget/mod.rs` (add module + export)
-- MODIFY: `crates/fae-core/src/lib.rs` (add Switch, RadioButton, Checkbox to exports)
+- CREATE: `crates/saorsa-core/src/widget/form_controls.rs`
+- MODIFY: `crates/saorsa-core/src/widget/mod.rs` (add module + export)
+- MODIFY: `crates/saorsa-core/src/lib.rs` (add Switch, RadioButton, Checkbox to exports)
 
 **Description:**
 Create three form control widgets: Switch (toggle), RadioButton (single selection in group), and Checkbox (boolean toggle).
@@ -444,9 +444,9 @@ InteractiveWidget event handling (all three):
 ## Task 6: OptionList Widget
 
 **Files:**
-- CREATE: `crates/fae-core/src/widget/option_list.rs`
-- MODIFY: `crates/fae-core/src/widget/mod.rs` (add module + export)
-- MODIFY: `crates/fae-core/src/lib.rs` (add OptionList to exports)
+- CREATE: `crates/saorsa-core/src/widget/option_list.rs`
+- MODIFY: `crates/saorsa-core/src/widget/mod.rs` (add module + export)
+- MODIFY: `crates/saorsa-core/src/lib.rs` (add OptionList to exports)
 
 **Description:**
 Create a simplified variant of SelectList for static option sets (no filtering, simpler API). Useful for settings screens and forms.
@@ -521,9 +521,9 @@ InteractiveWidget event handling:
 ## Task 7: Sparkline Widget
 
 **Files:**
-- CREATE: `crates/fae-core/src/widget/sparkline.rs`
-- MODIFY: `crates/fae-core/src/widget/mod.rs` (add module + export)
-- MODIFY: `crates/fae-core/src/lib.rs` (add Sparkline to exports)
+- CREATE: `crates/saorsa-core/src/widget/sparkline.rs`
+- MODIFY: `crates/saorsa-core/src/widget/mod.rs` (add module + export)
+- MODIFY: `crates/saorsa-core/src/lib.rs` (add Sparkline to exports)
 
 **Description:**
 Create a mini inline chart widget for visualizing small data series (e.g., CPU usage, memory, trends).
@@ -601,14 +601,14 @@ Widget rendering (Dots style):
 ## Task 8: Integration Tests & Polish
 
 **Files:**
-- MODIFY: `crates/fae-core/src/widget/mod.rs` (integration tests)
-- MODIFY: `crates/fae-core/src/widget/tabs.rs` (polish)
-- MODIFY: `crates/fae-core/src/widget/progress_bar.rs` (polish)
-- MODIFY: `crates/fae-core/src/widget/loading_indicator.rs` (polish)
-- MODIFY: `crates/fae-core/src/widget/collapsible.rs` (polish)
-- MODIFY: `crates/fae-core/src/widget/form_controls.rs` (polish)
-- MODIFY: `crates/fae-core/src/widget/option_list.rs` (polish)
-- MODIFY: `crates/fae-core/src/widget/sparkline.rs` (polish)
+- MODIFY: `crates/saorsa-core/src/widget/mod.rs` (integration tests)
+- MODIFY: `crates/saorsa-core/src/widget/tabs.rs` (polish)
+- MODIFY: `crates/saorsa-core/src/widget/progress_bar.rs` (polish)
+- MODIFY: `crates/saorsa-core/src/widget/loading_indicator.rs` (polish)
+- MODIFY: `crates/saorsa-core/src/widget/collapsible.rs` (polish)
+- MODIFY: `crates/saorsa-core/src/widget/form_controls.rs` (polish)
+- MODIFY: `crates/saorsa-core/src/widget/option_list.rs` (polish)
+- MODIFY: `crates/saorsa-core/src/widget/sparkline.rs` (polish)
 
 **Description:**
 Add integration tests in `widget/mod.rs` that exercise all Phase 4.3 widgets together, verify they work with existing infrastructure (ScreenBuffer, overlays, events), and polish edge cases.
@@ -678,8 +678,8 @@ Polish checklist:
 
 ## Critical Files for Implementation
 
-- `crates/fae-core/src/widget/tabs.rs` — Tabbed content switcher with keyboard navigation
-- `crates/fae-core/src/widget/progress_bar.rs` — Determinate and indeterminate progress indicators
-- `crates/fae-core/src/widget/loading_indicator.rs` — Animated loading spinners
-- `crates/fae-core/src/widget/form_controls.rs` — Switch, RadioButton, Checkbox widgets
-- `crates/fae-core/src/widget/sparkline.rs` — Inline mini-chart for data visualization
+- `crates/saorsa-core/src/widget/tabs.rs` — Tabbed content switcher with keyboard navigation
+- `crates/saorsa-core/src/widget/progress_bar.rs` — Determinate and indeterminate progress indicators
+- `crates/saorsa-core/src/widget/loading_indicator.rs` — Animated loading spinners
+- `crates/saorsa-core/src/widget/form_controls.rs` — Switch, RadioButton, Checkbox widgets
+- `crates/saorsa-core/src/widget/sparkline.rs` — Inline mini-chart for data visualization

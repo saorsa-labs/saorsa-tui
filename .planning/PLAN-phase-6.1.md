@@ -20,7 +20,7 @@ Key design decisions:
 ## Tasks
 
 ### Task 1: Provider Registry & Factory
-**Files**: `crates/fae-ai/src/provider.rs`, `crates/fae-ai/src/lib.rs`
+**Files**: `crates/saorsa-ai/src/provider.rs`, `crates/saorsa-ai/src/lib.rs`
 
 Enhance the provider system with:
 - `ProviderKind` enum: `Anthropic`, `OpenAi`, `Gemini`, `Ollama`, `OpenAiCompatible`
@@ -31,7 +31,7 @@ Enhance the provider system with:
 - Tests for registry creation, factory dispatch, config defaults
 
 ### Task 2: OpenAI Provider — Non-Streaming
-**Files**: `crates/fae-ai/src/openai.rs`, `crates/fae-ai/src/lib.rs`
+**Files**: `crates/saorsa-ai/src/openai.rs`, `crates/saorsa-ai/src/lib.rs`
 
 Implement `OpenAiProvider` with `Provider` trait (non-streaming first):
 - `OpenAiProvider` struct with `ProviderConfig` + `reqwest::Client`
@@ -44,7 +44,7 @@ Implement `OpenAiProvider` with `Provider` trait (non-streaming first):
 - Tests for request serialization, response deserialization, error mapping
 
 ### Task 3: OpenAI Provider — Streaming
-**Files**: `crates/fae-ai/src/openai.rs`
+**Files**: `crates/saorsa-ai/src/openai.rs`
 
 Add `StreamingProvider` impl for `OpenAiProvider`:
 - SSE parsing for OpenAI's `data: [DONE]` format
@@ -55,7 +55,7 @@ Add `StreamingProvider` impl for `OpenAiProvider`:
 - Tests for SSE parsing, stream event mapping, error handling during stream
 
 ### Task 4: Gemini Provider
-**Files**: `crates/fae-ai/src/gemini.rs`, `crates/fae-ai/src/lib.rs`
+**Files**: `crates/saorsa-ai/src/gemini.rs`, `crates/saorsa-ai/src/lib.rs`
 
 Implement `GeminiProvider` with both traits:
 - Auth via `?key={api_key}` query parameter (Google Gemini API style)
@@ -70,7 +70,7 @@ Implement `GeminiProvider` with both traits:
 - Tests for request/response mapping, streaming, error handling
 
 ### Task 5: Ollama Provider
-**Files**: `crates/fae-ai/src/ollama.rs`, `crates/fae-ai/src/lib.rs`
+**Files**: `crates/saorsa-ai/src/ollama.rs`, `crates/saorsa-ai/src/lib.rs`
 
 Implement `OllamaProvider` for local inference:
 - No auth required (local server)
@@ -83,7 +83,7 @@ Implement `OllamaProvider` for local inference:
 - Tests for NDJSON parsing, request/response mapping, stream events
 
 ### Task 6: OpenAI-Compatible Provider
-**Files**: `crates/fae-ai/src/openai_compat.rs`, `crates/fae-ai/src/lib.rs`
+**Files**: `crates/saorsa-ai/src/openai_compat.rs`, `crates/saorsa-ai/src/lib.rs`
 
 Generic provider for OpenAI-compatible APIs (Azure, Groq, Cerebras, xAI, OpenRouter, Mistral, etc.):
 - Reuse OpenAI request/response mapping via shared helper module
@@ -96,7 +96,7 @@ Generic provider for OpenAI-compatible APIs (Azure, Groq, Cerebras, xAI, OpenRou
 - Tests for custom URL, custom auth, extra headers, factory functions
 
 ### Task 7: Token Estimation & Model Registry
-**Files**: `crates/fae-ai/src/tokens.rs`, `crates/fae-ai/src/models.rs` (new)
+**Files**: `crates/saorsa-ai/src/tokens.rs`, `crates/saorsa-ai/src/models.rs` (new)
 
 Extend token estimation and model awareness across all providers:
 - New `models.rs` module with `ModelInfo` struct: name, provider, context_window, supports_tools, supports_vision
@@ -110,7 +110,7 @@ Extend token estimation and model awareness across all providers:
 - Tests for model lookup, context windows, provider detection
 
 ### Task 8: Integration Tests & Module Wiring
-**Files**: `crates/fae-ai/src/lib.rs`, integration tests
+**Files**: `crates/saorsa-ai/src/lib.rs`, integration tests
 
 Wire everything together:
 - Register all providers in lib.rs exports
@@ -125,14 +125,14 @@ Wire everything together:
 
 | File | Action | Task |
 |------|--------|------|
-| `crates/fae-ai/src/provider.rs` | Modify | T1 |
-| `crates/fae-ai/src/openai.rs` | Create | T2, T3 |
-| `crates/fae-ai/src/gemini.rs` | Create | T4 |
-| `crates/fae-ai/src/ollama.rs` | Create | T5 |
-| `crates/fae-ai/src/openai_compat.rs` | Create | T6 |
-| `crates/fae-ai/src/models.rs` | Create | T7 |
-| `crates/fae-ai/src/tokens.rs` | Modify | T7 |
-| `crates/fae-ai/src/lib.rs` | Modify | T1-T8 |
+| `crates/saorsa-ai/src/provider.rs` | Modify | T1 |
+| `crates/saorsa-ai/src/openai.rs` | Create | T2, T3 |
+| `crates/saorsa-ai/src/gemini.rs` | Create | T4 |
+| `crates/saorsa-ai/src/ollama.rs` | Create | T5 |
+| `crates/saorsa-ai/src/openai_compat.rs` | Create | T6 |
+| `crates/saorsa-ai/src/models.rs` | Create | T7 |
+| `crates/saorsa-ai/src/tokens.rs` | Modify | T7 |
+| `crates/saorsa-ai/src/lib.rs` | Modify | T1-T8 |
 
 ## Quality Requirements
 
@@ -142,4 +142,4 @@ Wire everything together:
 - Doc comments on all public items
 - Tests for each provider's request/response mapping
 - Tests for each provider's SSE/streaming parsing
-- All existing 32 fae-ai tests continue to pass
+- All existing 32 saorsa-ai tests continue to pass

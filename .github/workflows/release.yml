@@ -12,6 +12,45 @@ permissions:
   contents: write
 
 jobs:
+  # Publish crates to crates.io in dependency order
+  publish-crates:
+    name: Publish to crates.io
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      # Tier 1: no internal dependencies (can publish in parallel but cargo doesn't support that)
+      - name: Publish saorsa-core
+        run: cargo publish -p saorsa-core --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish saorsa-ai
+        run: cargo publish -p saorsa-ai --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      # Tier 2: depends on saorsa-ai
+      - name: Wait for crates.io index
+        run: sleep 30
+
+      - name: Publish saorsa-agent
+        run: cargo publish -p saorsa-agent --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      # Tier 3: depends on saorsa-core, saorsa-ai, saorsa-agent
+      - name: Wait for crates.io index
+        run: sleep 30
+
+      - name: Publish saorsa-app
+        run: cargo publish -p saorsa-app --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      # Tier 4: depends on saorsa-app
+      - name: Wait for crates.io index
+        run: sleep 30
+
+      - name: Publish saorsa-cli
+        run: cargo publish -p saorsa-cli --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
   build:
     name: Build (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
@@ -52,20 +91,20 @@ jobs:
 
       - name: Build (native)
         if: "!matrix.cross"
-        run: cargo build --release --target ${{ matrix.target }} -p fae-cli
+        run: cargo build --release --target ${{ matrix.target }} -p saorsa-cli
 
       - name: Build (cross)
         if: matrix.cross
-        run: cross build --release --target ${{ matrix.target }} -p fae-cli
+        run: cross build --release --target ${{ matrix.target }} -p saorsa-cli
 
       - name: Package (unix)
         if: matrix.archive == 'tar.gz'
         shell: bash
         run: |
-          BINARY="target/${{ matrix.target }}/release/fae-cli"
-          STAGING="fae-${{ github.ref_name }}-${{ matrix.target }}"
+          BINARY="target/${{ matrix.target }}/release/saorsa-cli"
+          STAGING="saorsa-tui-${{ github.ref_name }}-${{ matrix.target }}"
           mkdir -p "$STAGING"
-          cp "$BINARY" "$STAGING/fae"
+          cp "$BINARY" "$STAGING/saorsa-tui"
           cp LICENSE-MIT LICENSE-APACHE README.md "$STAGING/" 2>/dev/null || true
           tar czf "$STAGING.tar.gz" "$STAGING"
           echo "ASSET=$STAGING.tar.gz" >> "$GITHUB_ENV"
@@ -74,10 +113,10 @@ jobs:
         if: matrix.archive == 'zip'
         shell: bash
         run: |
-          BINARY="target/${{ matrix.target }}/release/fae-cli.exe"
-          STAGING="fae-${{ github.ref_name }}-${{ matrix.target }}"
+          BINARY="target/${{ matrix.target }}/release/saorsa-cli.exe"
+          STAGING="saorsa-tui-${{ github.ref_name }}-${{ matrix.target }}"
           mkdir -p "$STAGING"
-          cp "$BINARY" "$STAGING/fae.exe"
+          cp "$BINARY" "$STAGING/saorsa-tui.exe"
           cp LICENSE-MIT LICENSE-APACHE README.md "$STAGING/" 2>/dev/null || true
           7z a "$STAGING.zip" "$STAGING"
           echo "ASSET=$STAGING.zip" >> "$GITHUB_ENV"
@@ -87,9 +126,9 @@ jobs:
           name: release-${{ matrix.target }}
           path: ${{ env.ASSET }}
 
-  publish:
-    name: Publish Release
-    needs: build
+  publish-release:
+    name: Publish GitHub Release
+    needs: [build, publish-crates]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -135,17 +174,23 @@ jobs:
 
             ${{ env.CHANGELOG }}
 
-            ## Installation
+            ## Install from crates.io
 
-            Download the archive for your platform, extract, and place `fae` in your PATH.
+            ```bash
+            cargo install saorsa-app
+            ```
+
+            ## Install from binary
+
+            Download the archive for your platform, extract, and place `saorsa-tui` in your PATH.
 
             | Platform | Archive |
             |----------|---------|
-            | Linux x86_64 | `fae-${{ github.ref_name }}-x86_64-unknown-linux-gnu.tar.gz` |
-            | Linux aarch64 | `fae-${{ github.ref_name }}-aarch64-unknown-linux-gnu.tar.gz` |
-            | macOS x86_64 | `fae-${{ github.ref_name }}-x86_64-apple-darwin.tar.gz` |
-            | macOS aarch64 | `fae-${{ github.ref_name }}-aarch64-apple-darwin.tar.gz` |
-            | Windows x86_64 | `fae-${{ github.ref_name }}-x86_64-pc-windows-msvc.zip` |
+            | Linux x86_64 | `saorsa-tui-${{ github.ref_name }}-x86_64-unknown-linux-gnu.tar.gz` |
+            | Linux aarch64 | `saorsa-tui-${{ github.ref_name }}-aarch64-unknown-linux-gnu.tar.gz` |
+            | macOS x86_64 | `saorsa-tui-${{ github.ref_name }}-x86_64-apple-darwin.tar.gz` |
+            | macOS aarch64 | `saorsa-tui-${{ github.ref_name }}-aarch64-apple-darwin.tar.gz` |
+            | Windows x86_64 | `saorsa-tui-${{ github.ref_name }}-x86_64-pc-windows-msvc.zip` |
           prerelease: ${{ env.IS_PRERELEASE }}
           generate_release_notes: false
         env:

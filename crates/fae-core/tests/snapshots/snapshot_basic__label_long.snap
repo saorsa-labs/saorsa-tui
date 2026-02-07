@@ -1,5 +1,0 @@
----
-source: crates/fae-core/tests/snapshot_basic.rs
-expression: rendered
----
-This is a very…

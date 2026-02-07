@@ -89,7 +89,7 @@
 
 **Acceptance Criteria:**
 - OperatingMode enum with 4 variants
-- --mode flag in fae-cli
+- --mode flag in saorsa-cli
 - Interactive: full TUI (existing)
 - Print: plain text streaming to stdout
 - Json: JSON Lines output
@@ -103,7 +103,7 @@
 **Description:** Create KeybindingMap with customizable key mappings. Persists to config, loaded at startup. Settings screen allows editing. Default bindings in constants.
 
 **Acceptance Criteria:**
-- KeybindingMap in fae-app/src/keybindings.rs
+- KeybindingMap in saorsa-app/src/keybindings.rs
 - Default bindings match current hardcoded keys
 - Load from config at startup
 - Edit in Settings screen Keybindings tab

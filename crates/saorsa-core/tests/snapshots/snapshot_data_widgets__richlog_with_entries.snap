@@ -1,0 +1,7 @@
+---
+source: crates/saorsa-core/tests/snapshot_data_widgets.rs
+expression: rendered
+---
+First log entry                         
+Second log entry                        
+Third log entry

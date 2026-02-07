@@ -1,25 +1,25 @@
 # Phase 6.4: Context Engineering
 
 ## Overview
-Implement comprehensive context engineering for the fae AI agent, including AGENTS.md discovery and merging, SYSTEM.md support for custom system prompts, context compaction strategies, skills system for on-demand capabilities, and prompt templates. This enables users to customize agent behavior, manage context growth, and extend functionality through discoverable context files.
+Implement comprehensive context engineering for the saorsa-tui AI agent, including AGENTS.md discovery and merging, SYSTEM.md support for custom system prompts, context compaction strategies, skills system for on-demand capabilities, and prompt templates. This enables users to customize agent behavior, manage context growth, and extend functionality through discoverable context files.
 
 ## Tasks
 
 ### Task 1: Context Discovery System
 **Files:**
-- crates/fae-agent/src/context/mod.rs (new)
-- crates/fae-agent/src/context/discovery.rs (new)
-- crates/fae-agent/src/lib.rs (export context module)
+- crates/saorsa-agent/src/context/mod.rs (new)
+- crates/saorsa-agent/src/context/discovery.rs (new)
+- crates/saorsa-agent/src/lib.rs (export context module)
 
 **Description:**
-Implement the file discovery system for AGENTS.md files across multiple locations with precedence rules: global (~/.fae/), parent directories (walk up from CWD), and current working directory. Implement path walking, file existence checking, and precedence resolution (CWD > parent > global).
+Implement the file discovery system for AGENTS.md files across multiple locations with precedence rules: global (~/.saorsa-tui/), parent directories (walk up from CWD), and current working directory. Implement path walking, file existence checking, and precedence resolution (CWD > parent > global).
 
 **Requirements:**
 - ContextDiscovery struct with methods for finding files
 - discover_agents_md() returning Vec<PathBuf> ordered by precedence
 - discover_system_md() with same precedence rules
 - Walk parent directories up to filesystem root or home
-- Global location: ~/.fae/AGENTS.md and ~/.fae/SYSTEM.md
+- Global location: ~/.saorsa-tui/AGENTS.md and ~/.saorsa-tui/SYSTEM.md
 - Filter non-existent paths
 - Deterministic ordering (highest precedence first)
 
@@ -34,8 +34,8 @@ Implement the file discovery system for AGENTS.md files across multiple location
 
 ### Task 2: AGENTS.md Loading and Merging
 **Files:**
-- crates/fae-agent/src/context/agents.rs (new)
-- crates/fae-agent/src/context/types.rs (new)
+- crates/saorsa-agent/src/context/agents.rs (new)
+- crates/saorsa-agent/src/context/types.rs (new)
 
 **Description:**
 Load discovered AGENTS.md files and implement merging strategies. Support two modes: "replace" (only highest precedence file) and "append" (merge all files with separators). Parse front matter for merge directives. Handle file I/O errors gracefully. Return merged content as String ready for LLM context.
@@ -61,7 +61,7 @@ Load discovered AGENTS.md files and implement merging strategies. Support two mo
 
 ### Task 3: SYSTEM.md Support
 **Files:**
-- crates/fae-agent/src/context/system.rs (new)
+- crates/saorsa-agent/src/context/system.rs (new)
 
 **Description:**
 Implement SYSTEM.md discovery and loading with similar precedence rules as AGENTS.md. Support two modes: "replace" (override default system prompt entirely) and "append" (add to default system prompt). Parse front matter for mode directives. Integrate with agent config to inject custom system prompts.
@@ -86,9 +86,9 @@ Implement SYSTEM.md discovery and loading with similar precedence rules as AGENT
 
 ### Task 4: Context Types and Integration
 **Files:**
-- crates/fae-agent/src/context/types.rs (update)
-- crates/fae-agent/src/config.rs (integrate context)
-- crates/fae-agent/src/agent.rs (use context in message building)
+- crates/saorsa-agent/src/context/types.rs (update)
+- crates/saorsa-agent/src/config.rs (integrate context)
+- crates/saorsa-agent/src/agent.rs (use context in message building)
 
 **Description:**
 Define unified context types and integrate them into agent configuration and message building. Create ContextBundle containing agents, system, and user context. Update AgentConfig to hold ContextBundle. Modify message building to inject context at appropriate points in conversation.
@@ -112,8 +112,8 @@ Define unified context types and integrate them into agent configuration and mes
 
 ### Task 5: Context Compaction Strategy
 **Files:**
-- crates/fae-agent/src/context/compaction.rs (new)
-- crates/fae-agent/src/context/token_counter.rs (new)
+- crates/saorsa-agent/src/context/compaction.rs (new)
+- crates/saorsa-agent/src/context/token_counter.rs (new)
 
 **Description:**
 Implement context compaction strategies to manage growing conversation history. Add token counting for messages using tiktoken-rs or approximate tokenization. Implement compaction strategies: truncate oldest, summarize blocks, preserve important markers (tool calls, errors). Track compaction statistics.
@@ -139,8 +139,8 @@ Implement context compaction strategies to manage growing conversation history. 
 
 ### Task 6: /compact Command
 **Files:**
-- crates/fae-agent/src/context/command.rs (new)
-- crates/fae-app/src/commands.rs (integrate /compact)
+- crates/saorsa-agent/src/context/command.rs (new)
+- crates/saorsa-app/src/commands.rs (integrate /compact)
 
 **Description:**
 Implement /compact slash command for manual context compaction and auto-compaction triggers. Add CompactCommand with options (--strategy, --max-tokens, --dry-run). Implement auto-compaction trigger when context exceeds threshold. Provide UI feedback showing before/after token counts and messages removed.
@@ -166,12 +166,12 @@ Implement /compact slash command for manual context compaction and auto-compacti
 
 ### Task 7: Skills System Foundation
 **Files:**
-- crates/fae-agent/src/skills/mod.rs (new)
-- crates/fae-agent/src/skills/registry.rs (new)
-- crates/fae-agent/src/skills/types.rs (new)
+- crates/saorsa-agent/src/skills/mod.rs (new)
+- crates/saorsa-agent/src/skills/registry.rs (new)
+- crates/saorsa-agent/src/skills/types.rs (new)
 
 **Description:**
-Implement the skills system foundation for on-demand capabilities. Define Skill struct with name, description, triggers, and content. Implement skill discovery (similar to AGENTS.md) in ~/.fae/skills/ and project .fae/skills/. Create SkillRegistry for loading and activating skills based on user requests or automatic triggers.
+Implement the skills system foundation for on-demand capabilities. Define Skill struct with name, description, triggers, and content. Implement skill discovery (similar to AGENTS.md) in ~/.saorsa-tui/skills/ and project .saorsa-tui/skills/. Create SkillRegistry for loading and activating skills based on user requests or automatic triggers.
 
 **Requirements:**
 - Skill struct with name, description, triggers, content
@@ -195,12 +195,12 @@ Implement the skills system foundation for on-demand capabilities. Define Skill 
 
 ### Task 8: Prompt Templates
 **Files:**
-- crates/fae-agent/src/templates/mod.rs (new)
-- crates/fae-agent/src/templates/engine.rs (new)
-- crates/fae-agent/src/templates/builtins.rs (new)
+- crates/saorsa-agent/src/templates/mod.rs (new)
+- crates/saorsa-agent/src/templates/engine.rs (new)
+- crates/saorsa-agent/src/templates/builtins.rs (new)
 
 **Description:**
-Implement prompt template system with variable substitution and conditionals. Use simple template syntax: {{variable}} for substitution, {{#if variable}}...{{/if}} for conditionals. Create built-in templates for common tasks (code review, debugging, documentation). Support user-defined templates in ~/.fae/templates/.
+Implement prompt template system with variable substitution and conditionals. Use simple template syntax: {{variable}} for substitution, {{#if variable}}...{{/if}} for conditionals. Create built-in templates for common tasks (code review, debugging, documentation). Support user-defined templates in ~/.saorsa-tui/templates/.
 
 **Requirements:**
 - TemplateEngine with render(template, context) method
@@ -208,7 +208,7 @@ Implement prompt template system with variable substitution and conditionals. Us
 - Conditionals: {{#if var}}text{{/if}} and {{#unless var}}text{{/unless}}
 - Template context as HashMap<String, String>
 - Built-in templates: code_review, debug, document, test, refactor
-- User template discovery in ~/.fae/templates/*.md
+- User template discovery in ~/.saorsa-tui/templates/*.md
 - Template validation on load
 - Error handling for missing variables
 
@@ -236,7 +236,7 @@ After all tasks complete, the context engineering system should:
 
 ## Dependencies
 
-New dependencies to add to fae-agent/Cargo.toml:
+New dependencies to add to saorsa-agent/Cargo.toml:
 - tiktoken-rs = "0.5" (for token counting)
 
 Existing dependencies sufficient for other features (serde, anyhow, tokio).

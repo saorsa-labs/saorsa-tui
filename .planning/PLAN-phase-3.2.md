@@ -42,8 +42,8 @@ RenderContext.end_frame() → diff → Renderer → ANSI
 ## Task 1: Renderer Integration with Compositor
 
 **Files to modify/create:**
-- `crates/fae-core/src/renderer.rs` — add compositor integration
-- `crates/fae-core/src/render_context.rs` — hook into pipeline
+- `crates/saorsa-core/src/renderer.rs` — add compositor integration
+- `crates/saorsa-core/src/render_context.rs` — hook into pipeline
 
 **Description**: Modify the rendering pipeline to call the compositor before writing to terminal. The compositor becomes the data transformation layer between the widget tree output and the screen buffer.
 
@@ -68,7 +68,7 @@ RenderContext.end_frame() → diff → Renderer → ANSI
 ## Task 2: Delta Rendering Optimization
 
 **Files to create:**
-- `crates/fae-core/src/renderer/delta.rs` (new module)
+- `crates/saorsa-core/src/renderer/delta.rs` (new module)
 
 **Description**: Implement differential rendering to minimize terminal output. Only send ANSI escape sequences for cells that actually changed.
 
@@ -104,7 +104,7 @@ RenderContext.end_frame() → diff → Renderer → ANSI
 ## Task 3: Advanced Text Styling — Attributes
 
 **Files to modify:**
-- `crates/fae-core/src/style.rs` — extend Style type
+- `crates/saorsa-core/src/style.rs` — extend Style type
 
 **Description**: Add support for advanced text attributes: underline, strikethrough, blink, inverse, bold, italic. These can be combined.
 
@@ -144,7 +144,7 @@ RenderContext.end_frame() → diff → Renderer → ANSI
 ## Task 4: Scrollable Regions with Viewport Clipping
 
 **Files to create:**
-- `crates/fae-core/src/viewport.rs` (new module)
+- `crates/saorsa-core/src/viewport.rs` (new module)
 
 **Description**: Implement viewport clipping and scroll offset handling. Widgets can specify scroll position, and only the visible portion renders.
 
@@ -183,8 +183,8 @@ RenderContext.end_frame() → diff → Renderer → ANSI
 ## Task 5: Unicode Edge Cases — Emoji and Combining Marks
 
 **Files to modify:**
-- `crates/fae-core/src/cell.rs` — enhance cell handling
-- `crates/fae-core/src/segment.rs` — improve segment splitting
+- `crates/saorsa-core/src/cell.rs` — enhance cell handling
+- `crates/saorsa-core/src/segment.rs` — improve segment splitting
 
 **Description**: Handle edge cases in unicode: emoji (wide), combining marks (zero-width), RTL scripts. Ensure correct rendering across layer boundaries.
 
@@ -214,7 +214,7 @@ RenderContext.end_frame() → diff → Renderer → ANSI
 ## Task 6: Renderer Output Optimization
 
 **Files to modify:**
-- `crates/fae-core/src/renderer.rs`
+- `crates/saorsa-core/src/renderer.rs`
 
 **Description**: Implement performance optimizations for rendering: cursor hiding, batch ANSI emission, minimize color resets.
 
@@ -239,7 +239,7 @@ RenderContext.end_frame() → diff → Renderer → ANSI
 ## Task 7: Integration Tests — Complex Rendering Scenarios
 
 **Files to modify:**
-- `crates/fae-core/src/tests/` (or integration test directory)
+- `crates/saorsa-core/src/tests/` (or integration test directory)
 
 **Description**: Write comprehensive integration tests covering realistic rendering scenarios.
 
@@ -263,10 +263,10 @@ RenderContext.end_frame() → diff → Renderer → ANSI
 ## Task 8: Documentation and Module Exports
 
 **Files to modify:**
-- `crates/fae-core/src/lib.rs` — add module exports
-- `crates/fae-core/src/renderer.rs` — add doc comments
-- `crates/fae-core/src/viewport.rs` — add doc comments
-- Create `crates/fae-core/RENDERING.md` — high-level architecture
+- `crates/saorsa-core/src/lib.rs` — add module exports
+- `crates/saorsa-core/src/renderer.rs` — add doc comments
+- `crates/saorsa-core/src/viewport.rs` — add doc comments
+- Create `crates/saorsa-core/RENDERING.md` — high-level architecture
 
 **Description**: Document the rendering pipeline, compositor integration, and viewport system. Export public APIs.
 

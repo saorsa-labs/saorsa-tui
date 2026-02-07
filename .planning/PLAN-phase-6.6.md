@@ -6,7 +6,7 @@ Implement a trait-based extension system that allows dynamic plugin loading with
 ## Tasks
 
 ### Task 1: Extension Trait & Lifecycle Hooks
-**File**: `crates/fae-agent/src/extension/mod.rs`
+**File**: `crates/saorsa-agent/src/extension/mod.rs`
 - Define `Extension` trait with lifecycle methods:
   - `fn name(&self) -> &str`
   - `fn version(&self) -> &str`
@@ -17,11 +17,11 @@ Implement a trait-based extension system that allows dynamic plugin loading with
   - `fn on_turn_start(&mut self) -> Result<()>`
   - `fn on_turn_end(&mut self) -> Result<()>`
 - Define `ExtensionMetadata` struct with name, version, description, author
-- Define `FaeAgentError` variants for extension errors
-- Add module to `crates/fae-agent/src/lib.rs`
+- Define `SaorsaAgentError` variants for extension errors
+- Add module to `crates/saorsa-agent/src/lib.rs`
 
 ### Task 2: Extension Registry
-**File**: `crates/fae-agent/src/extension/registry.rs`
+**File**: `crates/saorsa-agent/src/extension/registry.rs`
 - Implement `ExtensionRegistry` struct:
   - `HashMap<String, Box<dyn Extension>>` for loaded extensions
   - `fn register(&mut self, ext: Box<dyn Extension>) -> Result<()>`
@@ -37,7 +37,7 @@ Implement a trait-based extension system that allows dynamic plugin loading with
 - Export from `extension/mod.rs`
 
 ### Task 3: Tool Registration System
-**File**: `crates/fae-agent/src/extension/tool_registry.rs`
+**File**: `crates/saorsa-agent/src/extension/tool_registry.rs`
 - Define `ToolDefinition` struct:
   - `name: String`
   - `description: String`
@@ -53,7 +53,7 @@ Implement a trait-based extension system that allows dynamic plugin loading with
 - Export from `extension/mod.rs`
 
 ### Task 4: Command Registration System
-**File**: `crates/fae-agent/src/extension/command_registry.rs`
+**File**: `crates/saorsa-agent/src/extension/command_registry.rs`
 - Define `CommandDefinition` struct:
   - `name: String`
   - `description: String`
@@ -68,7 +68,7 @@ Implement a trait-based extension system that allows dynamic plugin loading with
 - Export from `extension/mod.rs`
 
 ### Task 5: Keybinding Registration System
-**File**: `crates/fae-agent/src/extension/keybinding_registry.rs`
+**File**: `crates/saorsa-agent/src/extension/keybinding_registry.rs`
 - Define `KeybindingDefinition` struct:
   - `key: String` (e.g., "ctrl+k")
   - `description: String`
@@ -82,9 +82,9 @@ Implement a trait-based extension system that allows dynamic plugin loading with
 - Export from `extension/mod.rs`
 
 ### Task 6: UI Widget Registration System
-**File**: `crates/fae-agent/src/extension/widget_registry.rs`
+**File**: `crates/saorsa-agent/src/extension/widget_registry.rs`
 - Define `WidgetFactory` trait:
-  - `fn create(&self) -> Box<dyn Widget>` (where Widget is from fae-core)
+  - `fn create(&self) -> Box<dyn Widget>` (where Widget is from saorsa-core)
   - `fn name(&self) -> &str`
   - `fn description(&self) -> &str`
 - Define `OverlayConfig` struct:
@@ -100,7 +100,7 @@ Implement a trait-based extension system that allows dynamic plugin loading with
 - Export from `extension/mod.rs`
 
 ### Task 7: Package Management System
-**File**: `crates/fae-agent/src/extension/package_manager.rs`
+**File**: `crates/saorsa-agent/src/extension/package_manager.rs`
 - Define `ExtensionPackage` struct:
   - `metadata: ExtensionMetadata`
   - `path: PathBuf`
@@ -121,8 +121,8 @@ Implement a trait-based extension system that allows dynamic plugin loading with
 
 ### Task 8: Integration & Testing
 **Files**:
-- `crates/fae-agent/src/extension/tests.rs` (integration tests)
-- Update `crates/fae-agent/src/lib.rs` to re-export extension types
+- `crates/saorsa-agent/src/extension/tests.rs` (integration tests)
+- Update `crates/saorsa-agent/src/lib.rs` to re-export extension types
 
 **Tests**:
 1. Test extension lifecycle (load, tool_call, message, turn hooks, unload)
@@ -135,7 +135,7 @@ Implement a trait-based extension system that allows dynamic plugin loading with
 8. Test error handling (duplicate names, not found, lifecycle failures)
 
 **Integration**:
-- Add `pub use extension::*;` to `fae-agent/src/lib.rs`
+- Add `pub use extension::*;` to `saorsa-agent/src/lib.rs`
 - Update agent runtime to call extension hooks at appropriate times
 - Document extension system in module docs
 

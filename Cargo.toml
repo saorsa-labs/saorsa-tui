@@ -1,11 +1,11 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/fae-core",
-    "crates/fae-ai",
-    "crates/fae-agent",
-    "crates/fae-app",
-    "crates/fae-cli",
+    "crates/saorsa-core",
+    "crates/saorsa-ai",
+    "crates/saorsa-agent",
+    "crates/saorsa-app",
+    "crates/saorsa-cli",
 ]
 
 [workspace.package]
@@ -13,7 +13,7 @@ version = "0.1.0"
 edition = "2024"
 authors = ["David Irvine <david@saorsalabs.com>"]
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/saorsa-labs/fae"
+repository = "https://github.com/saorsa-labs/saorsa-tui"
 rust-version = "1.85"
 
 [workspace.dependencies]
@@ -81,10 +81,10 @@ uuid = { version = "1.11", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 
 # Internal crates
-fae-core = { path = "crates/fae-core" }
-fae-ai = { path = "crates/fae-ai" }
-fae-agent = { path = "crates/fae-agent" }
-fae-app = { path = "crates/fae-app" }
+saorsa-core = { version = "0.1.0", path = "crates/saorsa-core" }
+saorsa-ai = { version = "0.1.0", path = "crates/saorsa-ai" }
+saorsa-agent = { version = "0.1.0", path = "crates/saorsa-agent" }
+saorsa-app = { version = "0.1.0", path = "crates/saorsa-app" }
 
 [workspace.lints.clippy]
 unwrap_used = { level = "deny", priority = 1 }

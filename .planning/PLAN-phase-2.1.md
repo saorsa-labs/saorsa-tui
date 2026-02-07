@@ -2,16 +2,16 @@
 
 ## Overview
 
-Build a Terminal CSS (TCSS) parser for fae-core. TCSS is a subset of CSS tailored for terminal UIs. This phase creates the tokenizer, selector parser, property parser, and AST types. All parsing uses the `cssparser` crate from the Servo project.
+Build a Terminal CSS (TCSS) parser for saorsa-core. TCSS is a subset of CSS tailored for terminal UIs. This phase creates the tokenizer, selector parser, property parser, and AST types. All parsing uses the `cssparser` crate from the Servo project.
 
 ## Dependencies to Add
 
-- `cssparser = "0.34"` in workspace Cargo.toml and fae-core
+- `cssparser = "0.34"` in workspace Cargo.toml and saorsa-core
 
 ## Module Structure
 
 ```
-crates/fae-core/src/tcss/
+crates/saorsa-core/src/tcss/
 ├── mod.rs           # Module declarations and re-exports
 ├── ast.rs           # Stylesheet, Rule, Declaration AST
 ├── selector.rs      # Selector types and parser
@@ -25,7 +25,7 @@ crates/fae-core/src/tcss/
 
 ## Task 1: TCSS Module Scaffold & Value Types
 
-**Files:** `crates/fae-core/src/tcss/mod.rs`, `crates/fae-core/src/tcss/value.rs`, `crates/fae-core/src/tcss/error.rs`, `Cargo.toml` (workspace + fae-core)
+**Files:** `crates/saorsa-core/src/tcss/mod.rs`, `crates/saorsa-core/src/tcss/value.rs`, `crates/saorsa-core/src/tcss/error.rs`, `Cargo.toml` (workspace + saorsa-core)
 
 **Description:** Add cssparser dependency, create the tcss module structure, and define CSS value types used across properties.
 
@@ -73,11 +73,11 @@ pub enum TcssError {
 ```
 
 ### Changes
-- Add `cssparser = "0.34"` to workspace Cargo.toml and fae-core/Cargo.toml
-- Create `crates/fae-core/src/tcss/mod.rs` with submodule declarations
-- Create `crates/fae-core/src/tcss/value.rs` with CssValue, Length enums
-- Create `crates/fae-core/src/tcss/error.rs` with TcssError
-- Add `pub mod tcss;` to `crates/fae-core/src/lib.rs`
+- Add `cssparser = "0.34"` to workspace Cargo.toml and saorsa-core/Cargo.toml
+- Create `crates/saorsa-core/src/tcss/mod.rs` with submodule declarations
+- Create `crates/saorsa-core/src/tcss/value.rs` with CssValue, Length enums
+- Create `crates/saorsa-core/src/tcss/error.rs` with TcssError
+- Add `pub mod tcss;` to `crates/saorsa-core/src/lib.rs`
 
 ### Tests (6+)
 - Length display/debug
@@ -89,7 +89,7 @@ pub enum TcssError {
 
 ## Task 2: Property Name Types
 
-**Files:** `crates/fae-core/src/tcss/property.rs`
+**Files:** `crates/saorsa-core/src/tcss/property.rs`
 
 **Description:** Define the enum of all supported TCSS property names. This is a flat enum mapping CSS property names to typed variants.
 
@@ -173,7 +173,7 @@ pub struct Declaration {
 
 ## Task 3: Selector Types
 
-**Files:** `crates/fae-core/src/tcss/selector.rs`
+**Files:** `crates/saorsa-core/src/tcss/selector.rs`
 
 **Description:** Define AST types for CSS selectors.
 
@@ -255,7 +255,7 @@ pub struct SelectorList {
 
 ## Task 4: Stylesheet AST
 
-**Files:** `crates/fae-core/src/tcss/ast.rs`
+**Files:** `crates/saorsa-core/src/tcss/ast.rs`
 
 **Description:** Define the top-level stylesheet AST that ties selectors to declarations.
 
@@ -291,7 +291,7 @@ pub struct Stylesheet {
 
 ## Task 5: Value Parser
 
-**Files:** `crates/fae-core/src/tcss/parser.rs` (partial — value parsing functions)
+**Files:** `crates/saorsa-core/src/tcss/parser.rs` (partial — value parsing functions)
 
 **Description:** Implement parsing of CSS values using cssparser. These are the building blocks that the property parser and full stylesheet parser will use.
 
@@ -346,7 +346,7 @@ pub fn parse_property_value(
 
 ## Task 6: Selector Parser
 
-**Files:** `crates/fae-core/src/tcss/selector.rs` (add parsing methods)
+**Files:** `crates/saorsa-core/src/tcss/selector.rs` (add parsing methods)
 
 **Description:** Implement CSS selector parsing using cssparser.
 
@@ -407,7 +407,7 @@ impl PseudoClass {
 
 ## Task 7: Full Stylesheet Parser
 
-**Files:** `crates/fae-core/src/tcss/parser.rs` (complete)
+**Files:** `crates/saorsa-core/src/tcss/parser.rs` (complete)
 
 **Description:** Implement the full TCSS stylesheet parser that parses complete stylesheets into the AST.
 
@@ -455,13 +455,13 @@ impl Declaration {
 
 ## Task 8: Wire Up & Integration
 
-**Files:** `crates/fae-core/src/tcss/mod.rs`, `crates/fae-core/src/lib.rs`
+**Files:** `crates/saorsa-core/src/tcss/mod.rs`, `crates/saorsa-core/src/lib.rs`
 
 **Description:** Wire up all TCSS modules, add re-exports, and write integration tests.
 
 ### Changes
 - Complete `tcss/mod.rs` with all submodule declarations and re-exports
-- Update `crates/fae-core/src/lib.rs` re-exports for TCSS types
+- Update `crates/saorsa-core/src/lib.rs` re-exports for TCSS types
 - Add integration tests combining parsing → AST → inspection
 
 ### Re-exports

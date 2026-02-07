@@ -1,7 +1,7 @@
-# Phase 1.6: Minimal Chat App (fae-app)
+# Phase 1.6: Minimal Chat App (saorsa-app)
 
 ## Goal
-Wire fae-core, fae-ai, and fae-agent into a minimal working chat application.
+Wire saorsa-core, saorsa-ai, and saorsa-agent into a minimal working chat application.
 
 ## Tasks
 
@@ -16,14 +16,14 @@ Wire fae-core, fae-ai, and fae-agent into a minimal working chat application.
 - AppStatus enum (Idle, Thinking, ToolRunning)
 
 ### Task 3: Chat UI Layout
-- `ui.rs`: Render function using fae-core widgets
+- `ui.rs`: Render function using saorsa-core widgets
 - Header (model name, status), message area, input footer
-- Use Container, Label, Layout from fae-core
+- Use Container, Label, Layout from saorsa-core
 
 ### Task 4: Input Handling
 - `input.rs`: Single-line input editor
 - Key handling: Enter to submit, Ctrl-C to quit, basic editing
-- Integration with fae-core event system
+- Integration with saorsa-core event system
 
 ### Task 5: Main Loop
 - `main.rs`: Async main with tokio runtime
@@ -31,5 +31,5 @@ Wire fae-core, fae-ai, and fae-agent into a minimal working chat application.
 - Connect agent events to UI updates
 - Streaming text display
 
-### Task 6: Wire Up fae-cli
-- fae-cli main.rs delegates to fae-app
+### Task 6: Wire Up saorsa-cli
+- saorsa-cli main.rs delegates to saorsa-app

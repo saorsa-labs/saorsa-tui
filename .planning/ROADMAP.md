@@ -1,4 +1,4 @@
-# Fae — Project Roadmap
+# Saorsa TUI — Project Roadmap
 
 > A Retained-Mode, CSS-Styled Terminal UI Framework in Rust, with a Full AI Coding Agent as Showcase Application
 
@@ -9,10 +9,10 @@
 
 ## Milestone 1: Foundation
 
-**Goal**: Minimal fae-core rendering pipeline + basic fae-app that can chat with Claude via streaming responses.
+**Goal**: Minimal saorsa-core rendering pipeline + basic saorsa-app that can chat with Claude via streaming responses.
 
 ### Phase 1.1: Workspace & Core Types
-- Set up Cargo workspace (fae-core, fae-ai, fae-agent, fae-app, fae-cli)
+- Set up Cargo workspace (saorsa-core, saorsa-ai, saorsa-agent, saorsa-app, saorsa-cli)
 - Define core types: Segment, Style, Color, Cell, Size, Rect
 - Terminal abstraction trait + crossterm backend
 - Error types with thiserror for each crate
@@ -32,28 +32,28 @@
 - Event loop (keyboard, resize)
 - Focus management (basic)
 
-### Phase 1.4: Anthropic Provider (fae-ai)
+### Phase 1.4: Anthropic Provider (saorsa-ai)
 - Anthropic Messages API client
 - Streaming response handling (SSE)
 - Tool calling abstraction
 - Context/Message types
 - Token counting basics
 
-### Phase 1.5: Agent Loop (fae-agent)
+### Phase 1.5: Agent Loop (saorsa-agent)
 - Core agent loop with tool execution
 - Bash tool (PTY, streaming output, timeout)
 - Tool registry
 - Agent event types for UI integration
 - Basic error recovery
 
-### Phase 1.6: Minimal Chat App (fae-app)
+### Phase 1.6: Minimal Chat App (saorsa-app)
 - CLI argument parsing (clap)
 - Main chat screen layout (header, messages, editor, footer)
 - Streaming markdown display (basic — pre-compositor)
 - Input editor (single-line first)
-- Connect fae-ai + fae-agent + fae-core into working chat
+- Connect saorsa-ai + saorsa-agent + saorsa-core into working chat
 
-**Milestone 1 Deliverable**: `fae` binary that can chat with Claude, execute bash commands, and display streaming responses in the terminal.
+**Milestone 1 Deliverable**: `saorsa-tui` binary that can chat with Claude, execute bash commands, and display streaming responses in the terminal.
 
 ---
 
@@ -129,7 +129,7 @@
 
 ## Milestone 4: Widget Library
 
-**Goal**: All Tier 1 + Tier 2 widgets. Everything needed for fae-app.
+**Goal**: All Tier 1 + Tier 2 widgets. Everything needed for saorsa-app.
 
 ### Phase 4.1: Text Widgets
 - TextArea with tree-sitter syntax highlighting
@@ -156,7 +156,7 @@
 - OptionList
 - Sparkline
 
-**Milestone 4 Deliverable**: Complete widget library sufficient for the full fae-app UI.
+**Milestone 4 Deliverable**: Complete widget library sufficient for the full saorsa-app UI.
 
 ---
 

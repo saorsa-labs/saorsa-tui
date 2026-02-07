@@ -1,0 +1,8 @@
+---
+source: crates/saorsa-core/tests/snapshot_data_widgets.rs
+expression: rendered
+---
+▼ root                        
+  ▼ branch                    
+      leaf1                   
+      leaf2

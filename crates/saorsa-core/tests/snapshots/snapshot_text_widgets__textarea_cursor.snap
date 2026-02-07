@@ -1,0 +1,6 @@
+---
+source: crates/saorsa-core/tests/snapshot_text_widgets.rs
+expression: rendered
+---
+Hello                         
+World

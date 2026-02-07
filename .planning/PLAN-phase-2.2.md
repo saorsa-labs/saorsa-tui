@@ -12,7 +12,7 @@ Build the CSS selector matching engine and cascade resolver. This connects the T
 
 ### New Files
 ```
-crates/fae-core/src/tcss/
+crates/saorsa-core/src/tcss/
 ├── tree.rs         # WidgetTree, WidgetNode, WidgetState
 ├── matcher.rs      # Selector matching engine
 ├── cascade.rs      # Cascade resolution, ComputedStyle
@@ -21,14 +21,14 @@ crates/fae-core/src/tcss/
 
 ### Modified Files
 ```
-crates/fae-core/src/tcss/mod.rs   # Add new module declarations + re-exports
+crates/saorsa-core/src/tcss/mod.rs   # Add new module declarations + re-exports
 ```
 
 ---
 
 ## Task 1: Widget Tree & Node Types (tree.rs)
 
-**File**: `crates/fae-core/src/tcss/tree.rs`
+**File**: `crates/saorsa-core/src/tcss/tree.rs`
 
 Create the widget tree data structure that stores widget metadata needed for CSS selector matching.
 
@@ -106,7 +106,7 @@ pub struct WidgetTree {
 
 ## Task 2: Simple Selector Matching (matcher.rs)
 
-**File**: `crates/fae-core/src/tcss/matcher.rs`
+**File**: `crates/saorsa-core/src/tcss/matcher.rs`
 
 Implement the core selector matching logic — matching individual simple selectors and compound selectors against widget nodes.
 
@@ -148,7 +148,7 @@ Compound: ALL components must match (AND logic).
 
 ## Task 3: Pseudo-class Matching
 
-**File**: `crates/fae-core/src/tcss/matcher.rs` (extend)
+**File**: `crates/saorsa-core/src/tcss/matcher.rs` (extend)
 
 Add pseudo-class matching support using widget state and tree position.
 
@@ -197,7 +197,7 @@ Update the `SimpleSelector::PseudoClass` branch to call `matches_pseudo_class`. 
 
 ## Task 4: Combinator Matching
 
-**File**: `crates/fae-core/src/tcss/matcher.rs` (extend)
+**File**: `crates/saorsa-core/src/tcss/matcher.rs` (extend)
 
 Implement combinator matching by walking the widget tree from the subject element backwards through the selector chain.
 
@@ -239,7 +239,7 @@ pub fn matches_selector(
 
 ## Task 5: Rule Matching Engine
 
-**File**: `crates/fae-core/src/tcss/matcher.rs` (extend)
+**File**: `crates/saorsa-core/src/tcss/matcher.rs` (extend)
 
 Build the main matching engine that takes a stylesheet and finds all rules that apply to a given widget.
 
@@ -281,7 +281,7 @@ pub struct StyleMatcher {
 
 ## Task 6: Cascade Resolution (cascade.rs)
 
-**File**: `crates/fae-core/src/tcss/cascade.rs`
+**File**: `crates/saorsa-core/src/tcss/cascade.rs`
 
 Implement the CSS cascade algorithm that resolves matched rules into a final computed style.
 
@@ -339,7 +339,7 @@ pub struct CascadeResolver;
 
 ## Task 7: Match Caching (cache.rs)
 
-**File**: `crates/fae-core/src/tcss/cache.rs`
+**File**: `crates/saorsa-core/src/tcss/cache.rs`
 
 Implement a cache for match results to avoid re-matching on every render.
 
@@ -382,8 +382,8 @@ pub struct MatchCache {
 ## Task 8: Integration & Wire-Up
 
 **Files**:
-- `crates/fae-core/src/tcss/mod.rs` — add new module declarations and re-exports
-- `crates/fae-core/src/tcss/tree.rs`, `matcher.rs`, `cascade.rs`, `cache.rs` — verify integration
+- `crates/saorsa-core/src/tcss/mod.rs` — add new module declarations and re-exports
+- `crates/saorsa-core/src/tcss/tree.rs`, `matcher.rs`, `cascade.rs`, `cache.rs` — verify integration
 
 ### Module Declarations
 

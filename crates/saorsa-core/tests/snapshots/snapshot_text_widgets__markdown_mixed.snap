@@ -1,0 +1,12 @@
+---
+source: crates/saorsa-core/tests/snapshot_text_widgets.rs
+expression: rendered
+---
+Main Title                                        
+                                                  
+Some bold and italic text.                        
+Subsection                                        
+                                                  
+A paragraph with`code` .                          
+code block                                        
+-  list item

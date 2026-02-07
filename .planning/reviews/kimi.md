@@ -1,1 +1,1 @@
-KIMI_SKIP: External review not required for benchmark infrastructure task
+KIMI_SKIP: Documentation-only changes

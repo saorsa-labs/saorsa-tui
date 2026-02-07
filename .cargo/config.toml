@@ -1,14 +1,14 @@
-# Cross-compilation configuration for fae
+# Cross-compilation configuration for saorsa-tui
 #
 # Native builds:
 #   cargo build --release
 #
 # Cross-compile for Linux from macOS:
-#   cargo zigbuild --release --target x86_64-unknown-linux-gnu -p fae-cli
-#   cargo zigbuild --release --target aarch64-unknown-linux-gnu -p fae-cli
+#   cargo zigbuild --release --target x86_64-unknown-linux-gnu -p saorsa-cli
+#   cargo zigbuild --release --target aarch64-unknown-linux-gnu -p saorsa-cli
 #
 # Cross-compile using `cross` (for CI):
-#   cross build --release --target aarch64-unknown-linux-gnu -p fae-cli
+#   cross build --release --target aarch64-unknown-linux-gnu -p saorsa-cli
 
 [target.aarch64-unknown-linux-gnu]
 linker = "aarch64-linux-gnu-gcc"

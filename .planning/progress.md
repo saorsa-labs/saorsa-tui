@@ -7,8 +7,8 @@
 - Configured shared dependencies, lints, workspace package metadata
 - Created all 5 crate directories with initial Cargo.toml and src files
 
-### Task 2: Error Types (fae-core)
-- FaeCoreError with 8 variants: Io, Terminal, Layout, Style, Render, Widget, Unicode, Internal
+### Task 2: Error Types (saorsa-core)
+- SaorsaCoreError with 8 variants: Io, Terminal, Layout, Style, Render, Widget, Unicode, Internal
 - thiserror derive, proper From impls, 2 tests
 
 ### Task 3: Geometry Types
@@ -43,9 +43,9 @@
 - CrosstermBackend with env-based capability detection, Drop cleanup
 - TestBackend with in-memory buffer simulation, 6 tests
 
-### Task 9: Error Types (fae-ai, fae-agent)
-- FaeAiError: 10 variants covering provider/auth/network/rate-limit/streaming
-- FaeAgentError: 8 variants with From<FaeAiError> conversion
+### Task 9: Error Types (saorsa-ai, saorsa-agent)
+- SaorsaAiError: 10 variants covering provider/auth/network/rate-limit/streaming
+- SaorsaAgentError: 8 variants with From<SaorsaAiError> conversion
 - 4 tests total
 
 ### Task 10: CLAUDE.md
@@ -161,7 +161,7 @@
 
 ---
 
-## Phase 1.4: Anthropic Provider (fae-ai)
+## Phase 1.4: Anthropic Provider (saorsa-ai)
 
 ### Task 1: Message Types
 - `message.rs`: Role (User/Assistant), Message, ContentBlock (Text/ToolUse/ToolResult)
@@ -196,22 +196,22 @@
 
 ### Task 6: Wire Up lib.rs
 - All modules declared and key types re-exported
-- Public API: AnthropicProvider, FaeAiError, Message, ContentBlock, CompletionRequest, etc.
+- Public API: AnthropicProvider, SaorsaAiError, Message, ContentBlock, CompletionRequest, etc.
 
 ### Summary
-- **182 tests passing** (34 new: 32 fae-ai + 2 fae-agent)
+- **182 tests passing** (34 new: 32 saorsa-ai + 2 saorsa-agent)
 - **Zero clippy warnings**
 - **Zero compilation errors**
 - **All formatting clean**
 
 ---
 
-## Phase 1.5: Agent Loop (fae-agent)
+## Phase 1.5: Agent Loop (saorsa-agent)
 
 ### Task 1: Tool Trait & Registry
 - `tool.rs`: Tool async trait with name, description, input_schema, execute
 - ToolRegistry: register, get, definitions, names, len/is_empty
-- to_definition() converts Tool to fae-ai ToolDefinition
+- to_definition() converts Tool to saorsa-ai ToolDefinition
 - 6 tests
 
 ### Task 2: Bash Tool
@@ -245,14 +245,14 @@
 - Re-exported: AgentLoop, AgentConfig, AgentEvent, Tool, ToolRegistry, BashTool
 
 ### Summary
-- **207 tests passing** (25 new in fae-agent)
+- **207 tests passing** (25 new in saorsa-agent)
 - **Zero clippy warnings**
 - **Zero compilation errors**
 - **All formatting clean**
 
 ---
 
-## Phase 1.6: Minimal Chat App (fae-app)
+## Phase 1.6: Minimal Chat App (saorsa-app)
 
 ### Task 1: CLI Arguments
 - `cli.rs`: Clap-based argument parsing with derive macros
@@ -289,12 +289,12 @@
 - Agent interaction: spawns AgentLoop, processes AgentEvents for live UI updates
 - Double-buffered rendering via RenderContext + CrosstermBackend
 
-### Task 6: Wire Up lib.rs & fae-cli
+### Task 6: Wire Up lib.rs & saorsa-cli
 - `lib.rs`: Exports app, cli, input, ui modules
-- `fae-cli/src/main.rs`: Thin binary wrapper
+- `saorsa-cli/src/main.rs`: Thin binary wrapper
 
 ### Summary
-- **240 tests passing** (33 new in fae-app)
+- **240 tests passing** (33 new in saorsa-app)
 - **Zero clippy warnings**
 - **Zero compilation errors**
 - **All formatting clean**

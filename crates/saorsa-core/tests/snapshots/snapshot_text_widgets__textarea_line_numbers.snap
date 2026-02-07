@@ -1,0 +1,8 @@
+---
+source: crates/saorsa-core/tests/snapshot_text_widgets.rs
+expression: rendered
+---
+1 fn main() {                                     
+2     println!("Hello");                          
+3 }                                               
+4

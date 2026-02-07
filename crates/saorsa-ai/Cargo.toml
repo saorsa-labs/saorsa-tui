@@ -1,0 +1,25 @@
+[package]
+name = "saorsa-ai"
+description = "Unified multi-provider LLM API"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+keywords = ["llm", "ai", "anthropic", "openai", "streaming"]
+categories = ["api-bindings", "asynchronous"]
+
+[dependencies]
+thiserror = { workspace = true }
+tokio = { workspace = true }
+futures = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+reqwest = { workspace = true }
+reqwest-eventsource = { workspace = true }
+tracing = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,4 +1,4 @@
-# Phase 1.5: Agent Loop (fae-agent)
+# Phase 1.5: Agent Loop (saorsa-agent)
 
 ## Goal
 Core agent loop with tool execution, bash tool, tool registry, and agent events for UI integration.
@@ -8,7 +8,7 @@ Core agent loop with tool execution, bash tool, tool registry, and agent events 
 ### Task 1: Tool Trait & Registry
 - `tool.rs`: Tool trait with name, description, input_schema, execute
 - ToolRegistry for registering and looking up tools by name
-- Convert tool definitions to fae-ai ToolDefinition for API calls
+- Convert tool definitions to saorsa-ai ToolDefinition for API calls
 
 ### Task 2: Bash Tool
 - `tools/bash.rs`: Execute shell commands via tokio::process::Command

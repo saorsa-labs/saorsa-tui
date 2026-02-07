@@ -38,7 +38,7 @@ layers; this phase adds high-level overlay types on top of that foundation.
 ## Task 1: Overlay Trait and ScreenStack
 
 **Files to create:**
-- `crates/fae-core/src/overlay.rs` (new module)
+- `crates/saorsa-core/src/overlay.rs` (new module)
 
 **Description**: Define the Overlay trait and ScreenStack manager for overlay lifecycle.
 
@@ -116,8 +116,8 @@ struct OverlayEntry {
 ## Task 2: Dim Background Effect
 
 **Files to modify:**
-- `crates/fae-core/src/overlay.rs` — add dim rendering helper
-- `crates/fae-core/src/compositor/mod.rs` — optional: dim support in compose
+- `crates/saorsa-core/src/overlay.rs` — add dim rendering helper
+- `crates/saorsa-core/src/compositor/mod.rs` — optional: dim support in compose
 
 **Description**: Implement background dimming when a modal overlay is active.
 When `dim_background: true`, the ScreenStack inserts a full-screen dim layer
@@ -144,7 +144,7 @@ behind the overlay that applies the `dim` style attribute.
 ## Task 3: Modal Widget
 
 **Files to create:**
-- `crates/fae-core/src/widget/modal.rs` (new)
+- `crates/saorsa-core/src/widget/modal.rs` (new)
 
 **Description**: A modal dialog widget with title, body, border, and optional
 close button indicator. Uses Container internally for border rendering.
@@ -186,7 +186,7 @@ pub struct Modal {
 ## Task 4: Toast Widget
 
 **Files to create:**
-- `crates/fae-core/src/widget/toast.rs` (new)
+- `crates/saorsa-core/src/widget/toast.rs` (new)
 
 **Description**: A toast notification that appears in a corner of the screen.
 
@@ -232,7 +232,7 @@ pub struct Toast {
 ## Task 5: Tooltip Widget
 
 **Files to create:**
-- `crates/fae-core/src/widget/tooltip.rs` (new)
+- `crates/saorsa-core/src/widget/tooltip.rs` (new)
 
 **Description**: A tooltip that appears near an anchor element with smart positioning.
 
@@ -278,7 +278,7 @@ pub struct Tooltip {
 ## Task 6: Widget Module Integration
 
 **Files to modify:**
-- `crates/fae-core/src/widget/mod.rs` — add modal, toast, tooltip modules
+- `crates/saorsa-core/src/widget/mod.rs` — add modal, toast, tooltip modules
 
 **Description**: Wire the new widget types into the widget module and export them.
 
@@ -300,7 +300,7 @@ pub struct Tooltip {
 ## Task 7: Integration Tests — Full Overlay Pipeline
 
 **Files to modify:**
-- `crates/fae-core/src/overlay.rs` — integration test module
+- `crates/saorsa-core/src/overlay.rs` — integration test module
 
 **Description**: End-to-end tests showing overlays flowing through the full
 rendering pipeline: Widget → ScreenStack → Compositor → ScreenBuffer.
@@ -320,7 +320,7 @@ rendering pipeline: Widget → ScreenStack → Compositor → ScreenBuffer.
 ## Task 8: Documentation and Module Exports
 
 **Files to modify:**
-- `crates/fae-core/src/lib.rs` — exports
+- `crates/saorsa-core/src/lib.rs` — exports
 - Add doc comments to all new public items
 
 **Description**: Export all new types and ensure documentation is complete.

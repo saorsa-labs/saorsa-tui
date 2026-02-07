@@ -10,8 +10,8 @@
 **Description**: Create theme data types and a theme registry for managing color themes.
 
 **Files**:
-- `crates/fae-core/src/css/themes/mod.rs` (NEW directory + module)
-- `crates/fae-core/src/css/mod.rs` (add themes submodule)
+- `crates/saorsa-core/src/css/themes/mod.rs` (NEW directory + module)
+- `crates/saorsa-core/src/css/mod.rs` (add themes submodule)
 
 **Acceptance Criteria**:
 - `ThemeColors` struct with named color slots (background, foreground, accent, error, warning, success, etc.)
@@ -29,7 +29,7 @@
 **Description**: Implement the Catppuccin color theme with all four flavors.
 
 **Files**:
-- `crates/fae-core/src/css/themes/catppuccin.rs`
+- `crates/saorsa-core/src/css/themes/catppuccin.rs`
 
 **Acceptance Criteria**:
 - Four flavors: Latte (light), Frappe, Macchiato, Mocha (dark)
@@ -46,8 +46,8 @@
 **Description**: Implement Dracula and Solarized color themes.
 
 **Files**:
-- `crates/fae-core/src/css/themes/dracula.rs`
-- `crates/fae-core/src/css/themes/solarized.rs`
+- `crates/saorsa-core/src/css/themes/dracula.rs`
+- `crates/saorsa-core/src/css/themes/solarized.rs`
 
 **Acceptance Criteria**:
 - Dracula: dark theme with official palette colors
@@ -64,13 +64,13 @@
 **Description**: Implement Nord theme and bundle all themes with convenience registration.
 
 **Files**:
-- `crates/fae-core/src/css/themes/nord.rs`
-- `crates/fae-core/src/css/themes/mod.rs` (add register_all_themes)
+- `crates/saorsa-core/src/css/themes/nord.rs`
+- `crates/saorsa-core/src/css/themes/mod.rs` (add register_all_themes)
 
 **Acceptance Criteria**:
 - Nord: dark theme with official Nord palette
 - `register_all_themes(registry)` convenience function
-- Default theme included (fae-dark, fae-light)
+- Default theme included (saorsa-dark, saorsa-light)
 - `ThemeRegistry::with_defaults()` constructor that pre-registers all themes
 - Unit tests for Nord theme
 - Integration test: register all themes, verify count and names
@@ -80,10 +80,10 @@
 
 ## Task 5: API Documentation Audit
 
-**Description**: Ensure all public items in fae-core have doc comments with examples.
+**Description**: Ensure all public items in saorsa-core have doc comments with examples.
 
 **Files**:
-- Multiple source files in `crates/fae-core/src/`
+- Multiple source files in `crates/saorsa-core/src/`
 
 **Acceptance Criteria**:
 - `cargo doc --workspace --no-deps` produces zero warnings
@@ -95,16 +95,16 @@
 
 ---
 
-## Task 6: fae-ai & fae-agent Documentation
+## Task 6: saorsa-ai & saorsa-agent Documentation
 
 **Description**: Complete API documentation for the AI and agent crates.
 
 **Files**:
-- Multiple source files in `crates/fae-ai/src/` and `crates/fae-agent/src/`
+- Multiple source files in `crates/saorsa-ai/src/` and `crates/saorsa-agent/src/`
 
 **Acceptance Criteria**:
-- All public items in fae-ai have doc comments
-- All public items in fae-agent have doc comments
+- All public items in saorsa-ai have doc comments
+- All public items in saorsa-agent have doc comments
 - Module-level documentation for provider, types, streaming modules
 - Module-level documentation for tools, sessions, context modules
 - `cargo doc --workspace --no-deps` produces zero warnings
@@ -117,14 +117,14 @@
 **Description**: Create architecture overview documentation as module-level docs.
 
 **Files**:
-- `crates/fae-core/src/lib.rs` (enhance crate-level docs)
-- `crates/fae-ai/src/lib.rs` (enhance crate-level docs)
-- `crates/fae-agent/src/lib.rs` (enhance crate-level docs)
+- `crates/saorsa-core/src/lib.rs` (enhance crate-level docs)
+- `crates/saorsa-ai/src/lib.rs` (enhance crate-level docs)
+- `crates/saorsa-agent/src/lib.rs` (enhance crate-level docs)
 
 **Acceptance Criteria**:
-- fae-core lib.rs: Overview of TUI framework architecture (rendering pipeline, widget system, CSS styling, layout, compositor)
-- fae-ai lib.rs: Overview of multi-provider LLM API (provider abstraction, streaming, tool use)
-- fae-agent lib.rs: Overview of agent runtime (tool execution, sessions, context engineering)
+- saorsa-core lib.rs: Overview of TUI framework architecture (rendering pipeline, widget system, CSS styling, layout, compositor)
+- saorsa-ai lib.rs: Overview of multi-provider LLM API (provider abstraction, streaming, tool use)
+- saorsa-agent lib.rs: Overview of agent runtime (tool execution, sessions, context engineering)
 - Architecture diagrams in ASCII art where helpful
 - `cargo doc --workspace --no-deps` produces zero warnings
 - All tests pass with zero warnings
@@ -136,7 +136,7 @@
 **Description**: Integration tests for theme system with CSS variables and styling.
 
 **Files**:
-- `crates/fae-core/tests/theme_integration.rs`
+- `crates/saorsa-core/tests/theme_integration.rs`
 
 **Acceptance Criteria**:
 - Test: Register and retrieve all built-in themes

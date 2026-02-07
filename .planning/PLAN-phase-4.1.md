@@ -18,9 +18,9 @@ Instead, Phase 4.1 provides a pluggable `Highlighter` trait so tree-sitter can b
 ## Task 1: Text Buffer with Rope Storage
 
 **Files:**
-- CREATE: `crates/fae-core/src/text_buffer.rs`
-- MODIFY: `crates/fae-core/src/lib.rs` (add module + exports)
-- MODIFY: `crates/fae-core/Cargo.toml` (add ropey dep)
+- CREATE: `crates/saorsa-core/src/text_buffer.rs`
+- MODIFY: `crates/saorsa-core/src/lib.rs` (add module + exports)
+- MODIFY: `crates/saorsa-core/Cargo.toml` (add ropey dep)
 - MODIFY: `Cargo.toml` (add ropey to workspace deps)
 
 **Description:**
@@ -51,8 +51,8 @@ Public API:
 ## Task 2: Cursor & Selection Model
 
 **Files:**
-- CREATE: `crates/fae-core/src/cursor.rs`
-- MODIFY: `crates/fae-core/src/lib.rs` (add module + exports)
+- CREATE: `crates/saorsa-core/src/cursor.rs`
+- MODIFY: `crates/saorsa-core/src/lib.rs` (add module + exports)
 
 **Description:**
 Create cursor position and selection types for text editing.
@@ -87,8 +87,8 @@ Methods on `CursorState`:
 ## Task 3: Undo/Redo System
 
 **Files:**
-- CREATE: `crates/fae-core/src/undo.rs`
-- MODIFY: `crates/fae-core/src/lib.rs` (add module + exports)
+- CREATE: `crates/saorsa-core/src/undo.rs`
+- MODIFY: `crates/saorsa-core/src/lib.rs` (add module + exports)
 
 **Description:**
 Create an undo/redo stack for text editing operations.
@@ -119,8 +119,8 @@ The `EditOperation` must be invertible — `inverse()` returns the reverse opera
 ## Task 4: Soft Wrap & Line Number Calculation
 
 **Files:**
-- CREATE: `crates/fae-core/src/wrap.rs`
-- MODIFY: `crates/fae-core/src/lib.rs` (add module + exports)
+- CREATE: `crates/saorsa-core/src/wrap.rs`
+- MODIFY: `crates/saorsa-core/src/lib.rs` (add module + exports)
 
 **Description:**
 Create soft-wrap logic that splits logical lines into visual lines based on available width, accounting for display width (CJK, emoji).
@@ -153,8 +153,8 @@ The wrap function must handle:
 ## Task 5: Highlighter Trait & Default Highlighter
 
 **Files:**
-- CREATE: `crates/fae-core/src/highlight.rs`
-- MODIFY: `crates/fae-core/src/lib.rs` (add module + exports)
+- CREATE: `crates/saorsa-core/src/highlight.rs`
+- MODIFY: `crates/saorsa-core/src/lib.rs` (add module + exports)
 
 **Description:**
 Create a pluggable highlighting trait and a default "no-op" highlighter. This allows tree-sitter to be added later.
@@ -187,9 +187,9 @@ Also provide a `SimpleKeywordHighlighter` for testing:
 ## Task 6: TextArea Widget — Core Rendering
 
 **Files:**
-- CREATE: `crates/fae-core/src/widget/text_area.rs`
-- MODIFY: `crates/fae-core/src/widget/mod.rs` (add module + re-export)
-- MODIFY: `crates/fae-core/src/lib.rs` (add TextArea to exports)
+- CREATE: `crates/saorsa-core/src/widget/text_area.rs`
+- MODIFY: `crates/saorsa-core/src/widget/mod.rs` (add module + re-export)
+- MODIFY: `crates/saorsa-core/src/lib.rs` (add TextArea to exports)
 
 **Description:**
 Create the TextArea widget that renders text with line numbers, soft wrap, cursor, selection highlighting, and syntax highlighting. Implements the `Widget` trait.
@@ -232,7 +232,7 @@ Rendering:
 ## Task 7: TextArea Widget — Editing & Input Handling
 
 **Files:**
-- MODIFY: `crates/fae-core/src/widget/text_area.rs`
+- MODIFY: `crates/saorsa-core/src/widget/text_area.rs`
 
 **Description:**
 Add editing operations and input handling to TextArea. Implement `InteractiveWidget`.
@@ -275,10 +275,10 @@ Scroll adjustment:
 ## Task 8: Streaming Markdown Renderer
 
 **Files:**
-- CREATE: `crates/fae-core/src/widget/markdown.rs`
-- MODIFY: `crates/fae-core/src/widget/mod.rs` (add module + re-export)
-- MODIFY: `crates/fae-core/src/lib.rs` (add exports)
-- MODIFY: `crates/fae-core/Cargo.toml` (add pulldown-cmark dep)
+- CREATE: `crates/saorsa-core/src/widget/markdown.rs`
+- MODIFY: `crates/saorsa-core/src/widget/mod.rs` (add module + re-export)
+- MODIFY: `crates/saorsa-core/src/lib.rs` (add exports)
+- MODIFY: `crates/saorsa-core/Cargo.toml` (add pulldown-cmark dep)
 - MODIFY: `Cargo.toml` (add pulldown-cmark to workspace deps)
 
 **Description:**

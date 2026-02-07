@@ -31,8 +31,8 @@ layout computation, and produces integer-cell rects for terminal rendering.
 
 **Files to modify:**
 - `Cargo.toml` (workspace) — add `taffy = "0.7"`
-- `crates/fae-core/Cargo.toml` — add `taffy = { workspace = true }`
-- `crates/fae-core/src/tcss/value.rs` — add `List(Vec<CssValue>)` variant
+- `crates/saorsa-core/Cargo.toml` — add `taffy = { workspace = true }`
+- `crates/saorsa-core/src/tcss/value.rs` — add `List(Vec<CssValue>)` variant
 
 **New types:**
 - `CssValue::List(Vec<CssValue>)` — ordered list of values for grid templates
@@ -52,7 +52,7 @@ layout computation, and produces integer-cell rects for terminal rendering.
 ## Task 2: Grid Template and Fr Parsing
 
 **Files to modify:**
-- `crates/fae-core/src/tcss/parser.rs` — add grid template + fr parsing
+- `crates/saorsa-core/src/tcss/parser.rs` — add grid template + fr parsing
 
 **New functions:**
 - `parse_grid_template()` — parse track list like `1fr 2fr 100` → `CssValue::List`
@@ -77,7 +77,7 @@ layout computation, and produces integer-cell rects for terminal rendering.
 
 ## Task 3: Style Converter — ComputedStyle to Taffy Style
 
-**New file:** `crates/fae-core/src/layout/style_converter.rs`
+**New file:** `crates/saorsa-core/src/layout/style_converter.rs`
 
 **New functions:**
 - `computed_to_taffy(computed: &ComputedStyle) -> taffy::Style`
@@ -133,7 +133,7 @@ layout computation, and produces integer-cell rects for terminal rendering.
 
 ## Task 4: Layout Engine Core
 
-**New file:** `crates/fae-core/src/layout/engine.rs`
+**New file:** `crates/saorsa-core/src/layout/engine.rs`
 
 **New types:**
 - `LayoutRect { x: u16, y: u16, width: u16, height: u16 }`
@@ -170,7 +170,7 @@ layout computation, and produces integer-cell rects for terminal rendering.
 
 ## Task 5: Flexbox Layout Integration
 
-**Files to modify:** `crates/fae-core/src/layout/engine.rs` (extend)
+**Files to modify:** `crates/saorsa-core/src/layout/engine.rs` (extend)
 
 **New method:**
 - `build_from_tree(widget_tree, styles) -> Result<(), LayoutError>`
@@ -193,7 +193,7 @@ layout computation, and produces integer-cell rects for terminal rendering.
 
 ## Task 6: Grid Layout and Box Model
 
-**Files to modify:** `crates/fae-core/src/layout/engine.rs` (extend)
+**Files to modify:** `crates/saorsa-core/src/layout/engine.rs` (extend)
 
 **Tests (12+):**
 Grid:
@@ -217,8 +217,8 @@ Box model:
 ## Task 7: Dock Layout and Scroll Regions
 
 **New files:**
-- `crates/fae-core/src/layout/dock.rs`
-- `crates/fae-core/src/layout/scroll.rs`
+- `crates/saorsa-core/src/layout/dock.rs`
+- `crates/saorsa-core/src/layout/scroll.rs`
 
 **dock.rs types:**
 - `DockPosition { Top, Bottom, Left, Right }`
@@ -247,9 +247,9 @@ Scroll: state, register, scroll_by clamp, scroll_to, can_scroll, visible_rect, e
 ## Task 8: Module Structure, Re-exports, and Integration Tests
 
 **Files to modify/create:**
-- `crates/fae-core/src/layout.rs` → refactor into `crates/fae-core/src/layout/mod.rs`
-- `crates/fae-core/src/layout/mod.rs` — re-exports + existing code
-- `crates/fae-core/src/lib.rs` — update re-exports
+- `crates/saorsa-core/src/layout.rs` → refactor into `crates/saorsa-core/src/layout/mod.rs`
+- `crates/saorsa-core/src/layout/mod.rs` — re-exports + existing code
+- `crates/saorsa-core/src/lib.rs` — update re-exports
 
 **Module structure:**
 ```

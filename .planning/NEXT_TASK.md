@@ -11,9 +11,9 @@
 **Objective**: Implement a generic OpenAI-compatible provider that works with Azure OpenAI, Groq, Cerebras, xAI, OpenRouter, Mistral, and other OpenAI-compatible APIs.
 
 ### Files to Create/Modify
-- **CREATE**: `crates/fae-ai/src/openai_compat.rs`
-- **MODIFY**: `crates/fae-ai/src/openai.rs` (make helpers `pub(crate)`)
-- **MODIFY**: `crates/fae-ai/src/lib.rs` (export new module)
+- **CREATE**: `crates/saorsa-ai/src/openai_compat.rs`
+- **MODIFY**: `crates/saorsa-ai/src/openai.rs` (make helpers `pub(crate)`)
+- **MODIFY**: `crates/saorsa-ai/src/lib.rs` (export new module)
 
 ### Implementation Requirements
 

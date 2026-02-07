@@ -40,7 +40,7 @@ RenderContext.end_frame() → diff → Renderer → ANSI
 
 ### Task 1: Layer and CompositorRegion Types
 
-**Files**: `crates/fae-core/src/compositor/mod.rs` (new), `crates/fae-core/src/compositor/layer.rs` (new)
+**Files**: `crates/saorsa-core/src/compositor/mod.rs` (new), `crates/saorsa-core/src/compositor/layer.rs` (new)
 
 **Description**: Define the core data structures for the compositor.
 
@@ -70,7 +70,7 @@ Tests:
 
 ### Task 2: Compositor Struct and Layer Collection
 
-**Files**: `crates/fae-core/src/compositor/mod.rs`
+**Files**: `crates/saorsa-core/src/compositor/mod.rs`
 
 **Description**: Implement the `Compositor` struct that collects layers and manages the rendering pipeline.
 
@@ -100,7 +100,7 @@ Tests:
 
 ### Task 3: Cut-Finding Algorithm
 
-**Files**: `crates/fae-core/src/compositor/cuts.rs` (new)
+**Files**: `crates/saorsa-core/src/compositor/cuts.rs` (new)
 
 **Description**: For a given row, find all x-offsets where widget edges create boundaries. These "cuts" define the columns where we need to check which widget is on top.
 
@@ -126,7 +126,7 @@ Tests:
 
 ### Task 4: Z-Order Selection
 
-**Files**: `crates/fae-core/src/compositor/zorder.rs` (new)
+**Files**: `crates/saorsa-core/src/compositor/zorder.rs` (new)
 
 **Description**: For a given cut interval on a given row, determine which layer is the topmost visible one.
 
@@ -157,7 +157,7 @@ Tests:
 
 ### Task 5: Segment Chopping
 
-**Files**: `crates/fae-core/src/compositor/chop.rs` (new)
+**Files**: `crates/saorsa-core/src/compositor/chop.rs` (new)
 
 **Description**: Extract a sub-range of segments from a layer's line, corresponding to a cut interval. This uses `Segment::split_at` to handle cases where a cut falls in the middle of a segment.
 
@@ -192,7 +192,7 @@ Tests:
 
 ### Task 6: Line Composition
 
-**Files**: `crates/fae-core/src/compositor/compose.rs` (new)
+**Files**: `crates/saorsa-core/src/compositor/compose.rs` (new)
 
 **Description**: Compose a single row by combining cut-finding, z-order selection, and segment chopping into a final list of segments for that row.
 
@@ -228,7 +228,7 @@ Tests:
 
 ### Task 7: Full-Frame Composition and Buffer Write
 
-**Files**: `crates/fae-core/src/compositor/mod.rs`
+**Files**: `crates/saorsa-core/src/compositor/mod.rs`
 
 **Description**: Implement the full `compose` method that processes all rows and writes the result to a `ScreenBuffer`.
 
@@ -266,7 +266,7 @@ Tests:
 
 ### Task 8: Module Integration and lib.rs Exports
 
-**Files**: `crates/fae-core/src/compositor/mod.rs`, `crates/fae-core/src/lib.rs`
+**Files**: `crates/saorsa-core/src/compositor/mod.rs`, `crates/saorsa-core/src/lib.rs`
 
 **Description**: Wire up the compositor module, add public exports, and write integration tests that exercise the full pipeline: create layers → compose → verify buffer content.
 

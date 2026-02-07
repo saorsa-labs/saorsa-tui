@@ -9,7 +9,7 @@
 
 ## Implementation Summary
 
-Implemented `OllamaProvider` in `crates/fae-ai/src/ollama.rs` (886 lines):
+Implemented `OllamaProvider` in `crates/saorsa-ai/src/ollama.rs` (886 lines):
 
 ### Features Delivered
 
@@ -56,9 +56,9 @@ Implemented `OllamaProvider` in `crates/fae-ai/src/ollama.rs` (886 lines):
 
 ## Files Modified
 
-- `crates/fae-ai/src/ollama.rs` — NEW (886 lines)
-- `crates/fae-ai/src/lib.rs` — Export OllamaProvider
-- `crates/fae-ai/src/provider.rs` — Registry integration
+- `crates/saorsa-ai/src/ollama.rs` — NEW (886 lines)
+- `crates/saorsa-ai/src/lib.rs` — Export OllamaProvider
+- `crates/saorsa-ai/src/provider.rs` — Registry integration
 
 ---
 

@@ -10,10 +10,10 @@
 **Description**: Add the `insta` crate for snapshot testing. Create test helpers for rendering widgets to text snapshots. Set up snapshot directory structure.
 
 **Files**:
-- `crates/fae-core/Cargo.toml` (add insta dev-dependency)
-- `crates/fae-core/tests/snapshots/` (directory for snapshot files)
-- `crates/fae-core/tests/snapshot_helpers.rs` (shared test utilities)
-- `crates/fae-core/tests/snapshot_basic.rs` (Label, StaticWidget, Container snapshots)
+- `crates/saorsa-core/Cargo.toml` (add insta dev-dependency)
+- `crates/saorsa-core/tests/snapshots/` (directory for snapshot files)
+- `crates/saorsa-core/tests/snapshot_helpers.rs` (shared test utilities)
+- `crates/saorsa-core/tests/snapshot_basic.rs` (Label, StaticWidget, Container snapshots)
 
 **Acceptance Criteria**:
 - `insta` crate added as dev-dependency with `glob` feature
@@ -29,7 +29,7 @@
 **Description**: Snapshot tests for TextArea and MarkdownRenderer widgets.
 
 **Files**:
-- `crates/fae-core/tests/snapshot_text_widgets.rs`
+- `crates/saorsa-core/tests/snapshot_text_widgets.rs`
 
 **Acceptance Criteria**:
 - TextArea snapshots: empty, single line, multi-line, with cursor position, with selection, word wrap, line numbers
@@ -44,7 +44,7 @@
 **Description**: Snapshot tests for data display widgets.
 
 **Files**:
-- `crates/fae-core/tests/snapshot_data_widgets.rs`
+- `crates/saorsa-core/tests/snapshot_data_widgets.rs`
 
 **Acceptance Criteria**:
 - RichLog snapshots: empty, with entries, scrolled
@@ -61,7 +61,7 @@
 **Description**: Snapshot tests for UI control widgets.
 
 **Files**:
-- `crates/fae-core/tests/snapshot_ui_widgets.rs`
+- `crates/saorsa-core/tests/snapshot_ui_widgets.rs`
 
 **Acceptance Criteria**:
 - Tabs snapshots: multiple tabs, selected tab, tab positions
@@ -81,8 +81,8 @@
 
 **Files**:
 - `Cargo.toml` (add proptest to workspace deps)
-- `crates/fae-core/Cargo.toml` (add proptest dev-dependency)
-- `crates/fae-core/tests/proptest_css.rs`
+- `crates/saorsa-core/Cargo.toml` (add proptest dev-dependency)
+- `crates/saorsa-core/tests/proptest_css.rs`
 
 **Acceptance Criteria**:
 - proptest crate added as dev-dependency
@@ -100,7 +100,7 @@
 **Description**: Use proptest to verify layout engine invariants with random widget trees and constraints.
 
 **Files**:
-- `crates/fae-core/tests/proptest_layout.rs`
+- `crates/saorsa-core/tests/proptest_layout.rs`
 
 **Acceptance Criteria**:
 - Property tests for flexbox: random children with random flex factors produce valid non-overlapping rects
@@ -115,12 +115,12 @@
 
 ## Task 7: Integration Tests with Mock LLM
 
-**Description**: Test the fae-ai provider layer and fae-agent tool execution with mock HTTP responses.
+**Description**: Test the saorsa-ai provider layer and saorsa-agent tool execution with mock HTTP responses.
 
 **Files**:
-- `crates/fae-ai/Cargo.toml` (add wiremock or mockito dev-dep if needed)
-- `crates/fae-ai/tests/integration_provider.rs`
-- `crates/fae-agent/tests/integration_tools.rs`
+- `crates/saorsa-ai/Cargo.toml` (add wiremock or mockito dev-dep if needed)
+- `crates/saorsa-ai/tests/integration_provider.rs`
+- `crates/saorsa-agent/tests/integration_tools.rs`
 
 **Acceptance Criteria**:
 - Mock LLM server test: send completion request, verify response parsing
@@ -139,10 +139,10 @@
 
 **Files**:
 - `Cargo.toml` (add criterion to workspace deps)
-- `crates/fae-core/Cargo.toml` (add criterion dev-dep + [[bench]] entries)
-- `crates/fae-core/benches/rendering.rs`
-- `crates/fae-core/benches/layout.rs`
-- `crates/fae-core/benches/css_parsing.rs`
+- `crates/saorsa-core/Cargo.toml` (add criterion dev-dep + [[bench]] entries)
+- `crates/saorsa-core/benches/rendering.rs`
+- `crates/saorsa-core/benches/layout.rs`
+- `crates/saorsa-core/benches/css_parsing.rs`
 
 **Acceptance Criteria**:
 - Rendering benchmark: ScreenBuffer diff for 80x24, 120x40, 200x60 grids

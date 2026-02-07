@@ -8,7 +8,7 @@ frame and emits minimal ANSI escape sequences to update the terminal.
 ## Tasks
 
 ### Task 1: ScreenBuffer — Cell Grid
-- `crates/fae-core/src/buffer.rs`
+- `crates/saorsa-core/src/buffer.rs`
 - `ScreenBuffer` struct holding a `Vec<Cell>` with width/height
 - `new(size)`, `resize(size)`, `clear()`, `get(x, y)`, `set(x, y, cell)`
 - `get_row(y)` returning `&[Cell]`
@@ -25,7 +25,7 @@ frame and emits minimal ANSI escape sequences to update the terminal.
 - Tests: no changes returns empty, single cell change, full redraw on resize
 
 ### Task 3: ANSI Renderer — Escape Sequence Emission
-- `crates/fae-core/src/renderer.rs`
+- `crates/saorsa-core/src/renderer.rs`
 - `Renderer` struct that takes a list of CellChanges and produces terminal output
 - Cursor positioning: `\x1b[{row};{col}H`
 - Style application: SGR sequences for fg, bg, bold, italic, etc.
@@ -49,7 +49,7 @@ frame and emits minimal ANSI escape sequences to update the terminal.
 - Tests: sync markers present/absent based on capabilities
 
 ### Task 6: RenderContext — Full Pipeline
-- `crates/fae-core/src/render_context.rs`
+- `crates/saorsa-core/src/render_context.rs`
 - `RenderContext` holds current buffer, previous buffer, and renderer
 - `begin_frame()`: swap current → previous, clear current
 - `end_frame()`: diff, render, write to terminal
@@ -58,7 +58,7 @@ frame and emits minimal ANSI escape sequences to update the terminal.
 - Tests: frame lifecycle, resize handling
 
 ### Task 7: Integration & Wire Up
-- Add `buffer`, `renderer`, `render_context` modules to fae-core lib.rs
+- Add `buffer`, `renderer`, `render_context` modules to saorsa-core lib.rs
 - Re-export key types: `ScreenBuffer`, `Renderer`, `RenderContext`
 - Integration test: create buffer, write cells, diff, render to TestBackend
 - Ensure all 48 existing tests still pass

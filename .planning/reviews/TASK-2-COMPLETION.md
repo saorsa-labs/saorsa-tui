@@ -10,15 +10,15 @@
 ## Deliverables
 
 ### Files Created
-- `crates/fae-ai/src/openai.rs` (917 lines)
+- `crates/saorsa-ai/src/openai.rs` (917 lines)
   - OpenAiProvider struct with Provider + StreamingProvider traits
   - Message format conversion (internal ↔ OpenAI)
   - SSE streaming implementation
   - 16 comprehensive unit tests
 
 ### Files Modified
-- `crates/fae-ai/src/lib.rs` (added openai module and exports)
-- `crates/fae-ai/src/provider.rs` (registered OpenAi in ProviderRegistry::default())
+- `crates/saorsa-ai/src/lib.rs` (added openai module and exports)
+- `crates/saorsa-ai/src/provider.rs` (registered OpenAi in ProviderRegistry::default())
 
 ---
 

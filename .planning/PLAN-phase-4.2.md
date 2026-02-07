@@ -22,9 +22,9 @@ These widgets build on the Phase 4.1 text infrastructure (TextBuffer, cursor, wr
 ## Task 1: RichLog Widget
 
 **Files:**
-- CREATE: `crates/fae-core/src/widget/rich_log.rs`
-- MODIFY: `crates/fae-core/src/widget/mod.rs` (add module + export)
-- MODIFY: `crates/fae-core/src/lib.rs` (add RichLog to exports)
+- CREATE: `crates/saorsa-core/src/widget/rich_log.rs`
+- MODIFY: `crates/saorsa-core/src/widget/mod.rs` (add module + export)
+- MODIFY: `crates/saorsa-core/src/lib.rs` (add RichLog to exports)
 
 **Description:**
 Create a scrollable log widget that displays structured log entries, each as a vector of styled Segments. Supports vertical scrolling via keyboard (Up/Down/PageUp/PageDown/Home/End) and auto-scrolling to bottom on new entries.
@@ -99,9 +99,9 @@ InteractiveWidget event handling:
 ## Task 2: SelectList Core Widget
 
 **Files:**
-- CREATE: `crates/fae-core/src/widget/select_list.rs`
-- MODIFY: `crates/fae-core/src/widget/mod.rs` (add module + export)
-- MODIFY: `crates/fae-core/src/lib.rs` (add SelectList to exports)
+- CREATE: `crates/saorsa-core/src/widget/select_list.rs`
+- MODIFY: `crates/saorsa-core/src/widget/mod.rs` (add module + export)
+- MODIFY: `crates/saorsa-core/src/lib.rs` (add SelectList to exports)
 
 **Description:**
 Create a keyboard-navigable list widget that displays items and highlights the selected one. Supports vertical scrolling, keyboard navigation (Up/Down/Home/End/PageUp/PageDown), and selection confirmation (Enter).
@@ -186,8 +186,8 @@ InteractiveWidget event handling:
 ## Task 3: SelectList Fuzzy Filtering
 
 **Files:**
-- MODIFY: `crates/fae-core/src/widget/select_list.rs`
-- MODIFY: `crates/fae-core/Cargo.toml` (add fuzzy-matcher)
+- MODIFY: `crates/saorsa-core/src/widget/select_list.rs`
+- MODIFY: `crates/saorsa-core/Cargo.toml` (add fuzzy-matcher)
 - MODIFY: `Cargo.toml` (add fuzzy-matcher to workspace)
 
 **Description:**
@@ -258,9 +258,9 @@ InteractiveWidget event changes:
 ## Task 4: DataTable Core Widget
 
 **Files:**
-- CREATE: `crates/fae-core/src/widget/data_table.rs`
-- MODIFY: `crates/fae-core/src/widget/mod.rs` (add module + export)
-- MODIFY: `crates/fae-core/src/lib.rs` (add DataTable to exports)
+- CREATE: `crates/saorsa-core/src/widget/data_table.rs`
+- MODIFY: `crates/saorsa-core/src/widget/mod.rs` (add module + export)
+- MODIFY: `crates/saorsa-core/src/lib.rs` (add DataTable to exports)
 
 **Description:**
 Create a scrollable data table widget with columns and rows. Supports keyboard navigation (arrows/page/home/end) and vertical/horizontal scrolling.
@@ -355,7 +355,7 @@ InteractiveWidget event handling:
 ## Task 5: DataTable Sorting & Column Resize
 
 **Files:**
-- MODIFY: `crates/fae-core/src/widget/data_table.rs`
+- MODIFY: `crates/saorsa-core/src/widget/data_table.rs`
 
 **Description:**
 Add sorting and interactive column width adjustment to DataTable.
@@ -425,9 +425,9 @@ InteractiveWidget event additions:
 ## Task 6: Tree Widget Core
 
 **Files:**
-- CREATE: `crates/fae-core/src/widget/tree.rs`
-- MODIFY: `crates/fae-core/src/widget/mod.rs` (add module + export)
-- MODIFY: `crates/fae-core/src/lib.rs` (add Tree to exports)
+- CREATE: `crates/saorsa-core/src/widget/tree.rs`
+- MODIFY: `crates/saorsa-core/src/widget/mod.rs` (add module + export)
+- MODIFY: `crates/saorsa-core/src/lib.rs` (add Tree to exports)
 
 **Description:**
 Create a hierarchical tree widget with expandable/collapsible nodes. Supports keyboard navigation and lazy loading.
@@ -518,9 +518,9 @@ InteractiveWidget event handling:
 ## Task 7: DirectoryTree Widget
 
 **Files:**
-- CREATE: `crates/fae-core/src/widget/directory_tree.rs`
-- MODIFY: `crates/fae-core/src/widget/mod.rs` (add module + export)
-- MODIFY: `crates/fae-core/src/lib.rs` (add DirectoryTree to exports)
+- CREATE: `crates/saorsa-core/src/widget/directory_tree.rs`
+- MODIFY: `crates/saorsa-core/src/widget/mod.rs` (add module + export)
+- MODIFY: `crates/saorsa-core/src/lib.rs` (add DirectoryTree to exports)
 
 **Description:**
 Create a filesystem directory tree widget, a concrete implementation of Tree<PathBuf> with lazy loading.
@@ -536,7 +536,7 @@ pub struct DirectoryTree {
 
 impl DirectoryTree {
     /// Create from a root path
-    pub fn new(root: PathBuf) -> Result<Self, FaeCoreError>;
+    pub fn new(root: PathBuf) -> Result<Self, SaorsaCoreError>;
     pub fn with_show_hidden(self, enabled: bool) -> Self;
     pub fn with_node_style(self, style: Style) -> Self;
     pub fn with_selected_style(self, style: Style) -> Self;
@@ -575,10 +575,10 @@ Delegates rendering and event handling to underlying Tree<PathBuf>.
 ## Task 8: DiffView Widget
 
 **Files:**
-- CREATE: `crates/fae-core/src/widget/diff_view.rs`
-- MODIFY: `crates/fae-core/src/widget/mod.rs` (add module + export)
-- MODIFY: `crates/fae-core/src/lib.rs` (add DiffView to exports)
-- MODIFY: `crates/fae-core/Cargo.toml` (add similar)
+- CREATE: `crates/saorsa-core/src/widget/diff_view.rs`
+- MODIFY: `crates/saorsa-core/src/widget/mod.rs` (add module + export)
+- MODIFY: `crates/saorsa-core/src/lib.rs` (add DiffView to exports)
+- MODIFY: `crates/saorsa-core/Cargo.toml` (add similar)
 - MODIFY: `Cargo.toml` (add similar to workspace)
 
 **Description:**
@@ -662,8 +662,8 @@ InteractiveWidget event handling:
 
 ## Critical Files for Implementation
 
-- `/Users/davidirvine/Desktop/Devel/projects/fae/crates/fae-core/src/widget/rich_log.rs` — Scrollable log with styled entries
-- `/Users/davidirvine/Desktop/Devel/projects/fae/crates/fae-core/src/widget/select_list.rs` — Keyboard-navigable list with fuzzy filtering
-- `/Users/davidirvine/Desktop/Devel/projects/fae/crates/fae-core/src/widget/data_table.rs` — Sortable table with column resizing
-- `/Users/davidirvine/Desktop/Devel/projects/fae/crates/fae-core/src/widget/tree.rs` — Core tree widget with lazy loading
-- `/Users/davidirvine/Desktop/Devel/projects/fae/crates/fae-core/src/widget/diff_view.rs` — Unified and side-by-side diff rendering
+- `/Users/davidirvine/Desktop/Devel/projects/fae/crates/saorsa-core/src/widget/rich_log.rs` — Scrollable log with styled entries
+- `/Users/davidirvine/Desktop/Devel/projects/fae/crates/saorsa-core/src/widget/select_list.rs` — Keyboard-navigable list with fuzzy filtering
+- `/Users/davidirvine/Desktop/Devel/projects/fae/crates/saorsa-core/src/widget/data_table.rs` — Sortable table with column resizing
+- `/Users/davidirvine/Desktop/Devel/projects/fae/crates/saorsa-core/src/widget/tree.rs` — Core tree widget with lazy loading
+- `/Users/davidirvine/Desktop/Devel/projects/fae/crates/saorsa-core/src/widget/diff_view.rs` — Unified and side-by-side diff rendering

@@ -36,7 +36,7 @@ a comprehensive Unicode test suite for long-term regression prevention.
 ## Task 1: Buffer-Level Wide Character Protection
 
 **Files to modify:**
-- `crates/fae-core/src/buffer.rs`
+- `crates/saorsa-core/src/buffer.rs`
 
 **Description**: Harden `ScreenBuffer::set()` for edge cases when overwriting cells
 that are part of a wide character.
@@ -67,8 +67,8 @@ that are part of a wide character.
 ## Task 2: Multi-Codepoint Emoji Handling
 
 **Files to modify:**
-- `crates/fae-core/src/segment.rs` — test coverage
-- `crates/fae-core/src/cell.rs` — test coverage
+- `crates/saorsa-core/src/segment.rs` — test coverage
+- `crates/saorsa-core/src/cell.rs` — test coverage
 
 **Description**: Verify and test handling of complex emoji sequences:
 - ZWJ (Zero Width Joiner) families: 👨‍👩‍👧 (3+ codepoints)
@@ -96,7 +96,7 @@ using grapheme cluster iteration, but we need tests proving our code doesn't bre
 ## Task 3: Tab Expansion and Control Character Handling
 
 **Files to create:**
-- `crates/fae-core/src/text.rs` (new module)
+- `crates/saorsa-core/src/text.rs` (new module)
 
 **Description**: Create a text preprocessing module that handles tab expansion
 and control character filtering before text enters the rendering pipeline.
@@ -139,8 +139,8 @@ pub fn preprocess(text: &str, config: &TextConfig) -> String
 ## Task 4: Compositor Unicode Edge Cases
 
 **Files to modify:**
-- `crates/fae-core/src/compositor/chop.rs` — edge case tests
-- `crates/fae-core/src/compositor/compose.rs` — edge case tests
+- `crates/saorsa-core/src/compositor/chop.rs` — edge case tests
+- `crates/saorsa-core/src/compositor/compose.rs` — edge case tests
 
 **Description**: Add tests for Unicode edge cases specific to the compositor's
 cut/chop/compose pipeline.
@@ -160,7 +160,7 @@ cut/chop/compose pipeline.
 ## Task 5: Segment Unicode Robustness
 
 **Files to modify:**
-- `crates/fae-core/src/segment.rs` — additional methods and tests
+- `crates/saorsa-core/src/segment.rs` — additional methods and tests
 
 **Description**: Add methods for common Unicode text operations on segments.
 
@@ -185,8 +185,8 @@ cut/chop/compose pipeline.
 ## Task 6: Cell and Buffer Unicode Tests
 
 **Files to modify:**
-- `crates/fae-core/src/cell.rs` — additional tests
-- `crates/fae-core/src/buffer.rs` — additional tests
+- `crates/saorsa-core/src/cell.rs` — additional tests
+- `crates/saorsa-core/src/buffer.rs` — additional tests
 
 **Description**: Comprehensive test coverage for Cell and ScreenBuffer Unicode handling.
 
@@ -205,7 +205,7 @@ cut/chop/compose pipeline.
 ## Task 7: Integration Tests — Full Unicode Pipeline
 
 **Files to modify:**
-- `crates/fae-core/src/compositor/mod.rs` — new test module
+- `crates/saorsa-core/src/compositor/mod.rs` — new test module
 
 **Description**: End-to-end tests verifying Unicode text flows correctly through
 the entire pipeline: Segment → Compositor → ScreenBuffer → diff → Renderer.
@@ -225,7 +225,7 @@ the entire pipeline: Segment → Compositor → ScreenBuffer → diff → Render
 ## Task 8: Documentation and Module Cleanup
 
 **Files to modify:**
-- `crates/fae-core/src/lib.rs` — exports
+- `crates/saorsa-core/src/lib.rs` — exports
 - Add doc comments to any undocumented public items
 
 **Description**: Ensure all Unicode-related public APIs are documented and exported.

@@ -1,0 +1,5 @@
+---
+source: crates/saorsa-core/tests/snapshot_basic.rs
+expression: rendered
+---
+This is a very…

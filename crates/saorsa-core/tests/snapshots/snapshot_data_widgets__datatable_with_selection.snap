@@ -1,0 +1,8 @@
+---
+source: crates/saorsa-core/tests/snapshot_data_widgets.rs
+expression: rendered
+---
+Item                │Count         
+Widget A            │42            
+Widget B            │17            
+Widget C            │93

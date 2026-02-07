@@ -1,9 +1,0 @@
----
-source: crates/fae-core/tests/snapshot_text_widgets.rs
-expression: rendered
----
-This is a very long 
-line of text that   
-should wrap around  
-when rendered in a  
-narrow width area

@@ -515,90 +515,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fae-agent"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "chrono",
- "dirs",
- "fae-ai",
- "globset",
- "regex",
- "serde",
- "serde_json",
- "similar",
- "tempfile",
- "thiserror 2.0.18",
- "tokio",
- "tracing",
- "uuid",
- "walkdir",
-]
-
-[[package]]
-name = "fae-ai"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "futures",
- "reqwest",
- "reqwest-eventsource",
- "serde",
- "serde_json",
- "thiserror 2.0.18",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "fae-app"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "crossterm",
- "fae-agent",
- "fae-ai",
- "fae-core",
- "futures",
- "fuzzy-matcher",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "fae-cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "fae-app",
- "tokio",
-]
-
-[[package]]
-name = "fae-core"
-version = "0.1.0"
-dependencies = [
- "criterion",
- "crossterm",
- "cssparser",
- "fuzzy-matcher",
- "insta",
- "notify",
- "proptest",
- "pulldown-cmark",
- "ropey",
- "similar",
- "taffy",
- "tempfile",
- "thiserror 2.0.18",
- "tracing",
- "unicode-segmentation",
- "unicode-width",
-]
-
-[[package]]
 name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1981,6 +1897,90 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "saorsa-agent"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "dirs",
+ "globset",
+ "regex",
+ "saorsa-ai",
+ "serde",
+ "serde_json",
+ "similar",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+ "uuid",
+ "walkdir",
+]
+
+[[package]]
+name = "saorsa-ai"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures",
+ "reqwest",
+ "reqwest-eventsource",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "saorsa-app"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "crossterm",
+ "futures",
+ "fuzzy-matcher",
+ "saorsa-agent",
+ "saorsa-ai",
+ "saorsa-core",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "saorsa-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "saorsa-app",
+ "tokio",
+]
+
+[[package]]
+name = "saorsa-core"
+version = "0.1.0"
+dependencies = [
+ "criterion",
+ "crossterm",
+ "cssparser",
+ "fuzzy-matcher",
+ "insta",
+ "notify",
+ "proptest",
+ "pulldown-cmark",
+ "ropey",
+ "similar",
+ "taffy",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tracing",
+ "unicode-segmentation",
+ "unicode-width",
 ]
 
 [[package]]

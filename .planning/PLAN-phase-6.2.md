@@ -9,7 +9,7 @@ Implement the complete tool suite for file operations: Read, Write, Edit, Grep, 
 **Objective**: Implement the Read tool for file reading with optional line ranges.
 
 **Description**:
-Create `crates/fae-agent/src/tools/read.rs` implementing the Read tool. The tool should:
+Create `crates/saorsa-agent/src/tools/read.rs` implementing the Read tool. The tool should:
 - Accept a `file_path` (required) and optional `line_range` (e.g., "10-20")
 - Read file contents, optionally limiting to specified line range
 - Return file contents as a string
@@ -17,8 +17,8 @@ Create `crates/fae-agent/src/tools/read.rs` implementing the Read tool. The tool
 - Include JSON schema for input validation
 
 **Files**:
-- `crates/fae-agent/src/tools/read.rs` (new)
-- `crates/fae-agent/src/tools/mod.rs` (export ReadTool)
+- `crates/saorsa-agent/src/tools/read.rs` (new)
+- `crates/saorsa-agent/src/tools/mod.rs` (export ReadTool)
 
 **Acceptance Criteria**:
 - Read tool can read entire files
@@ -31,7 +31,7 @@ Create `crates/fae-agent/src/tools/read.rs` implementing the Read tool. The tool
 **Objective**: Implement the Write tool for file writing with diff display.
 
 **Description**:
-Create `crates/fae-agent/src/tools/write.rs` implementing the Write tool. The tool should:
+Create `crates/saorsa-agent/src/tools/write.rs` implementing the Write tool. The tool should:
 - Accept `file_path` (required) and `content` (required)
 - Write content to file, creating parent directories if needed
 - For existing files, generate a diff showing changes
@@ -39,8 +39,8 @@ Create `crates/fae-agent/src/tools/write.rs` implementing the Write tool. The to
 - Handle permission errors gracefully
 
 **Files**:
-- `crates/fae-agent/src/tools/write.rs` (new)
-- `crates/fae-agent/src/tools/mod.rs` (export WriteTool)
+- `crates/saorsa-agent/src/tools/write.rs` (new)
+- `crates/saorsa-agent/src/tools/mod.rs` (export WriteTool)
 
 **Dependencies**:
 - Add `similar` crate for diff generation (already in workspace)
@@ -57,7 +57,7 @@ Create `crates/fae-agent/src/tools/write.rs` implementing the Write tool. The to
 **Objective**: Implement the Edit tool for surgical file editing with ambiguity detection.
 
 **Description**:
-Create `crates/fae-agent/src/tools/edit.rs` implementing the Edit tool. The tool should:
+Create `crates/saorsa-agent/src/tools/edit.rs` implementing the Edit tool. The tool should:
 - Accept `file_path`, `old_text`, `new_text`, optional `replace_all` flag
 - Search for exact match of `old_text` in file
 - Detect ambiguity if multiple matches found and `replace_all` is false
@@ -65,8 +65,8 @@ Create `crates/fae-agent/src/tools/edit.rs` implementing the Edit tool. The tool
 - Return error if `old_text` not found or ambiguous
 
 **Files**:
-- `crates/fae-agent/src/tools/edit.rs` (new)
-- `crates/fae-agent/src/tools/mod.rs` (export EditTool)
+- `crates/saorsa-agent/src/tools/edit.rs` (new)
+- `crates/saorsa-agent/src/tools/mod.rs` (export EditTool)
 
 **Acceptance Criteria**:
 - Single replacement works correctly
@@ -81,7 +81,7 @@ Create `crates/fae-agent/src/tools/edit.rs` implementing the Edit tool. The tool
 **Objective**: Implement the Grep tool for searching file contents with regex.
 
 **Description**:
-Create `crates/fae-agent/src/tools/grep.rs` implementing the Grep tool. The tool should:
+Create `crates/saorsa-agent/src/tools/grep.rs` implementing the Grep tool. The tool should:
 - Accept `pattern` (regex), `path` (file or directory), optional `case_insensitive`
 - Search recursively if path is directory
 - Return matches with file:line:content format
@@ -89,8 +89,8 @@ Create `crates/fae-agent/src/tools/grep.rs` implementing the Grep tool. The tool
 - Limit results to prevent overwhelming output (e.g., max 100 matches)
 
 **Files**:
-- `crates/fae-agent/src/tools/grep.rs` (new)
-- `crates/fae-agent/src/tools/mod.rs` (export GrepTool)
+- `crates/saorsa-agent/src/tools/grep.rs` (new)
+- `crates/saorsa-agent/src/tools/mod.rs` (export GrepTool)
 
 **Dependencies**:
 - Add `regex` crate for pattern matching
@@ -108,7 +108,7 @@ Create `crates/fae-agent/src/tools/grep.rs` implementing the Grep tool. The tool
 **Objective**: Implement the Find tool for locating files by name pattern.
 
 **Description**:
-Create `crates/fae-agent/src/tools/find.rs` implementing the Find tool. The tool should:
+Create `crates/saorsa-agent/src/tools/find.rs` implementing the Find tool. The tool should:
 - Accept `pattern` (glob pattern like "*.rs"), `path` (directory to search)
 - Search recursively for files matching pattern
 - Return list of matching file paths
@@ -116,8 +116,8 @@ Create `crates/fae-agent/src/tools/find.rs` implementing the Find tool. The tool
 - Limit results to prevent overwhelming output
 
 **Files**:
-- `crates/fae-agent/src/tools/find.rs` (new)
-- `crates/fae-agent/src/tools/mod.rs` (export FindTool)
+- `crates/saorsa-agent/src/tools/find.rs` (new)
+- `crates/saorsa-agent/src/tools/mod.rs` (export FindTool)
 
 **Dependencies**:
 - Add `glob` crate or `globset` for pattern matching
@@ -134,7 +134,7 @@ Create `crates/fae-agent/src/tools/find.rs` implementing the Find tool. The tool
 **Objective**: Implement the Ls tool for listing directory contents.
 
 **Description**:
-Create `crates/fae-agent/src/tools/ls.rs` implementing the Ls tool. The tool should:
+Create `crates/saorsa-agent/src/tools/ls.rs` implementing the Ls tool. The tool should:
 - Accept `path` (directory to list), optional `recursive` flag
 - List files and directories with metadata (size, type, permissions)
 - Format output in readable table format
@@ -142,8 +142,8 @@ Create `crates/fae-agent/src/tools/ls.rs` implementing the Ls tool. The tool sho
 - Handle symlinks gracefully
 
 **Files**:
-- `crates/fae-agent/src/tools/ls.rs` (new)
-- `crates/fae-agent/src/tools/mod.rs` (export LsTool)
+- `crates/saorsa-agent/src/tools/ls.rs` (new)
+- `crates/saorsa-agent/src/tools/mod.rs` (export LsTool)
 
 **Acceptance Criteria**:
 - Directory listing with metadata
@@ -160,8 +160,8 @@ Create `crates/fae-agent/src/tools/ls.rs` implementing the Ls tool. The tool sho
 Update the agent initialization to register all new tools by default. Create a helper function to build the default tool registry with all available tools.
 
 **Files**:
-- `crates/fae-agent/src/agent.rs` (add default_tools() helper)
-- `crates/fae-agent/src/lib.rs` (re-export all tools)
+- `crates/saorsa-agent/src/agent.rs` (add default_tools() helper)
+- `crates/saorsa-agent/src/lib.rs` (re-export all tools)
 
 **Acceptance Criteria**:
 - `Agent::new()` or similar includes all tools by default
@@ -177,9 +177,9 @@ Update the agent initialization to register all new tools by default. Create a h
 Create integration tests that exercise all tools in realistic scenarios. Update crate documentation to describe available tools and usage patterns.
 
 **Files**:
-- `crates/fae-agent/tests/tool_integration.rs` (new)
-- `crates/fae-agent/src/tools/mod.rs` (module documentation)
-- `crates/fae-agent/README.md` (tool suite documentation)
+- `crates/saorsa-agent/tests/tool_integration.rs` (new)
+- `crates/saorsa-agent/src/tools/mod.rs` (module documentation)
+- `crates/saorsa-agent/README.md` (tool suite documentation)
 
 **Test Scenarios**:
 - Read, edit, and write workflow

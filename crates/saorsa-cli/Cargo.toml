@@ -1,0 +1,19 @@
+[package]
+name = "saorsa-cli"
+description = "Thin CLI wrapper for saorsa-tui"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+keywords = ["tui", "terminal", "cli", "ai", "agent"]
+categories = ["command-line-interface", "development-tools"]
+
+[dependencies]
+anyhow = { workspace = true }
+saorsa-app = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true

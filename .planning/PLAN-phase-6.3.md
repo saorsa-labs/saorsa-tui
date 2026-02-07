@@ -1,15 +1,15 @@
 # Phase 6.3: Session Management
 
 ## Overview
-Implement comprehensive session management for the fae AI agent, including tree-structured storage, auto-save, session continuation, branching/forking, bookmarks, and export capabilities. This enables users to maintain conversation history, resume work across sessions, and share their interactions.
+Implement comprehensive session management for the saorsa-tui AI agent, including tree-structured storage, auto-save, session continuation, branching/forking, bookmarks, and export capabilities. This enables users to maintain conversation history, resume work across sessions, and share their interactions.
 
 ## Tasks
 
 ### Task 1: Session Types and Core Structures
 **Files:**
-- crates/fae-agent/src/session/mod.rs (new)
-- crates/fae-agent/src/session/types.rs (new)
-- crates/fae-agent/src/lib.rs (export session module)
+- crates/saorsa-agent/src/session/mod.rs (new)
+- crates/saorsa-agent/src/session/types.rs (new)
+- crates/saorsa-agent/src/lib.rs (export session module)
 
 **Description:**
 Define the core session data structures including SessionId (UUID-based), SessionMetadata (created, modified, title, tags), SessionNode (tree structure with parent/children relationships), and Message types (user, assistant, tool call, tool result). Implement basic constructors and utility methods.
@@ -32,11 +32,11 @@ Define the core session data structures including SessionId (UUID-based), Sessio
 
 ### Task 2: Filesystem Layout and Serialization
 **Files:**
-- crates/fae-agent/src/session/storage.rs (new)
-- crates/fae-agent/src/session/path.rs (new)
+- crates/saorsa-agent/src/session/storage.rs (new)
+- crates/saorsa-agent/src/session/path.rs (new)
 
 **Description:**
-Define the filesystem layout for session storage (~/.fae/sessions/{session_id}/) with manifest.json (metadata), messages/ (individual message files), tree.json (relationship graph), and bookmarks.json. Implement serialization/deserialization with serde_json. Handle directory creation, file I/O, and basic error cases.
+Define the filesystem layout for session storage (~/.saorsa-tui/sessions/{session_id}/) with manifest.json (metadata), messages/ (individual message files), tree.json (relationship graph), and bookmarks.json. Implement serialization/deserialization with serde_json. Handle directory creation, file I/O, and basic error cases.
 
 **Requirements:**
 - SessionStorage struct managing base path
@@ -57,8 +57,8 @@ Define the filesystem layout for session storage (~/.fae/sessions/{session_id}/)
 
 ### Task 3: Auto-Save Implementation
 **Files:**
-- crates/fae-agent/src/session/autosave.rs (new)
-- crates/fae-agent/src/agent.rs (integrate auto-save)
+- crates/saorsa-agent/src/session/autosave.rs (new)
+- crates/saorsa-agent/src/agent.rs (integrate auto-save)
 
 **Description:**
 Implement automatic session saving after each message exchange. Add AutoSaveConfig with interval/batch settings. Implement debounced saves (coalesce rapid changes) and incremental saves (append-only message log). Handle save failures gracefully with retry logic.
@@ -82,9 +82,9 @@ Implement automatic session saving after each message exchange. Add AutoSaveConf
 
 ### Task 4: Continue and Resume Functionality
 **Files:**
-- crates/fae-agent/src/session/resume.rs (new)
-- crates/fae-cli/src/args.rs (add -c/--continue and -r/--resume flags)
-- crates/fae-app/src/main.rs (handle continue/resume on startup)
+- crates/saorsa-agent/src/session/resume.rs (new)
+- crates/saorsa-cli/src/args.rs (add -c/--continue and -r/--resume flags)
+- crates/saorsa-app/src/main.rs (handle continue/resume on startup)
 
 **Description:**
 Implement session continuation (continue last active session) and resume (resume specific session by ID prefix). Add CLI flags -c/--continue and -r <id>/--resume <id>. Implement last-active tracking (update on save), session ID prefix matching (shortest unique), and session restoration (load messages, rebuild state).
@@ -109,9 +109,9 @@ Implement session continuation (continue last active session) and resume (resume
 
 ### Task 5: Tree Command and Navigation
 **Files:**
-- crates/fae-agent/src/session/tree.rs (new)
-- crates/fae-app/src/commands/tree.rs (new)
-- crates/fae-app/src/commands/mod.rs (add tree command)
+- crates/saorsa-agent/src/session/tree.rs (new)
+- crates/saorsa-app/src/commands/tree.rs (new)
+- crates/saorsa-app/src/commands/mod.rs (add tree command)
 
 **Description:**
 Implement /tree command showing session hierarchy with ASCII art tree rendering. Support navigation (select node, show messages), filtering (by date, tag), and statistics (message count, token estimate). Use tree-drawing characters (├──, └──, │) for visual hierarchy.
@@ -135,9 +135,9 @@ Implement /tree command showing session hierarchy with ASCII art tree rendering.
 
 ### Task 6: Branching and Forking
 **Files:**
-- crates/fae-agent/src/session/branch.rs (new)
-- crates/fae-app/src/commands/fork.rs (new)
-- crates/fae-app/src/commands/mod.rs (add /fork command)
+- crates/saorsa-agent/src/session/branch.rs (new)
+- crates/saorsa-app/src/commands/fork.rs (new)
+- crates/saorsa-app/src/commands/mod.rs (add /fork command)
 
 **Description:**
 Implement session forking (/fork [title]) to create divergent conversation branches. Copy current session messages up to present point, create new session with new ID, establish parent-child relationship in tree. Support automatic forking on re-editing past messages.
@@ -161,12 +161,12 @@ Implement session forking (/fork [title]) to create divergent conversation branc
 
 ### Task 7: Bookmarks System
 **Files:**
-- crates/fae-agent/src/session/bookmark.rs (new)
-- crates/fae-app/src/commands/bookmark.rs (new)
-- crates/fae-app/src/commands/mod.rs (add bookmark commands)
+- crates/saorsa-agent/src/session/bookmark.rs (new)
+- crates/saorsa-app/src/commands/bookmark.rs (new)
+- crates/saorsa-app/src/commands/mod.rs (add bookmark commands)
 
 **Description:**
-Implement session bookmarking for quick access to important sessions. Add /bookmark [name], /bookmarks list, /jump <name> commands. Store bookmarks in ~/.fae/bookmarks.json with name → session_id mapping. Support bookmark rename and deletion.
+Implement session bookmarking for quick access to important sessions. Add /bookmark [name], /bookmarks list, /jump <name> commands. Store bookmarks in ~/.saorsa-tui/bookmarks.json with name → session_id mapping. Support bookmark rename and deletion.
 
 **Requirements:**
 - /bookmark [name] bookmarks current session (auto-generate if no name)
@@ -188,10 +188,10 @@ Implement session bookmarking for quick access to important sessions. Add /bookm
 
 ### Task 8: HTML Export and Gist Sharing
 **Files:**
-- crates/fae-agent/src/session/export.rs (new)
-- crates/fae-app/src/commands/export.rs (new)
-- crates/fae-app/src/commands/share.rs (new)
-- crates/fae-app/src/commands/mod.rs (add export and share commands)
+- crates/saorsa-agent/src/session/export.rs (new)
+- crates/saorsa-app/src/commands/export.rs (new)
+- crates/saorsa-app/src/commands/share.rs (new)
+- crates/saorsa-app/src/commands/mod.rs (add export and share commands)
 
 **Description:**
 Implement session export to HTML with syntax highlighting and styled formatting. Add /export [file] command generating standalone HTML (embedded CSS). Implement /share command uploading to GitHub gist (anonymous or authenticated). Include metadata header, message timestamps, and code block formatting.
@@ -217,8 +217,8 @@ Implement session export to HTML with syntax highlighting and styled formatting.
 
 ## Integration Notes
 
-- Add `session` feature flag to fae-agent Cargo.toml (default enabled)
-- All session storage is in `~/.fae/sessions/` or `$XDG_DATA_HOME/fae/sessions/`
+- Add `session` feature flag to saorsa-agent Cargo.toml (default enabled)
+- All session storage is in `~/.saorsa-tui/sessions/` or `$XDG_DATA_HOME/saorsa-tui/sessions/`
 - Session IDs are UUID v4 displayed as 8-char prefix for user convenience
 - Auto-save runs on background tokio task with debouncing
 - Commands are integrated into main app command dispatch

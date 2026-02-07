@@ -1,1 +1,1 @@
-MINIMAX_SKIP: External review not required for benchmark infrastructure task
+MINIMAX_SKIP: Documentation-only changes

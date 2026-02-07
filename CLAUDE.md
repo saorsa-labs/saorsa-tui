@@ -1,25 +1,25 @@
-# Fae - Project Guidelines
+# Saorsa TUI - Project Guidelines
 
 ## Overview
 
-Fae is a retained-mode, CSS-styled terminal UI framework in Rust, with a full AI coding agent as the showcase application.
+Saorsa TUI is a retained-mode, CSS-styled terminal UI framework in Rust, with a full AI coding agent as the showcase application.
 
 ### Crates
 
 | Crate | Type | Purpose |
 |-------|------|---------|
-| `fae-core` | lib | TUI framework: rendering, layout, CSS, widgets, compositor |
-| `fae-ai` | lib | Unified multi-provider LLM API (Anthropic, OpenAI, etc.) |
-| `fae-agent` | lib | Agent runtime: tool execution, sessions, context engineering |
-| `fae-app` | bin+lib | The AI coding agent application |
-| `fae-cli` | bin | Thin CLI entry point |
+| `saorsa-core` | lib | TUI framework: rendering, layout, CSS, widgets, compositor |
+| `saorsa-ai` | lib | Unified multi-provider LLM API (Anthropic, OpenAI, etc.) |
+| `saorsa-agent` | lib | Agent runtime: tool execution, sessions, context engineering |
+| `saorsa-app` | bin+lib | The AI coding agent application |
+| `saorsa-cli` | bin | Thin CLI entry point |
 
 ### Dependency Graph
 
 ```
-fae-cli -> fae-app -> fae-core
-                   -> fae-ai
-                   -> fae-agent -> fae-ai
+saorsa-cli -> saorsa-app -> saorsa-core
+                          -> saorsa-ai
+                          -> saorsa-agent -> saorsa-ai
 ```
 
 ## Build Commands
@@ -40,7 +40,7 @@ cargo doc --workspace --no-deps                       # Build docs
 - **No `panic!()`, `todo!()`, `unimplemented!()`** anywhere
 - **Doc comments** on all public items
 - **`thiserror`** for library error types, **`anyhow`** in application binaries
-- Error type per crate: `FaeCoreError`, `FaeAiError`, `FaeAgentError`
+- Error type per crate: `SaorsaCoreError`, `SaorsaAiError`, `SaorsaAgentError`
 
 ## Architecture
 
@@ -52,7 +52,7 @@ cargo doc --workspace --no-deps                       # Build docs
 - **Cells**: `Cell` represents a single terminal cell with grapheme + style + width
 - **Screen buffer**: Double-buffered with differential rendering
 
-## Key Types (fae-core)
+## Key Types (saorsa-core)
 
 - `Segment` - Styled text piece (text + style + control flag)
 - `Cell` - Single terminal cell (grapheme + style + width)

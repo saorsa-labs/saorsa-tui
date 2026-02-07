@@ -1,7 +1,0 @@
----
-source: crates/fae-core/tests/snapshot_data_widgets.rs
-expression: rendered
----
-Apple                         
-Banana                        
-Cherry
