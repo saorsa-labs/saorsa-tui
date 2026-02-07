@@ -57,7 +57,7 @@ pub use text_buffer::TextBuffer;
 pub use undo::{EditOperation, UndoStack};
 pub use viewport::Viewport;
 pub use widget::{
-    Alignment, BorderStyle, Container, EventResult, Label, MarkdownRenderer, Modal, StaticWidget,
-    TextArea, Toast, ToastPosition, Tooltip, Widget,
+    Alignment, BorderStyle, Container, EventResult, Label, MarkdownRenderer, Modal, RichLog,
+    StaticWidget, TextArea, Toast, ToastPosition, Tooltip, Widget,
 };
 pub use wrap::{WrapLine, WrapResult, line_number_width, wrap_line, wrap_lines};
