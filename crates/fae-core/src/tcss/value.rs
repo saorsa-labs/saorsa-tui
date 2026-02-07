@@ -32,6 +32,8 @@ pub enum CssValue {
     String(String),
     /// A variable reference ($name), resolved during cascade.
     Variable(String),
+    /// An ordered list of values (e.g., grid-template-columns: 1fr 2fr 100).
+    List(Vec<CssValue>),
 }
 
 #[cfg(test)]
@@ -122,6 +124,69 @@ mod tests {
     #[test]
     fn value_variable_clone_and_eq() {
         let val = CssValue::Variable("fg-color".into());
+        let val2 = val.clone();
+        assert_eq!(val, val2);
+    }
+
+    #[test]
+    fn value_list_empty() {
+        let val = CssValue::List(vec![]);
+        assert_eq!(val, CssValue::List(vec![]));
+    }
+
+    #[test]
+    fn value_list_single() {
+        let val = CssValue::List(vec![CssValue::Fr(1.0)]);
+        assert!(matches!(val, CssValue::List(v) if v.len() == 1));
+    }
+
+    #[test]
+    fn value_list_multiple() {
+        let val = CssValue::List(vec![
+            CssValue::Fr(1.0),
+            CssValue::Fr(2.0),
+            CssValue::Length(Length::Cells(100)),
+        ]);
+        assert!(matches!(val, CssValue::List(v) if v.len() == 3));
+    }
+
+    #[test]
+    fn value_list_clone() {
+        let val = CssValue::List(vec![
+            CssValue::Fr(1.0),
+            CssValue::Length(Length::Percent(50.0)),
+        ]);
+        let val2 = val.clone();
+        assert_eq!(val, val2);
+    }
+
+    #[test]
+    fn value_list_eq() {
+        let a = CssValue::List(vec![CssValue::Fr(1.0), CssValue::Fr(2.0)]);
+        let b = CssValue::List(vec![CssValue::Fr(1.0), CssValue::Fr(2.0)]);
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn value_list_nested() {
+        let inner = CssValue::List(vec![CssValue::Integer(1), CssValue::Integer(2)]);
+        let outer = CssValue::List(vec![inner.clone(), CssValue::Fr(1.0)]);
+        assert!(matches!(outer, CssValue::List(v) if v.len() == 2));
+    }
+
+    #[test]
+    fn value_list_mixed_types() {
+        let val = CssValue::List(vec![
+            CssValue::Fr(1.0),
+            CssValue::Length(Length::Cells(50)),
+            CssValue::Keyword("auto".into()),
+        ]);
+        assert!(matches!(val, CssValue::List(v) if v.len() == 3));
+    }
+
+    #[test]
+    fn value_fr_clone_and_eq() {
+        let val = CssValue::Fr(2.5);
         let val2 = val.clone();
         assert_eq!(val, val2);
     }

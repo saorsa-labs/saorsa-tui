@@ -53,12 +53,7 @@ impl Renderer {
             let need_move = !matches!((last_x, last_y), (Some(lx), Some(ly)) if ly == change.y && lx == change.x);
             if need_move {
                 // ANSI cursor position is 1-based
-                let _ = write!(
-                    output,
-                    "\x1b[{};{}H",
-                    change.y + 1,
-                    change.x + 1
-                );
+                let _ = write!(output, "\x1b[{};{}H", change.y + 1, change.x + 1);
             }
 
             // Style diffing: only emit changed attributes
@@ -186,9 +181,7 @@ impl Renderer {
                 Color::Rgb { r, g, b } => {
                     std::borrow::Cow::Owned(Color::Named(rgb_to_named(*r, *g, *b)))
                 }
-                Color::Indexed(i) => {
-                    std::borrow::Cow::Owned(Color::Named(index_to_named(*i)))
-                }
+                Color::Indexed(i) => std::borrow::Cow::Owned(Color::Named(index_to_named(*i))),
                 _ => std::borrow::Cow::Borrowed(color),
             },
             ColorSupport::NoColor => std::borrow::Cow::Owned(Color::Reset),
@@ -618,11 +611,7 @@ mod tests {
     #[test]
     fn truecolor_to_256() {
         let renderer = Renderer::new(ColorSupport::Extended256, false);
-        let style = Style::new().fg(Color::Rgb {
-            r: 255,
-            g: 0,
-            b: 0,
-        });
+        let style = Style::new().fg(Color::Rgb { r: 255, g: 0, b: 0 });
         let changes = vec![CellChange {
             x: 0,
             y: 0,
@@ -637,11 +626,7 @@ mod tests {
     #[test]
     fn truecolor_to_16() {
         let renderer = Renderer::new(ColorSupport::Basic16, false);
-        let style = Style::new().fg(Color::Rgb {
-            r: 255,
-            g: 0,
-            b: 0,
-        });
+        let style = Style::new().fg(Color::Rgb { r: 255, g: 0, b: 0 });
         let changes = vec![CellChange {
             x: 0,
             y: 0,
@@ -656,11 +641,7 @@ mod tests {
     fn no_color_strips_all() {
         let renderer = Renderer::new(ColorSupport::NoColor, false);
         let style = Style::new()
-            .fg(Color::Rgb {
-                r: 255,
-                g: 0,
-                b: 0,
-            })
+            .fg(Color::Rgb { r: 255, g: 0, b: 0 })
             .bg(Color::Named(NamedColor::Blue));
         let changes = vec![CellChange {
             x: 0,

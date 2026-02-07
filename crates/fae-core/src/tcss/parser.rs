@@ -140,6 +140,93 @@ fn try_parse_variable(input: &mut Parser<'_, '_>) -> Option<CssValue> {
         .ok()
 }
 
+/// Parse a grid template track list (e.g., `1fr 2fr 100`).
+///
+/// Supports: bare numbers (cells), percentages, `fr` units, `auto` keyword.
+/// Returns a single value for one-track templates, or `CssValue::List` for
+/// multi-track templates.
+fn parse_grid_template(input: &mut Parser<'_, '_>) -> Result<CssValue, TcssError> {
+    let mut tracks = Vec::new();
+
+    while !input.is_exhausted() {
+        // Try to parse a track value using try_parse so we can stop cleanly.
+        let track = input.try_parse(|p| -> Result<CssValue, cssparser::ParseError<'_, ()>> {
+            let token = p.next()?.clone();
+            match &token {
+                Token::Dimension { value, unit, .. } if unit.eq_ignore_ascii_case("fr") => {
+                    Ok(CssValue::Fr(*value))
+                }
+                Token::Number {
+                    int_value: Some(v), ..
+                } => {
+                    let val = u16::try_from(*v).map_err(|_| p.new_custom_error(()))?;
+                    Ok(CssValue::Length(Length::Cells(val)))
+                }
+                Token::Number { value, .. } => {
+                    // Float used as cell count — truncate intentionally.
+                    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+                    let val = *value as u16;
+                    Ok(CssValue::Length(Length::Cells(val)))
+                }
+                Token::Percentage { unit_value, .. } => {
+                    Ok(CssValue::Length(Length::Percent(*unit_value * 100.0)))
+                }
+                Token::Ident(name) if name.eq_ignore_ascii_case("auto") => {
+                    Ok(CssValue::Length(Length::Auto))
+                }
+                _ => Err(p.new_custom_error(())),
+            }
+        });
+
+        match track {
+            Ok(t) => tracks.push(t),
+            Err(_) => break,
+        }
+    }
+
+    match tracks.len() {
+        0 => Ok(CssValue::Keyword("auto".into())),
+        1 => {
+            // Single track: return the value directly for backwards compatibility.
+            match tracks.into_iter().next() {
+                Some(v) => Ok(v),
+                None => Ok(CssValue::Keyword("auto".into())),
+            }
+        }
+        _ => Ok(CssValue::List(tracks)),
+    }
+}
+
+/// Parse a grid placement value (e.g., `1`, `span 2`, `1 / 3`).
+///
+/// Supports:
+/// - Single integer: line number
+/// - `span N`: spanning N tracks
+/// - `N / M`: start / end line numbers (returned as keyword string)
+fn parse_grid_placement(input: &mut Parser<'_, '_>) -> Result<CssValue, TcssError> {
+    // Try "span N" first.
+    if let Ok(val) = input.try_parse(|p| -> Result<CssValue, cssparser::ParseError<'_, ()>> {
+        p.expect_ident_matching("span")?;
+        let n = p.expect_integer()?;
+        Ok(CssValue::Keyword(format!("span {n}")))
+    }) {
+        return Ok(val);
+    }
+
+    // Try "N / M" (start / end).
+    if let Ok(val) = input.try_parse(|p| -> Result<CssValue, cssparser::ParseError<'_, ()>> {
+        let start = p.expect_integer()?;
+        p.expect_delim('/')?;
+        let end = p.expect_integer()?;
+        Ok(CssValue::Keyword(format!("{start} / {end}")))
+    }) {
+        return Ok(val);
+    }
+
+    // Single integer.
+    parse_integer(input).map(CssValue::Integer)
+}
+
 /// Parse a property value given the property name.
 ///
 /// Routes to the appropriate parser based on the property type.
@@ -189,6 +276,14 @@ pub fn parse_property_value(
         // Float properties
         PropertyName::Opacity => parse_float(input).map(CssValue::Float),
 
+        // Grid template properties — multi-value track lists
+        PropertyName::GridTemplateColumns | PropertyName::GridTemplateRows => {
+            parse_grid_template(input)
+        }
+
+        // Grid placement properties — integer, span, or range
+        PropertyName::GridColumn | PropertyName::GridRow => parse_grid_placement(input),
+
         // All keyword-based properties
         PropertyName::Display
         | PropertyName::FlexDirection
@@ -208,11 +303,7 @@ pub fn parse_property_value(
         | PropertyName::BorderTop
         | PropertyName::BorderRight
         | PropertyName::BorderBottom
-        | PropertyName::BorderLeft
-        | PropertyName::GridTemplateColumns
-        | PropertyName::GridTemplateRows
-        | PropertyName::GridColumn
-        | PropertyName::GridRow => parse_keyword(input).map(CssValue::Keyword),
+        | PropertyName::BorderLeft => parse_keyword(input).map(CssValue::Keyword),
     }
 }
 
@@ -910,6 +1001,120 @@ mod tests {
         let css = ".dark { $fg: white; $bg: #1e1e2e; }";
         let sheet = parse_sheet(css);
         assert_eq!(sheet.rules()[0].variables.len(), 2);
+    }
+
+    // --- Grid template and fr parsing tests ---
+
+    #[test]
+    fn parse_grid_template_single_fr() {
+        let result = parse_with("1fr", |p| {
+            parse_property_value(&PropertyName::GridTemplateColumns, p)
+        });
+        assert_eq!(result, Ok(CssValue::Fr(1.0)));
+    }
+
+    #[test]
+    fn parse_grid_template_multiple_fr() {
+        let result = parse_with("1fr 2fr 1fr", |p| {
+            parse_property_value(&PropertyName::GridTemplateColumns, p)
+        });
+        assert!(result.is_ok());
+        let val = match result {
+            Ok(v) => v,
+            Err(_) => unreachable!(),
+        };
+        assert!(matches!(val, CssValue::List(v) if v.len() == 3));
+    }
+
+    #[test]
+    fn parse_grid_template_mixed() {
+        let result = parse_with("1fr 100 2fr", |p| {
+            parse_property_value(&PropertyName::GridTemplateColumns, p)
+        });
+        assert!(result.is_ok());
+        let val = match result {
+            Ok(v) => v,
+            Err(_) => unreachable!(),
+        };
+        match val {
+            CssValue::List(ref items) => {
+                assert_eq!(items.len(), 3);
+                assert_eq!(items[0], CssValue::Fr(1.0));
+                assert_eq!(items[1], CssValue::Length(Length::Cells(100)));
+                assert_eq!(items[2], CssValue::Fr(2.0));
+            }
+            _ => panic!("expected CssValue::List"),
+        }
+    }
+
+    #[test]
+    fn parse_grid_template_with_percent() {
+        let result = parse_with("25% 1fr 25%", |p| {
+            parse_property_value(&PropertyName::GridTemplateRows, p)
+        });
+        assert!(result.is_ok());
+        let val = match result {
+            Ok(v) => v,
+            Err(_) => unreachable!(),
+        };
+        assert!(matches!(val, CssValue::List(v) if v.len() == 3));
+    }
+
+    #[test]
+    fn parse_grid_template_auto() {
+        let result = parse_with("auto 1fr auto", |p| {
+            parse_property_value(&PropertyName::GridTemplateColumns, p)
+        });
+        assert!(result.is_ok());
+        let val = match result {
+            Ok(v) => v,
+            Err(_) => unreachable!(),
+        };
+        match val {
+            CssValue::List(ref items) => {
+                assert_eq!(items.len(), 3);
+                assert_eq!(items[0], CssValue::Length(Length::Auto));
+                assert_eq!(items[2], CssValue::Length(Length::Auto));
+            }
+            _ => panic!("expected CssValue::List"),
+        }
+    }
+
+    #[test]
+    fn parse_grid_template_single_cells() {
+        let result = parse_with("100", |p| {
+            parse_property_value(&PropertyName::GridTemplateColumns, p)
+        });
+        assert_eq!(result, Ok(CssValue::Length(Length::Cells(100))));
+    }
+
+    #[test]
+    fn parse_grid_placement_integer() {
+        let result = parse_with("2", |p| parse_property_value(&PropertyName::GridColumn, p));
+        assert_eq!(result, Ok(CssValue::Integer(2)));
+    }
+
+    #[test]
+    fn parse_grid_placement_span() {
+        let result = parse_with("span 3", |p| {
+            parse_property_value(&PropertyName::GridColumn, p)
+        });
+        assert_eq!(result, Ok(CssValue::Keyword("span 3".into())));
+    }
+
+    #[test]
+    fn parse_grid_placement_range() {
+        let result = parse_with("1 / 3", |p| parse_property_value(&PropertyName::GridRow, p));
+        assert_eq!(result, Ok(CssValue::Keyword("1 / 3".into())));
+    }
+
+    #[test]
+    fn parse_fr_in_stylesheet() {
+        let css = "Container { grid-template-columns: 1fr 2fr; }";
+        let sheet = parse_sheet(css);
+        assert_eq!(sheet.len(), 1);
+        let val = &sheet.rules()[0].declarations[0].value;
+        assert!(matches!(val, CssValue::List(v) if v.len() == 2));
     }
 
     #[test]

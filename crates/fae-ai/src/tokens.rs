@@ -126,7 +126,12 @@ mod tests {
     #[test]
     fn fits_in_context_check() {
         let messages = vec![Message::user("Hello")];
-        assert!(fits_in_context(&messages, None, "claude-sonnet-4-5-20250929", 4096));
+        assert!(fits_in_context(
+            &messages,
+            None,
+            "claude-sonnet-4-5-20250929",
+            4096
+        ));
     }
 
     #[test]

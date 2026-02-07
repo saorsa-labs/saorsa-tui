@@ -27,7 +27,10 @@ pub use error::{FaeCoreError, Result};
 pub use event::{Event, KeyCode, KeyEvent, Modifiers, MouseEvent};
 pub use focus::{FocusManager, FocusState, WidgetId};
 pub use geometry::{Position, Rect, Size};
-pub use layout::{Constraint, Direction, Dock, Layout};
+pub use layout::{
+    Constraint, Direction, Dock, Layout, LayoutEngine, LayoutError, LayoutRect, OverflowBehavior,
+    ScrollManager, ScrollState,
+};
 pub use render_context::RenderContext;
 pub use renderer::Renderer;
 pub use segment::Segment;

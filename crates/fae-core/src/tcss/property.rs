@@ -268,9 +268,9 @@ impl Declaration {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Color;
     use crate::color::NamedColor;
     use crate::tcss::value::Length;
-    use crate::Color;
 
     #[test]
     fn from_css_color_properties() {
@@ -391,10 +391,7 @@ mod tests {
 
     #[test]
     fn declaration_important() {
-        let decl = Declaration::important(
-            PropertyName::Width,
-            CssValue::Length(Length::Cells(10)),
-        );
+        let decl = Declaration::important(PropertyName::Width, CssValue::Length(Length::Cells(10)));
         assert_eq!(decl.property, PropertyName::Width);
         assert!(decl.important);
     }

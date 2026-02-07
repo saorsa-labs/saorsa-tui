@@ -193,10 +193,14 @@ mod tests {
 
     #[test]
     fn request_builder() {
-        let req = CompletionRequest::new("claude-sonnet-4-5-20250929", vec![Message::user("hi")], 1024)
-            .system("You are helpful")
-            .temperature(0.7)
-            .stream(true);
+        let req = CompletionRequest::new(
+            "claude-sonnet-4-5-20250929",
+            vec![Message::user("hi")],
+            1024,
+        )
+        .system("You are helpful")
+        .temperature(0.7)
+        .stream(true);
         assert_eq!(req.model, "claude-sonnet-4-5-20250929");
         assert_eq!(req.max_tokens, 1024);
         assert!(req.stream);
@@ -206,7 +210,11 @@ mod tests {
 
     #[test]
     fn request_serialization() {
-        let req = CompletionRequest::new("claude-sonnet-4-5-20250929", vec![Message::user("hi")], 1024);
+        let req = CompletionRequest::new(
+            "claude-sonnet-4-5-20250929",
+            vec![Message::user("hi")],
+            1024,
+        );
         let json = serde_json::to_string(&req);
         assert!(json.is_ok());
         let json_str = json.as_deref().unwrap_or("");

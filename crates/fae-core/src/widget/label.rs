@@ -99,7 +99,11 @@ impl Widget for Label {
             if x >= area.position.x + area.size.width {
                 break;
             }
-            buf.set(x, area.position.y, Cell::new(ch.to_string(), self.style.clone()));
+            buf.set(
+                x,
+                area.position.y,
+                Cell::new(ch.to_string(), self.style.clone()),
+            );
             col += ch_width;
         }
     }

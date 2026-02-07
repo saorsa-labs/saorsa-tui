@@ -141,7 +141,12 @@ impl Container {
         let total_offset = border_offset + self.padding;
 
         if area.size.width <= total_offset * 2 || area.size.height <= total_offset * 2 {
-            return Rect::new(area.position.x + total_offset, area.position.y + total_offset, 0, 0);
+            return Rect::new(
+                area.position.x + total_offset,
+                area.position.y + total_offset,
+                0,
+                0,
+            );
         }
 
         Rect::new(
@@ -235,7 +240,11 @@ impl Widget for Container {
             for (i, ch) in display_title.chars().enumerate() {
                 let x = start_x + i as u16;
                 if x < right {
-                    buf.set(x, area.position.y, Cell::new(ch.to_string(), self.title_style.clone()));
+                    buf.set(
+                        x,
+                        area.position.y,
+                        Cell::new(ch.to_string(), self.title_style.clone()),
+                    );
                 }
             }
         }
@@ -308,9 +317,7 @@ mod tests {
 
     #[test]
     fn border_with_title() {
-        let container = Container::new()
-            .border(BorderStyle::Single)
-            .title("Test");
+        let container = Container::new().border(BorderStyle::Single).title("Test");
         let mut buf = ScreenBuffer::new(Size::new(20, 5));
         container.render(Rect::new(0, 0, 20, 5), &mut buf);
 
@@ -341,9 +348,7 @@ mod tests {
 
     #[test]
     fn inner_area_with_border_and_padding() {
-        let container = Container::new()
-            .border(BorderStyle::Single)
-            .padding(1);
+        let container = Container::new().border(BorderStyle::Single).padding(1);
         let inner = container.inner_area(Rect::new(0, 0, 20, 10));
         assert_eq!(inner, Rect::new(2, 2, 16, 6));
     }

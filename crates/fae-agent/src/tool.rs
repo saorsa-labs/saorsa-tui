@@ -153,9 +153,7 @@ mod tests {
     #[tokio::test]
     async fn tool_execute() {
         let tool = EchoTool;
-        let result = tool
-            .execute(serde_json::json!({"text": "hello"}))
-            .await;
+        let result = tool.execute(serde_json::json!({"text": "hello"})).await;
         assert!(result.is_ok());
         if let Ok(output) = result {
             assert_eq!(output, "hello");

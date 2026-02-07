@@ -35,8 +35,7 @@ fn handle_key(state: &mut AppState, code: KeyCode, modifiers: Modifiers) -> Inpu
     }
 
     // Ctrl-D quits on empty input.
-    if code == KeyCode::Char('d') && modifiers.contains(Modifiers::CTRL) && state.input.is_empty()
-    {
+    if code == KeyCode::Char('d') && modifiers.contains(Modifiers::CTRL) && state.input.is_empty() {
         state.should_quit = true;
         return InputAction::Quit;
     }
@@ -55,7 +54,9 @@ fn handle_key(state: &mut AppState, code: KeyCode, modifiers: Modifiers) -> Inpu
                 InputAction::Submit(text)
             }
         }
-        KeyCode::Char(c) if !modifiers.contains(Modifiers::CTRL) && !modifiers.contains(Modifiers::ALT) => {
+        KeyCode::Char(c)
+            if !modifiers.contains(Modifiers::CTRL) && !modifiers.contains(Modifiers::ALT) =>
+        {
             state.insert_char(c);
             InputAction::Redraw
         }

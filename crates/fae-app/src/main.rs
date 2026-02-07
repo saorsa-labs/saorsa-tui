@@ -24,8 +24,7 @@ async fn main() -> anyhow::Result<()> {
     // Initialize tracing.
     tracing_subscriber::fmt()
         .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "warn".into()),
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "warn".into()),
         )
         .init();
 
@@ -48,8 +47,7 @@ async fn main() -> anyhow::Result<()> {
 /// Run in print mode: send a single prompt and print the response.
 async fn run_print_mode(cli: &Cli, api_key: &str, prompt: &str) -> anyhow::Result<()> {
     let provider_config = ProviderConfig::new(api_key, &cli.model);
-    let provider = AnthropicProvider::new(provider_config)
-        .context("Failed to create provider")?;
+    let provider = AnthropicProvider::new(provider_config).context("Failed to create provider")?;
 
     let agent_config = AgentConfig::new(&cli.model)
         .system_prompt(&cli.system_prompt)
@@ -57,9 +55,9 @@ async fn run_print_mode(cli: &Cli, api_key: &str, prompt: &str) -> anyhow::Resul
         .max_tokens(cli.max_tokens);
 
     let mut tools = ToolRegistry::new();
-    tools.register(Box::new(BashTool::new(std::env::current_dir().context(
-        "Failed to get current directory",
-    )?)));
+    tools.register(Box::new(BashTool::new(
+        std::env::current_dir().context("Failed to get current directory")?,
+    )));
 
     let (event_tx, mut event_rx) = event_channel(256);
 
@@ -90,26 +88,24 @@ async fn run_print_mode(cli: &Cli, api_key: &str, prompt: &str) -> anyhow::Resul
     drop(agent);
     let _ = print_handle.await;
 
-    result
-        .map(|_| ())
-        .map_err(|e| anyhow::anyhow!("{e}"))
+    result.map(|_| ()).map_err(|e| anyhow::anyhow!("{e}"))
 }
 
 /// Run in interactive TUI mode.
 async fn run_interactive(cli: &Cli, api_key: &str) -> anyhow::Result<()> {
     let mut state = AppState::new(&cli.model);
-    state.add_system_message(format!("Connected to {}. Type a message to start.", cli.model));
+    state.add_system_message(format!(
+        "Connected to {}. Type a message to start.",
+        cli.model
+    ));
 
     // Set up terminal.
     let mut backend = CrosstermBackend::new();
-    let mut ctx = RenderContext::new(&backend)
-        .context("Failed to initialize render context")?;
+    let mut ctx = RenderContext::new(&backend).context("Failed to initialize render context")?;
     backend
         .enter_raw_mode()
         .context("Failed to enter raw mode")?;
-    backend
-        .enable_mouse()
-        .context("Failed to enable mouse")?;
+    backend.enable_mouse().context("Failed to enable mouse")?;
 
     // Initial render.
     render_ui(&state, &mut ctx, &mut backend);
@@ -232,7 +228,10 @@ async fn run_agent_interaction(
                 render_ui(state, ctx, backend);
             }
             AgentEvent::ToolResult {
-                name, output, success, ..
+                name,
+                output,
+                success,
+                ..
             } => {
                 let display = if output.len() > 200 {
                     format!("{}...", &output[..200])

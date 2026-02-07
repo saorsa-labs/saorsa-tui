@@ -60,7 +60,11 @@ mod tests {
             for (i, ch) in self.text.chars().enumerate() {
                 let x = area.position.x + i as u16;
                 if x < area.position.x + area.size.width {
-                    buf.set(x, area.position.y, Cell::new(ch.to_string(), Style::default()));
+                    buf.set(
+                        x,
+                        area.position.y,
+                        Cell::new(ch.to_string(), Style::default()),
+                    );
                 }
             }
         }
@@ -68,9 +72,7 @@ mod tests {
 
     #[test]
     fn mock_widget_renders() {
-        let w = MockWidget {
-            text: "hi".into(),
-        };
+        let w = MockWidget { text: "hi".into() };
         let mut buf = ScreenBuffer::new(Size::new(10, 1));
         w.render(Rect::new(0, 0, 10, 1), &mut buf);
         assert_eq!(buf.get(0, 0).map(|c| c.grapheme.as_str()), Some("h"));

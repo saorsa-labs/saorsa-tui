@@ -112,8 +112,7 @@ mod tests {
         let mut ctx = RenderContext::with_size(Size::new(10, 5), renderer);
 
         // Write something
-        ctx.buffer_mut()
-            .set(0, 0, Cell::new("A", Style::default()));
+        ctx.buffer_mut().set(0, 0, Cell::new("A", Style::default()));
         assert_eq!(
             ctx.buffer().get(0, 0).map(|c| c.grapheme.as_str()),
             Some("A")
@@ -121,10 +120,7 @@ mod tests {
 
         // Begin frame: current should be cleared
         ctx.begin_frame();
-        assert!(ctx
-            .buffer()
-            .get(0, 0)
-            .is_some_and(|c| c.is_blank()));
+        assert!(ctx.buffer().get(0, 0).is_some_and(|c| c.is_blank()));
     }
 
     #[test]
@@ -134,8 +130,7 @@ mod tests {
         let mut ctx = RenderContext::with_size(Size::new(10, 5), renderer);
 
         // Write a cell
-        ctx.buffer_mut()
-            .set(0, 0, Cell::new("A", Style::default()));
+        ctx.buffer_mut().set(0, 0, Cell::new("A", Style::default()));
 
         // End frame should write escape sequences to the backend
         let result = ctx.end_frame(&mut backend);
@@ -155,17 +150,14 @@ mod tests {
         let mut ctx = RenderContext::with_size(Size::new(10, 5), renderer);
 
         // Frame 1: write "A" at (0,0)
-        ctx.buffer_mut()
-            .set(0, 0, Cell::new("A", Style::default()));
+        ctx.buffer_mut().set(0, 0, Cell::new("A", Style::default()));
         let _ = ctx.end_frame(&mut backend);
         backend.clear_buffer();
 
         // Frame 2: keep "A" at (0,0), add "B" at (1,0)
         ctx.begin_frame();
-        ctx.buffer_mut()
-            .set(0, 0, Cell::new("A", Style::default()));
-        ctx.buffer_mut()
-            .set(1, 0, Cell::new("B", Style::default()));
+        ctx.buffer_mut().set(0, 0, Cell::new("A", Style::default()));
+        ctx.buffer_mut().set(1, 0, Cell::new("B", Style::default()));
         let _ = ctx.end_frame(&mut backend);
 
         let output = backend.buffer();
@@ -193,9 +185,7 @@ mod tests {
         let renderer = Renderer::new(ColorSupport::TrueColor, false);
         let mut ctx = RenderContext::with_size(Size::new(10, 5), renderer);
 
-        let style = Style::new()
-            .fg(Color::Named(NamedColor::Red))
-            .bold(true);
+        let style = Style::new().fg(Color::Named(NamedColor::Red)).bold(true);
         ctx.buffer_mut().set(0, 0, Cell::new("X", style));
         let _ = ctx.end_frame(&mut backend);
 

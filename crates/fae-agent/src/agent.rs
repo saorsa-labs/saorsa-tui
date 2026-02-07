@@ -70,10 +70,7 @@ impl AgentLoop {
                 break;
             }
 
-            let _ = self
-                .event_tx
-                .send(AgentEvent::TurnStart { turn })
-                .await;
+            let _ = self.event_tx.send(AgentEvent::TurnStart { turn }).await;
 
             let request = CompletionRequest::new(
                 &self.config.model,
@@ -107,10 +104,7 @@ impl AgentLoop {
                         ..
                     }) => {
                         text_content.push_str(&text);
-                        let _ = self
-                            .event_tx
-                            .send(AgentEvent::TextDelta { text })
-                            .await;
+                        let _ = self.event_tx.send(AgentEvent::TextDelta { text }).await;
                     }
                     Ok(StreamEvent::ContentBlockDelta {
                         delta: ContentDelta::InputJsonDelta { partial_json },
@@ -153,9 +147,7 @@ impl AgentLoop {
             // Build the assistant message for history.
             let mut assistant_content: Vec<ContentBlock> = Vec::new();
             if !text_content.is_empty() {
-                assistant_content.push(ContentBlock::Text {
-                    text: text_content,
-                });
+                assistant_content.push(ContentBlock::Text { text: text_content });
             }
 
             // Emit tool call events.
@@ -385,15 +377,21 @@ mod tests {
         }
 
         // Should have: TurnStart, TextDelta, TextComplete, TurnEnd.
-        assert!(events
-            .iter()
-            .any(|e| matches!(e, AgentEvent::TurnStart { turn: 1 })));
-        assert!(events
-            .iter()
-            .any(|e| matches!(e, AgentEvent::TextDelta { .. })));
-        assert!(events
-            .iter()
-            .any(|e| matches!(e, AgentEvent::TextComplete { .. })));
+        assert!(
+            events
+                .iter()
+                .any(|e| matches!(e, AgentEvent::TurnStart { turn: 1 }))
+        );
+        assert!(
+            events
+                .iter()
+                .any(|e| matches!(e, AgentEvent::TextDelta { .. }))
+        );
+        assert!(
+            events
+                .iter()
+                .any(|e| matches!(e, AgentEvent::TextComplete { .. }))
+        );
         assert!(events.iter().any(|e| matches!(
             e,
             AgentEvent::TurnEnd {

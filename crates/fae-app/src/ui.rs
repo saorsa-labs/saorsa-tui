@@ -3,10 +3,10 @@
 use fae_core::geometry::Rect;
 use fae_core::layout::{Constraint, Direction, Layout};
 use fae_core::style::Style;
+use fae_core::widget::Widget;
 use fae_core::widget::container::{BorderStyle, Container};
 use fae_core::widget::label::{Alignment, Label};
-use fae_core::widget::Widget;
-use fae_core::{ScreenBuffer, Color};
+use fae_core::{Color, ScreenBuffer};
 
 use crate::app::{AppState, AppStatus, ChatRole};
 
@@ -18,11 +18,7 @@ pub fn render(state: &AppState, buf: &mut ScreenBuffer) {
     let chunks = Layout::split(
         area,
         Direction::Vertical,
-        &[
-            Constraint::Fixed(1),
-            Constraint::Fill,
-            Constraint::Fixed(3),
-        ],
+        &[Constraint::Fixed(1), Constraint::Fill, Constraint::Fixed(3)],
     );
 
     render_header(state, buf, chunks[0]);

@@ -90,9 +90,7 @@ impl AppState {
     /// Add a tool result message to the chat.
     pub fn add_tool_message(&mut self, name: impl Into<String>, content: impl Into<String>) {
         self.messages.push(ChatMessage {
-            role: ChatRole::Tool {
-                name: name.into(),
-            },
+            role: ChatRole::Tool { name: name.into() },
             content: content.into(),
         });
     }

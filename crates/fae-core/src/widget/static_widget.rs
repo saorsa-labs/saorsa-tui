@@ -79,10 +79,7 @@ mod tests {
 
     #[test]
     fn multi_line() {
-        let lines = vec![
-            Segment::new("line1"),
-            Segment::new("line2"),
-        ];
+        let lines = vec![Segment::new("line1"), Segment::new("line2")];
         let w = StaticWidget::new(lines);
         let mut buf = ScreenBuffer::new(Size::new(10, 5));
         w.render(Rect::new(0, 0, 10, 5), &mut buf);
@@ -113,11 +110,7 @@ mod tests {
 
     #[test]
     fn truncates_to_area_height() {
-        let lines = vec![
-            Segment::new("a"),
-            Segment::new("b"),
-            Segment::new("c"),
-        ];
+        let lines = vec![Segment::new("a"), Segment::new("b"), Segment::new("c")];
         let w = StaticWidget::new(lines);
         let mut buf = ScreenBuffer::new(Size::new(5, 2));
         w.render(Rect::new(0, 0, 5, 2), &mut buf);

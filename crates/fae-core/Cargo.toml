@@ -15,6 +15,7 @@ unicode-segmentation = { workspace = true }
 cssparser = { workspace = true }
 tracing = { workspace = true }
 notify = { workspace = true }
+taffy = { workspace = true }
 
 [lints]
 workspace = true
