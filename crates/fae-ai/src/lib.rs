@@ -19,7 +19,10 @@ pub use anthropic::AnthropicProvider;
 pub use error::{FaeAiError, Result};
 pub use gemini::GeminiProvider;
 pub use message::{ContentBlock, Message, Role, ToolDefinition};
-pub use models::{get_context_window, lookup_model, supports_tools, supports_vision, ModelInfo};
+pub use models::{
+    ModelInfo, get_context_window, lookup_model, lookup_model_by_prefix, supports_tools,
+    supports_vision,
+};
 pub use ollama::OllamaProvider;
 pub use openai::OpenAiProvider;
 pub use openai_compat::{OpenAiCompatBuilder, OpenAiCompatProvider};
