@@ -50,7 +50,7 @@ impl Column {
 pub struct DataTable {
     /// Column definitions.
     columns: Vec<Column>,
-    /// Row data: each row is a Vec<String>, one per column.
+    /// Row data: each row is a `Vec<String>`, one per column.
     rows: Vec<Vec<String>>,
     /// Selected row index.
     selected_row: usize,
