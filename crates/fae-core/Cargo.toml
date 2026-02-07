@@ -24,6 +24,7 @@ similar = { workspace = true }
 [dev-dependencies]
 tempfile = { workspace = true }
 insta = { version = "1", features = ["glob"] }
+proptest = { workspace = true }
 
 [lints]
 workspace = true

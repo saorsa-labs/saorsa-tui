@@ -60,6 +60,7 @@ similar = "2.6"
 
 # Testing
 tempfile = "3"
+proptest = "1.5"
 
 # Markdown parsing
 pulldown-cmark = "0.12"
