@@ -9,6 +9,8 @@ pub mod config;
 pub mod context;
 pub mod error;
 pub mod event;
+/// Extension system for plugins and custom functionality.
+pub mod extension;
 /// Session management for conversation history and persistence.
 pub mod session;
 /// Skills system for on-demand capabilities.

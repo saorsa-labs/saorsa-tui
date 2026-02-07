@@ -36,6 +36,10 @@ pub enum FaeAgentError {
     /// Internal error.
     #[error("internal error: {0}")]
     Internal(String),
+
+    /// Extension error.
+    #[error("extension error: {0}")]
+    Extension(String),
 }
 
 /// Result type alias for fae-agent operations.
