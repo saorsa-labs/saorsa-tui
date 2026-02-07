@@ -21,36 +21,33 @@ async fn workflow_read_edit_write() {
 
     // 1. Read the file
     let read_tool = tools.get("read").unwrap();
-    let read_result = read_tool
+    let content = read_tool
         .execute(serde_json::json!({
             "file_path": file_path.to_str().unwrap()
         }))
-        .await;
-    assert!(read_result.is_ok());
-    let content = read_result.unwrap();
+        .await
+        .unwrap();
     assert!(content.contains("Line 1"));
 
     // 2. Edit a line
     let edit_tool = tools.get("edit").unwrap();
-    let edit_result = edit_tool
+    let edit_output = edit_tool
         .execute(serde_json::json!({
             "file_path": file_path.to_str().unwrap(),
             "old_text": "Line 2",
             "new_text": "Modified Line 2"
         }))
-        .await;
-    assert!(edit_result.is_ok());
-    let edit_output = edit_result.unwrap();
+        .await
+        .unwrap();
     assert!(edit_output.contains("Replaced text"));
 
     // 3. Verify with read
-    let read_result = read_tool
+    let content = read_tool
         .execute(serde_json::json!({
             "file_path": file_path.to_str().unwrap()
         }))
-        .await;
-    assert!(read_result.is_ok());
-    let content = read_result.unwrap();
+        .await
+        .unwrap();
     assert!(content.contains("Modified Line 2"));
 }
 
@@ -71,28 +68,26 @@ async fn workflow_find_and_grep() {
 
     // 1. Find all .rs files
     let find_tool = tools.get("find").unwrap();
-    let find_result = find_tool
+    let found = find_tool
         .execute(serde_json::json!({
             "pattern": "*.rs",
             "path": temp_dir.path().to_str().unwrap()
         }))
-        .await;
-    assert!(find_result.is_ok());
-    let found = find_result.unwrap();
+        .await
+        .unwrap();
     assert!(found.contains("test1.rs"));
     assert!(found.contains("test2.rs"));
     assert!(!found.contains("other.txt"));
 
     // 2. Grep for "println" in the directory
     let grep_tool = tools.get("grep").unwrap();
-    let grep_result = grep_tool
+    let matches = grep_tool
         .execute(serde_json::json!({
             "pattern": "println",
             "path": temp_dir.path().to_str().unwrap()
         }))
-        .await;
-    assert!(grep_result.is_ok());
-    let matches = grep_result.unwrap();
+        .await
+        .unwrap();
     assert!(matches.contains("test1.rs"));
     assert!(matches.contains("test2.rs"));
 }
@@ -114,27 +109,25 @@ async fn workflow_list_directory() {
 
     // 1. Non-recursive ls
     let ls_tool = tools.get("ls").unwrap();
-    let ls_result = ls_tool
+    let listing = ls_tool
         .execute(serde_json::json!({
             "path": temp_dir.path().to_str().unwrap()
         }))
-        .await;
-    assert!(ls_result.is_ok());
-    let listing = ls_result.unwrap();
+        .await
+        .unwrap();
     assert!(listing.contains("file1.txt"));
     assert!(listing.contains("subdir"));
     assert!(listing.contains("FILE"));
     assert!(listing.contains("DIR"));
 
     // 2. Recursive ls
-    let ls_result = ls_tool
+    let listing = ls_tool
         .execute(serde_json::json!({
             "path": temp_dir.path().to_str().unwrap(),
             "recursive": true
         }))
-        .await;
-    assert!(ls_result.is_ok());
-    let listing = ls_result.unwrap();
+        .await
+        .unwrap();
     assert!(listing.contains("file1.txt"));
     assert!(listing.contains("file2.txt") || listing.contains("subdir/file2.txt"));
 }
@@ -149,22 +142,21 @@ async fn workflow_bash_and_read() {
 
     // 1. Use bash to create a file
     let bash_tool = tools.get("bash").unwrap();
-    let bash_result = bash_tool
+    bash_tool
         .execute(serde_json::json!({
             "command": format!("echo 'Hello from bash' > {}", file_path.to_str().unwrap())
         }))
-        .await;
-    assert!(bash_result.is_ok());
+        .await
+        .unwrap();
 
     // 2. Read the file with read tool
     let read_tool = tools.get("read").unwrap();
-    let read_result = read_tool
+    let content = read_tool
         .execute(serde_json::json!({
             "file_path": file_path.to_str().unwrap()
         }))
-        .await;
-    assert!(read_result.is_ok());
-    let content = read_result.unwrap();
+        .await
+        .unwrap();
     assert!(content.contains("Hello from bash"));
 }
 

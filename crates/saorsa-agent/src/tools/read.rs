@@ -1,10 +1,11 @@
 //! Read tool for reading file contents with optional line ranges.
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
+use super::resolve_path;
 use crate::error::{Result, SaorsaAgentError};
 use crate::tool::Tool;
 
@@ -32,16 +33,6 @@ impl ReadTool {
     pub fn new(working_dir: impl Into<PathBuf>) -> Self {
         Self {
             working_dir: working_dir.into(),
-        }
-    }
-
-    /// Resolve a file path relative to the working directory.
-    fn resolve_path(&self, path: &str) -> PathBuf {
-        let path = Path::new(path);
-        if path.is_absolute() {
-            path.to_path_buf()
-        } else {
-            self.working_dir.join(path)
         }
     }
 
@@ -164,7 +155,7 @@ impl Tool for ReadTool {
         let input: ReadInput = serde_json::from_value(input)
             .map_err(|e| SaorsaAgentError::Tool(format!("Invalid input: {e}")))?;
 
-        let path = self.resolve_path(&input.file_path);
+        let path = resolve_path(&self.working_dir, &input.file_path);
 
         // Check if file exists
         if !path.exists() {

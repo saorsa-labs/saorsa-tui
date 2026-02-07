@@ -58,15 +58,14 @@ pub fn message_path(
 
 /// Ensure a directory exists, creating it if necessary.
 pub fn ensure_dir(path: &Path) -> Result<(), SaorsaAgentError> {
-    if !path.exists() {
-        std::fs::create_dir_all(path).map_err(|e| {
-            SaorsaAgentError::Session(format!("Failed to create directory {:?}: {}", path, e))
-        })?;
-    }
+    std::fs::create_dir_all(path).map_err(|e| {
+        SaorsaAgentError::Session(format!("Failed to create directory {:?}: {}", path, e))
+    })?;
     Ok(())
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -75,15 +74,9 @@ mod tests {
         unsafe {
             std::env::set_var("XDG_DATA_HOME", "/tmp/xdg_test");
         }
-        let dir = sessions_dir();
-        assert!(dir.is_ok());
-        match dir {
-            Ok(path) => {
-                assert!(path.to_string_lossy().contains("xdg_test"));
-                assert!(path.ends_with("saorsa-tui/sessions"));
-            }
-            Err(_) => unreachable!(),
-        }
+        let path = sessions_dir().unwrap();
+        assert!(path.to_string_lossy().contains("xdg_test"));
+        assert!(path.ends_with("saorsa-tui/sessions"));
         unsafe {
             std::env::remove_var("XDG_DATA_HOME");
         }
@@ -94,83 +87,47 @@ mod tests {
         unsafe {
             std::env::remove_var("XDG_DATA_HOME");
         }
-        let dir = sessions_dir();
-        assert!(dir.is_ok());
-        match dir {
-            Ok(path) => {
-                assert!(path.to_string_lossy().contains(".saorsa-tui"));
-                assert!(path.ends_with(".saorsa-tui/sessions"));
-            }
-            Err(_) => unreachable!(),
-        }
+        let path = sessions_dir().unwrap();
+        assert!(path.to_string_lossy().contains(".saorsa-tui"));
+        assert!(path.ends_with(".saorsa-tui/sessions"));
     }
 
     #[test]
     fn test_session_dir_includes_id() {
         let id = SessionId::new();
-        let dir = session_dir(&id);
-        assert!(dir.is_ok());
-        match dir {
-            Ok(path) => assert!(path.to_string_lossy().contains(&id.as_str())),
-            Err(_) => unreachable!(),
-        }
+        let path = session_dir(&id).unwrap();
+        assert!(path.to_string_lossy().contains(&id.as_str()));
     }
 
     #[test]
     fn test_manifest_path() {
         let id = SessionId::new();
-        let path = manifest_path(&id);
-        assert!(path.is_ok());
-        match path {
-            Ok(p) => {
-                assert!(p.ends_with("manifest.json"));
-                assert!(p.to_string_lossy().contains(&id.as_str()));
-            }
-            Err(_) => unreachable!(),
-        }
+        let p = manifest_path(&id).unwrap();
+        assert!(p.ends_with("manifest.json"));
+        assert!(p.to_string_lossy().contains(&id.as_str()));
     }
 
     #[test]
     fn test_tree_path() {
         let id = SessionId::new();
-        let path = tree_path(&id);
-        assert!(path.is_ok());
-        match path {
-            Ok(p) => assert!(p.ends_with("tree.json")),
-            Err(_) => unreachable!(),
-        }
+        let p = tree_path(&id).unwrap();
+        assert!(p.ends_with("tree.json"));
     }
 
     #[test]
     fn test_messages_dir() {
         let id = SessionId::new();
-        let path = messages_dir(&id);
-        assert!(path.is_ok());
-        match path {
-            Ok(p) => assert!(p.ends_with("messages")),
-            Err(_) => unreachable!(),
-        }
+        let p = messages_dir(&id).unwrap();
+        assert!(p.ends_with("messages"));
     }
 
     #[test]
     fn test_message_path_format() {
         let id = SessionId::new();
-        let path = message_path(&id, 0, "user");
-        assert!(path.is_ok());
-        match path {
-            Ok(p) => {
-                assert!(p.ends_with(Path::new("messages").join("0-user.json")));
-            }
-            Err(_) => unreachable!(),
-        }
+        let p = message_path(&id, 0, "user").unwrap();
+        assert!(p.ends_with(Path::new("messages").join("0-user.json")));
 
-        let path2 = message_path(&id, 42, "assistant");
-        assert!(path2.is_ok());
-        match path2 {
-            Ok(p2) => {
-                assert!(p2.ends_with(Path::new("messages").join("42-assistant.json")));
-            }
-            Err(_) => unreachable!(),
-        }
+        let p2 = message_path(&id, 42, "assistant").unwrap();
+        assert!(p2.ends_with(Path::new("messages").join("42-assistant.json")));
     }
 }

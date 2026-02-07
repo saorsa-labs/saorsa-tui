@@ -7,6 +7,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
+use super::resolve_path;
 use crate::error::{Result, SaorsaAgentError};
 use crate::tool::Tool;
 
@@ -36,16 +37,6 @@ impl GrepTool {
     pub fn new(working_dir: impl Into<PathBuf>) -> Self {
         Self {
             working_dir: working_dir.into(),
-        }
-    }
-
-    /// Resolve a file path relative to the working directory.
-    fn resolve_path(&self, path: &str) -> PathBuf {
-        let path = Path::new(path);
-        if path.is_absolute() {
-            path.to_path_buf()
-        } else {
-            self.working_dir.join(path)
         }
     }
 
@@ -107,7 +98,7 @@ impl Tool for GrepTool {
         let input: GrepInput = serde_json::from_value(input)
             .map_err(|e| SaorsaAgentError::Tool(format!("Invalid input: {e}")))?;
 
-        let path = self.resolve_path(&input.path);
+        let path = resolve_path(&self.working_dir, &input.path);
 
         // Check if path exists
         if !path.exists() {

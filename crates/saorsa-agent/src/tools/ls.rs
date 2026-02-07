@@ -1,11 +1,12 @@
 //! Ls tool for listing directory contents with metadata.
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
+use super::resolve_path;
 use crate::error::{Result, SaorsaAgentError};
 use crate::tool::Tool;
 
@@ -34,17 +35,10 @@ impl LsTool {
         }
     }
 
-    /// Resolve a file path relative to the working directory.
-    fn resolve_path(&self, path: Option<&str>) -> PathBuf {
+    /// Resolve an optional file path relative to the working directory.
+    fn resolve_optional_path(&self, path: Option<&str>) -> PathBuf {
         match path {
-            Some(p) => {
-                let path = Path::new(p);
-                if path.is_absolute() {
-                    path.to_path_buf()
-                } else {
-                    self.working_dir.join(path)
-                }
-            }
+            Some(p) => resolve_path(&self.working_dir, p),
             None => self.working_dir.clone(),
         }
     }
@@ -66,13 +60,8 @@ impl LsTool {
         }
     }
 
-    /// Get entry type as a string.
-    fn entry_type(path: &Path) -> &'static str {
-        let metadata = match fs::metadata(path) {
-            Ok(m) => m,
-            Err(_) => return "?",
-        };
-
+    /// Get entry type as a string from pre-fetched metadata.
+    fn entry_type(metadata: &fs::Metadata) -> &'static str {
         if metadata.is_dir() {
             "DIR"
         } else if metadata.is_symlink() {
@@ -114,7 +103,7 @@ impl Tool for LsTool {
         let input: LsInput = serde_json::from_value(input)
             .map_err(|e| SaorsaAgentError::Tool(format!("Invalid input: {e}")))?;
 
-        let list_path = self.resolve_path(input.path.as_deref());
+        let list_path = self.resolve_optional_path(input.path.as_deref());
 
         // Check if path exists
         if !list_path.exists() {
@@ -166,7 +155,7 @@ impl Tool for LsTool {
                 entries.push(format!(
                     "{:>8}  {:4}  {}",
                     size,
-                    Self::entry_type(path),
+                    Self::entry_type(&metadata),
                     rel_path
                 ));
             }
@@ -181,7 +170,6 @@ impl Tool for LsTool {
             dir_entries.sort_by_key(|e| e.file_name());
 
             for entry in dir_entries {
-                let path = entry.path();
                 let metadata = match entry.metadata() {
                     Ok(m) => m,
                     Err(_) => continue,
@@ -198,7 +186,7 @@ impl Tool for LsTool {
                 entries.push(format!(
                     "{:>8}  {:4}  {}",
                     size,
-                    Self::entry_type(&path),
+                    Self::entry_type(&metadata),
                     name
                 ));
             }

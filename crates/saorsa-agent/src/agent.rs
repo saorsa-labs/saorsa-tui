@@ -3,7 +3,7 @@
 //! The agent loop sends messages to the LLM, processes streaming responses,
 //! executes tool calls, and continues until the model stops or a turn limit is reached.
 
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
 use saorsa_ai::{
     CompletionRequest, ContentBlock, ContentDelta, Message, StopReason, StreamEvent,
@@ -150,10 +150,18 @@ impl AgentLoop {
                 assistant_content.push(ContentBlock::Text { text: text_content });
             }
 
-            // Emit tool call events.
+            // Parse tool call inputs once and emit events.
+            let mut parsed_inputs = Vec::with_capacity(tool_calls.len());
             for tc in &tool_calls {
-                let input: serde_json::Value = serde_json::from_str(&tc.input_json)
-                    .unwrap_or(serde_json::Value::Object(serde_json::Map::new()));
+                let input: serde_json::Value =
+                    serde_json::from_str(&tc.input_json).unwrap_or_else(|e| {
+                        warn!(
+                            tool = %tc.name,
+                            error = %e,
+                            "Malformed tool call JSON, using empty object"
+                        );
+                        serde_json::Value::Object(serde_json::Map::new())
+                    });
 
                 let _ = self
                     .event_tx
@@ -167,8 +175,10 @@ impl AgentLoop {
                 assistant_content.push(ContentBlock::ToolUse {
                     id: tc.id.clone(),
                     name: tc.name.clone(),
-                    input,
+                    input: input.clone(),
                 });
+
+                parsed_inputs.push(input);
             }
 
             self.messages.push(Message {
@@ -179,7 +189,7 @@ impl AgentLoop {
             // Handle tool calls.
             match stop_reason {
                 Some(StopReason::ToolUse) if !tool_calls.is_empty() => {
-                    let tool_results = self.execute_tool_calls(&tool_calls).await;
+                    let tool_results = self.execute_tool_calls(&tool_calls, &parsed_inputs).await;
 
                     for result in &tool_results {
                         self.messages
@@ -223,16 +233,17 @@ impl AgentLoop {
         Ok(final_text)
     }
 
-    /// Execute a list of tool calls and return results.
-    async fn execute_tool_calls(&self, tool_calls: &[ToolCallInfo]) -> Vec<ToolResultInfo> {
+    /// Execute a list of tool calls with pre-parsed inputs and return results.
+    async fn execute_tool_calls(
+        &self,
+        tool_calls: &[ToolCallInfo],
+        inputs: &[serde_json::Value],
+    ) -> Vec<ToolResultInfo> {
         let mut results = Vec::new();
 
-        for tc in tool_calls {
-            let input: serde_json::Value = serde_json::from_str(&tc.input_json)
-                .unwrap_or(serde_json::Value::Object(serde_json::Map::new()));
-
+        for (tc, input) in tool_calls.iter().zip(inputs.iter()) {
             let (output, success) = match self.tools.get(&tc.name) {
-                Some(tool) => match tool.execute(input).await {
+                Some(tool) => match tool.execute(input.clone()).await {
                     Ok(result) => (result, true),
                     Err(e) => (format!("Error: {e}"), false),
                 },

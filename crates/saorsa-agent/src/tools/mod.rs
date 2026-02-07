@@ -217,3 +217,46 @@ pub use grep::GrepTool;
 pub use ls::LsTool;
 pub use read::ReadTool;
 pub use write::WriteTool;
+
+use std::path::{Path, PathBuf};
+
+use similar::{ChangeTag, TextDiff};
+
+/// Resolve a file path relative to a working directory.
+///
+/// Returns the path as-is if absolute, otherwise joins it with the working directory.
+pub(crate) fn resolve_path(working_dir: &Path, path: &str) -> PathBuf {
+    let path = Path::new(path);
+    if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        working_dir.join(path)
+    }
+}
+
+/// Generate a unified diff between old and new content.
+///
+/// The `label` parameter is appended to the `+++` header (e.g., "new", "edited").
+pub(crate) fn generate_diff(
+    old_content: &str,
+    new_content: &str,
+    file_path: &Path,
+    label: &str,
+) -> String {
+    let diff = TextDiff::from_lines(old_content, new_content);
+
+    let mut output = String::new();
+    output.push_str(&format!("--- {}\n", file_path.display()));
+    output.push_str(&format!("+++ {} ({})\n", file_path.display(), label));
+
+    for change in diff.iter_all_changes() {
+        let sign = match change.tag() {
+            ChangeTag::Delete => "-",
+            ChangeTag::Insert => "+",
+            ChangeTag::Equal => " ",
+        };
+        output.push_str(&format!("{}{}", sign, change));
+    }
+
+    output
+}

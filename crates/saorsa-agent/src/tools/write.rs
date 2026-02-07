@@ -1,11 +1,11 @@
 //! Write tool for writing file contents with diff display.
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
-use similar::{ChangeTag, TextDiff};
 
+use super::{generate_diff, resolve_path};
 use crate::error::{Result, SaorsaAgentError};
 use crate::tool::Tool;
 
@@ -30,36 +30,6 @@ impl WriteTool {
         Self {
             working_dir: working_dir.into(),
         }
-    }
-
-    /// Resolve a file path relative to the working directory.
-    fn resolve_path(&self, path: &str) -> PathBuf {
-        let path = Path::new(path);
-        if path.is_absolute() {
-            path.to_path_buf()
-        } else {
-            self.working_dir.join(path)
-        }
-    }
-
-    /// Generate a unified diff between old and new content.
-    fn generate_diff(old_content: &str, new_content: &str, file_path: &Path) -> String {
-        let diff = TextDiff::from_lines(old_content, new_content);
-
-        let mut output = String::new();
-        output.push_str(&format!("--- {}\n", file_path.display()));
-        output.push_str(&format!("+++ {} (new)\n", file_path.display()));
-
-        for change in diff.iter_all_changes() {
-            let sign = match change.tag() {
-                ChangeTag::Delete => "-",
-                ChangeTag::Insert => "+",
-                ChangeTag::Equal => " ",
-            };
-            output.push_str(&format!("{}{}", sign, change));
-        }
-
-        output
     }
 }
 
@@ -94,7 +64,7 @@ impl Tool for WriteTool {
         let input: WriteInput = serde_json::from_value(input)
             .map_err(|e| SaorsaAgentError::Tool(format!("Invalid input: {e}")))?;
 
-        let path = self.resolve_path(&input.file_path);
+        let path = resolve_path(&self.working_dir, &input.file_path);
 
         // Check if file already exists and generate diff if so
         let (old_content, file_exists) = if path.exists() {
@@ -135,7 +105,7 @@ impl Tool for WriteTool {
         if let Some(old) = old_content {
             if old != input.content {
                 response.push_str("Diff:\n");
-                response.push_str(&Self::generate_diff(&old, &input.content, &path));
+                response.push_str(&generate_diff(&old, &input.content, &path, "new"));
             } else {
                 response.push_str("(No changes - content identical)");
             }
@@ -271,9 +241,9 @@ mod tests {
     fn diff_generation() {
         let old = "Line 1\nLine 2\nLine 3\n";
         let new = "Line 1\nModified Line 2\nLine 3\n";
-        let path = Path::new("test.txt");
+        let path = std::path::Path::new("test.txt");
 
-        let diff = WriteTool::generate_diff(old, new, path);
+        let diff = super::super::generate_diff(old, new, path, "new");
 
         assert!(diff.contains("--- test.txt"));
         assert!(diff.contains("+++ test.txt (new)"));

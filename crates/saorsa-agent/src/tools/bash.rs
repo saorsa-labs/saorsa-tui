@@ -39,9 +39,17 @@ impl BashTool {
     }
 
     /// Truncate output if it exceeds the maximum length.
+    ///
+    /// Rounds down to a valid UTF-8 character boundary to avoid panicking
+    /// on multi-byte characters.
     fn truncate_output(output: &str) -> String {
         if output.len() > MAX_OUTPUT_BYTES {
-            let truncated = &output[..MAX_OUTPUT_BYTES];
+            // Walk back from MAX_OUTPUT_BYTES until we hit a char boundary.
+            let mut boundary = MAX_OUTPUT_BYTES;
+            while boundary > 0 && !output.is_char_boundary(boundary) {
+                boundary -= 1;
+            }
+            let truncated = &output[..boundary];
             format!(
                 "{truncated}\n\n... (output truncated, {} bytes total)",
                 output.len()

@@ -1,11 +1,11 @@
 //! Edit tool for surgical file editing with ambiguity detection.
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
-use similar::{ChangeTag, TextDiff};
 
+use super::{generate_diff, resolve_path};
 use crate::error::{Result, SaorsaAgentError};
 use crate::tool::Tool;
 
@@ -35,36 +35,6 @@ impl EditTool {
         Self {
             working_dir: working_dir.into(),
         }
-    }
-
-    /// Resolve a file path relative to the working directory.
-    fn resolve_path(&self, path: &str) -> PathBuf {
-        let path = Path::new(path);
-        if path.is_absolute() {
-            path.to_path_buf()
-        } else {
-            self.working_dir.join(path)
-        }
-    }
-
-    /// Generate a unified diff between old and new content.
-    fn generate_diff(old_content: &str, new_content: &str, file_path: &Path) -> String {
-        let diff = TextDiff::from_lines(old_content, new_content);
-
-        let mut output = String::new();
-        output.push_str(&format!("--- {}\n", file_path.display()));
-        output.push_str(&format!("+++ {} (edited)\n", file_path.display()));
-
-        for change in diff.iter_all_changes() {
-            let sign = match change.tag() {
-                ChangeTag::Delete => "-",
-                ChangeTag::Insert => "+",
-                ChangeTag::Equal => " ",
-            };
-            output.push_str(&format!("{}{}", sign, change));
-        }
-
-        output
     }
 }
 
@@ -108,7 +78,7 @@ impl Tool for EditTool {
         let input: EditInput = serde_json::from_value(input)
             .map_err(|e| SaorsaAgentError::Tool(format!("Invalid input: {e}")))?;
 
-        let path = self.resolve_path(&input.file_path);
+        let path = resolve_path(&self.working_dir, &input.file_path);
 
         // Check if file exists
         if !path.exists() {
@@ -172,7 +142,7 @@ impl Tool for EditTool {
 
         // Add diff
         response.push_str("Diff:\n");
-        response.push_str(&Self::generate_diff(&content, &new_content, &path));
+        response.push_str(&generate_diff(&content, &new_content, &path, "edited"));
 
         Ok(response)
     }

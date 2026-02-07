@@ -1,11 +1,12 @@
 //! Find tool for locating files by name pattern.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use globset::{Glob, GlobMatcher};
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
+use super::resolve_path;
 use crate::error::{Result, SaorsaAgentError};
 use crate::tool::Tool;
 
@@ -36,17 +37,10 @@ impl FindTool {
         }
     }
 
-    /// Resolve a file path relative to the working directory.
-    fn resolve_path(&self, path: Option<&str>) -> PathBuf {
+    /// Resolve an optional file path relative to the working directory.
+    fn resolve_optional_path(&self, path: Option<&str>) -> PathBuf {
         match path {
-            Some(p) => {
-                let path = Path::new(p);
-                if path.is_absolute() {
-                    path.to_path_buf()
-                } else {
-                    self.working_dir.join(path)
-                }
-            }
+            Some(p) => resolve_path(&self.working_dir, p),
             None => self.working_dir.clone(),
         }
     }
@@ -83,7 +77,7 @@ impl Tool for FindTool {
         let input: FindInput = serde_json::from_value(input)
             .map_err(|e| SaorsaAgentError::Tool(format!("Invalid input: {e}")))?;
 
-        let search_path = self.resolve_path(input.path.as_deref());
+        let search_path = self.resolve_optional_path(input.path.as_deref());
 
         // Check if search path exists
         if !search_path.exists() {
