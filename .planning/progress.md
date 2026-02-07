@@ -321,3 +321,4 @@ All 8 tasks completed: Read, Write, Edit, Grep, Find, Ls tools implemented with 
 - [x] Task 1: Session Types and Core Structures (commit: 89c89c9)
 - [x] Task 2: Filesystem Layout and Serialization (commit: d097c64)
 - [x] Task 4: Continue and Resume Functionality (commit: 8b72905)
+- [x] Task 5: Tree Command and Navigation (commit: d9c9836)
