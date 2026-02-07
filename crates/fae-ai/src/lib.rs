@@ -5,6 +5,7 @@
 
 pub mod anthropic;
 pub mod error;
+pub mod gemini;
 pub mod message;
 pub mod openai;
 pub mod provider;
@@ -13,6 +14,7 @@ pub mod types;
 
 pub use anthropic::AnthropicProvider;
 pub use error::{FaeAiError, Result};
+pub use gemini::GeminiProvider;
 pub use message::{ContentBlock, Message, Role, ToolDefinition};
 pub use openai::OpenAiProvider;
 pub use provider::{Provider, ProviderConfig, ProviderKind, ProviderRegistry, StreamingProvider};

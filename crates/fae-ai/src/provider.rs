@@ -171,6 +171,10 @@ impl Default for ProviderRegistry {
             let provider = crate::openai::OpenAiProvider::new(config)?;
             Ok(Box::new(provider))
         });
+        reg.register(ProviderKind::Gemini, |config| {
+            let provider = crate::gemini::GeminiProvider::new(config)?;
+            Ok(Box::new(provider))
+        });
         reg
     }
 }
@@ -257,7 +261,7 @@ mod tests {
         let reg = ProviderRegistry::default();
         assert!(reg.has_provider(ProviderKind::Anthropic));
         assert!(reg.has_provider(ProviderKind::OpenAi));
-        assert!(!reg.has_provider(ProviderKind::Gemini));
+        assert!(reg.has_provider(ProviderKind::Gemini));
         assert!(!reg.has_provider(ProviderKind::Ollama));
         assert!(!reg.has_provider(ProviderKind::OpenAiCompatible));
     }
@@ -283,9 +287,17 @@ mod tests {
     }
 
     #[test]
+    fn registry_create_gemini() {
+        let reg = ProviderRegistry::default();
+        let config = ProviderConfig::new(ProviderKind::Gemini, "test-key", "gemini-2.0-flash");
+        let result = reg.create(config);
+        assert!(result.is_ok());
+    }
+
+    #[test]
     fn registry_create_unknown_returns_error() {
         let reg = ProviderRegistry::default();
-        let config = ProviderConfig::new(ProviderKind::Gemini, "key", "gemini-2.0-flash");
+        let config = ProviderConfig::new(ProviderKind::Ollama, "", "llama3");
         let result = reg.create(config);
         assert!(result.is_err());
     }
