@@ -1,297 +1,247 @@
-# Documentation Review
-**Date**: 2026-02-07
-**Mode**: gsd (Phase 4.1 - Text Widgets)
-**Reviewer**: Documentation Auditor
+# Phase 4.2 Widget Documentation Coverage Review
 
-## Summary
+**Date:** 2026-02-07
+**Scope:** Phase 4.2 widget implementations (fae-core/src/widget/)
+**Files Reviewed:** 6 widget files
+**Status:** 1 documentation warning found
 
-Phase 4.1 (Text Widgets) documentation coverage is EXCELLENT. All 7 modules have complete, well-structured doc comments on all public items with clear examples.
+## Overview
 
----
+Documentation coverage analysis for Phase 4.2 advanced widget implementations. All public items have doc comments, but one rustdoc HTML tag warning exists.
 
-## File-by-File Analysis
+## Files Analyzed
 
-### 1. `crates/fae-core/src/text_buffer.rs`
-**Status**: ✅ COMPLETE
+1. `rich_log.rs` - Scrollable log widget
+2. `select_list.rs` - List widget with fuzzy filtering
+3. `data_table.rs` - Scrollable data table with sorting
+4. `tree.rs` - Hierarchical tree widget
+5. `directory_tree.rs` - Filesystem directory tree
+6. `diff_view.rs` - Diff viewer widget
 
-**Public Items Documented**:
-- ✅ Module-level doc comment (lines 1-4)
-- ✅ `TextBuffer` struct (lines 9-15)
-  - All fields documented
-  - Clear purpose and usage
-- ✅ `TextBuffer::new()` (line 20-22)
-- ✅ `TextBuffer::from_text()` (line 25-29)
-- ✅ `TextBuffer::line_count()` (line 32-37)
-  - Includes edge case documentation
-- ✅ `TextBuffer::line()` (line 40-51)
-  - Documents return behavior
-- ✅ `TextBuffer::line_len()` (line 54-58)
-- ✅ `TextBuffer::total_chars()` (line 61-63)
-- ✅ `TextBuffer::insert_char()` (line 66-73)
-  - Documents position behavior
-- ✅ `TextBuffer::insert_str()` (line 76-82)
-  - Mentions newline handling
-- ✅ `TextBuffer::delete_char()` (line 85-94)
-  - Documents line joining behavior
-- ✅ `TextBuffer::delete_range()` (line 97-116)
-  - Clear range semantics (start inclusive, end exclusive)
-- ✅ `TextBuffer::lines_range()` (line 119-127)
-- ✅ `TextBuffer::line_col_to_char()` private helper (line 130-146)
-  - Documented even though private (good practice)
-- ✅ `Default` trait impl (line 150-153)
-- ✅ `Display` trait impl (line 156-162)
+## Doc Coverage Summary
 
-**Coverage**: 100% - All public APIs documented
+### Total Public Items Checked: 105
 
----
+| File | Public Items | Doc Coverage | Status |
+|------|--------------|--------------|--------|
+| rich_log.rs | 13 | 100% | PASS |
+| select_list.rs | 27 | 100% | PASS |
+| data_table.rs | 21 | 100% | PASS |
+| tree.rs | 17 | 100% | PASS |
+| directory_tree.rs | 12 | 100% | PASS |
+| diff_view.rs | 15 | 100% | PASS |
 
-### 2. `crates/fae-core/src/cursor.rs`
-**Status**: ✅ COMPLETE
+## Detailed Findings
 
-**Public Items Documented**:
-- ✅ Module-level doc comment (lines 1-5)
-- ✅ `CursorPosition` struct (line 9-17)
-  - All fields documented
-- ✅ `CursorPosition::new()` (line 21-23)
-- ✅ `CursorPosition::beginning()` (line 26-28)
-- ✅ `Ord`/`PartialOrd` trait implementations (line 32-41)
-- ✅ `Selection` struct (line 44-55)
-  - All fields documented
-  - Clarifies anchor/head semantics
-- ✅ `Selection::new()` (line 58-60)
-- ✅ `Selection::is_empty()` (line 63-65)
-- ✅ `Selection::ordered()` (line 68-74)
-  - Explains document order semantics
-- ✅ `Selection::contains()` (line 77-80)
-- ✅ `Selection::line_range()` (line 83-86)
-- ✅ `CursorState` struct (line 90-103)
-  - All fields documented
-  - Documents preferred_col behavior
-- ✅ `CursorState::new()` (line 106-112)
-- ✅ `CursorState::move_left()` (line 115-124)
-- ✅ `CursorState::move_right()` (line 127-137)
-- ✅ `CursorState::move_up()` (line 140-149)
-  - Documents preferred column behavior
-- ✅ `CursorState::move_down()` (line 152-161)
-- ✅ `CursorState::move_to_line_start()` (line 164-168)
-- ✅ `CursorState::move_to_line_end()` (line 171-175)
-- ✅ `CursorState::move_to_buffer_start()` (line 178-182)
-- ✅ `CursorState::move_to_buffer_end()` (line 185-191)
-- ✅ `CursorState::start_selection()` (line 194-196)
-- ✅ `CursorState::extend_selection()` (line 199-206)
-  - Documents automatic selection creation
-- ✅ `CursorState::clear_selection()` (line 209-211)
-- ✅ `CursorState::selected_text()` (line 214-252)
-  - Comprehensive documentation
+### 1. rich_log.rs (PASS)
 
-**Coverage**: 100% - All public APIs documented
+**Line counts:** 13 public items, all documented
 
----
+**Public API:**
+- `RichLog` struct - documented (line 18)
+- `RichLog::new()` - documented (line 37)
+- `RichLog::with_style()` - documented (line 48)
+- `RichLog::with_border()` - documented (line 55)
+- `RichLog::with_auto_scroll()` - documented (line 62)
+- `RichLog::push()` - documented (line 69)
+- `RichLog::push_text()` - documented (line 82)
+- `RichLog::clear()` - documented (line 90)
+- `RichLog::len()` - documented (line 96)
+- `RichLog::is_empty()` - documented (line 101)
+- `RichLog::scroll_to_bottom()` - documented (line 106)
+- `RichLog::scroll_to_top()` - documented (line 113)
+- `RichLog::scroll_offset()` - documented (line 118)
 
-### 3. `crates/fae-core/src/undo.rs`
-**Status**: ✅ COMPLETE
+**Status:** All items have proper documentation. Comprehensive module-level doc comment describes widget purpose and capabilities.
 
-**Public Items Documented**:
-- ✅ Module-level doc comment (lines 1-5)
-- ✅ `EditOperation` enum (line 9-34)
-  - ✅ Insert variant with fields (line 12-17)
-  - ✅ Delete variant with fields (line 19-24)
-  - ✅ Replace variant with fields (line 26-33)
-- ✅ `EditOperation::inverse()` (line 38-62)
-  - Clear documentation with examples
-- ✅ `UndoStack` struct (line 66-75)
-- ✅ `UndoStack::new()` (line 79-85)
-- ✅ `UndoStack::push()` (line 88-97)
-  - Documents redo stack clearing
-- ✅ `UndoStack::undo()` (line 100-107)
-  - Documents redo stack behavior
-- ✅ `UndoStack::redo()` (line 110-117)
-  - Documents undo stack behavior
-- ✅ `UndoStack::can_undo()` (line 120-122)
-- ✅ `UndoStack::can_redo()` (line 125-127)
-- ✅ `UndoStack::clear()` (line 130-133)
+### 2. select_list.rs (PASS)
 
-**Coverage**: 100% - All public APIs documented
+**Line counts:** 27 public items, all documented
 
----
+**Public API:**
+- `SelectList<T>` struct - documented (line 29)
+- Constructor methods - all documented
+- Navigation/state methods - all documented
+- Filtering API methods - all documented
 
-### 4. `crates/fae-core/src/wrap.rs`
-**Status**: ✅ COMPLETE
+**Notable docs:**
+- Line 62-65: Comprehensive constructor doc with cross-reference to `with_render_fn`
+- Line 84-92: `with_render_fn` well documented
+- Line 125-128: `with_search_fn` explains fuzzy filtering requirement
+- Line 154-159: `selected()` clarifies filtered vs unfiltered behavior
+- Line 171-177: `selected_item()` explicitly states filtering behavior
 
-**Public Items Documented**:
-- ✅ Module-level doc comment (lines 1-5)
-- ✅ `WrapLine` struct (line 10-20)
-  - All fields documented
-- ✅ `WrapResult` struct (line 22-29)
-  - All fields documented
-- ✅ `wrap_line()` function (line 31-87)
-  - Comprehensive algorithm documentation
-  - Documents word boundary behavior
-  - Mentions CJK/emoji handling
-  - Explains breaking strategy
-- ✅ `wrap_lines()` function (line 90-112)
-  - Buffer wrapper documented
-- ✅ `line_number_width()` function (line 115-124)
-  - Clear documentation of 1-based line numbers
-- ✅ Private helpers documented
-  - `display_width_of()` (line 127-131)
-  - `find_last_space()` (line 134-136)
-  - `count_trimmed_spaces()` (line 139-141)
+**Status:** All items documented. High-quality docs explaining complex filtering behavior clearly.
 
-**Coverage**: 100% - All public APIs documented
+### 3. data_table.rs (PASS - with warning)
 
----
+**Line counts:** 21 public items, all documented
 
-### 5. `crates/fae-core/src/highlight.rs`
-**Status**: ✅ COMPLETE
+**Rustdoc Warning:**
+```
+warning: unclosed HTML tag `String`
+  --> crates/fae-core/src/widget/data_table.rs:53:36
+   |
+53 |     /// Row data: each row is a Vec<String>, one per column.
+   |                                    ^^^^^^^^
+   |
+   = note: `#[warn(rustdoc::invalid_html_tags)]`
+help: try marking as source code
+   |
+53 |     /// Row data: each row is a `Vec<String>`, one per column.
+   |                                 +           +
+```
 
-**Public Items Documented**:
-- ✅ Module-level doc comment (lines 1-6)
-- ✅ `HighlightSpan` struct (line 10-22)
-  - All fields documented
-  - Clear range semantics (start inclusive, end exclusive)
-- ✅ `Highlighter` trait (line 24-40)
-  - ✅ `highlight_line()` method (line 30-33)
-    - Parameter and return documentation
-  - ✅ `on_edit()` method (line 36-40)
-    - Documents purpose for incremental parsers
-- ✅ `NoHighlighter` struct (line 43-55)
-  - Clear documentation of no-op behavior
-- ✅ `SimpleKeywordHighlighter` struct (line 58-71)
-  - ✅ `new()` constructor (line 68-70)
-- ✅ Trait implementations documented
+**Fix needed:** Line 53 - wrap `Vec<String>` in backticks
 
-**Coverage**: 100% - All public APIs documented
+**Public API Items:**
+- `Column` struct - documented (line 17)
+- `Column::new()` - documented (line 29)
+- `Column::with_alignment()` - documented (line 38)
+- `DataTable` struct - documented (line 46)
+- `DataTable::new()` - documented (line 78)
+- All builder/accessor/sort methods - documented
 
----
+**Status:** All items documented, but one HTML tag requires fixing.
 
-### 6. `crates/fae-core/src/widget/text_area.rs`
-**Status**: ✅ COMPLETE
+### 4. tree.rs (PASS)
 
-**Public Items Documented**:
-- ✅ Module-level doc comment (lines 1-2)
-- ✅ `TextArea` struct (line 18-42)
-  - All public fields documented
-  - Clear feature description
-- ✅ `TextArea::new()` (line 45-58)
-- ✅ `TextArea::from_text()` (line 61-65)
-- ✅ `TextArea::with_highlighter()` (line 68-72)
-  - `#[must_use]` annotation present
-- ✅ `TextArea::with_style()` (line 75-79)
-  - `#[must_use]` annotation present
-- ✅ `TextArea::with_line_numbers()` (line 82-86)
-  - `#[must_use]` annotation present
-- ✅ `TextArea::with_cursor_style()` (line 89-93)
-  - `#[must_use]` annotation present
-- ✅ `TextArea::with_selection_style()` (line 96-100)
-  - `#[must_use]` annotation present
-- ✅ `TextArea::text()` (line 103-105)
-- ✅ `TextArea::insert_char()` (line 110-127)
-- ✅ `TextArea::insert_str()` (line 130-150)
-- ✅ `TextArea::delete_backward()` (line 153-188)
-- ✅ `TextArea::delete_forward()` (line 191-218)
-- ✅ `TextArea::delete_selection()` (line 221-225)
-  - Documents return value
-- ✅ `TextArea::new_line()` (line 228-230)
-- ✅ `TextArea::undo()` (line 233-237)
-- ✅ `TextArea::redo()` (line 240-244)
-- ✅ `TextArea::ensure_cursor_visible()` (line 247-258)
-- ✅ `Widget` trait implementation (line 387-511)
-- ✅ `InteractiveWidget` trait implementation (line 543-549)
+**Line counts:** 17 public items, all documented
 
-**Coverage**: 100% - All public APIs documented
+**Public API:**
+- `TreeNode<T>` struct - documented (line 17)
+- `TreeNode::new()` - documented (line 31)
+- `TreeNode::branch()` - documented (line 41)
+- `TreeNode::with_child()` - documented (line 51)
+- `TreeNode::with_children()` - documented (line 58)
+- `Tree<T>` struct - documented (line 86)
+- `Tree::new()` - documented (line 110)
+- `Tree::with_render_fn()` - documented with params (lines 124-126)
+- All style/border/load methods - documented
+- `Tree::roots()`, `selected()`, `scroll_offset()` - all documented
 
----
+**Notable docs:**
+- Line 124-126: Excellent doc comment explaining render function parameters
+- Line 157-164: Clear lazy load function documentation
+- Module-level doc comprehensively describes widget
 
-### 7. `crates/fae-core/src/widget/markdown.rs`
-**Status**: ✅ COMPLETE
+**Status:** All items documented. Clear, detailed documentation.
 
-**Public Items Documented**:
-- ✅ Module-level doc comment (lines 1-5)
-- ✅ `MarkdownBlock` enum (line 14-31)
-  - ✅ Paragraph variant (line 17)
-  - ✅ Heading(u8) variant (line 19)
-  - ✅ CodeBlock variant (line 21)
-  - ✅ ListItem variant (line 23)
-  - ✅ BlockQuote variant (line 25)
-  - ✅ ThematicBreak variant (line 27)
-  - ✅ Table variant (line 30)
-- ✅ `MarkdownRenderer` struct (line 33-42)
-  - Comprehensive documentation
-  - Explains streaming behavior
-  - Documents incomplete markdown handling
-- ✅ `MarkdownRenderer::new()` (line 45-49)
-- ✅ `MarkdownRenderer::push_str()` (line 52-54)
-  - Documents streaming support
-- ✅ `MarkdownRenderer::clear()` (line 57-59)
-- ✅ `MarkdownRenderer::render_to_lines()` (line 62-229)
-  - Comprehensive documentation
-  - Lists all supported features
-  - Documents word wrapping behavior
-- ✅ `Default` trait implementation (line 234-237)
-- ✅ Private helper functions documented
-  - `flush_line()` (line 240-249)
-  - `current_style()` (line 252-254)
-  - `heading_style()` (line 257-264)
-  - `inline_code_style()` (line 267-269)
-  - `code_block_style()` (line 272-274)
-  - `WrapState` struct (line 277-283)
-  - `wrap_text_into()` (line 286-322)
+### 5. directory_tree.rs (PASS)
 
-**Coverage**: 100% - All public APIs documented
+**Line counts:** 12 public items, all documented
 
----
+**Public API:**
+- `DirectoryTree` struct - documented (line 18)
+- `DirectoryTree::new()` - documented with error conditions (lines 31-34)
+- `DirectoryTree::with_show_hidden()` - documented (line 69)
+- `DirectoryTree::with_node_style()` - documented (line 81)
+- `DirectoryTree::with_selected_style()` - documented (line 88)
+- `DirectoryTree::with_border()` - documented (line 95)
+- `DirectoryTree::selected_path()` - documented (line 102)
+- Navigation methods - documented (lines 107-120)
+- `DirectoryTree::show_hidden()` - documented (line 127)
 
-## Key Strengths
+**Status:** All items documented. Widget-specific docs clearly explain filesystem behavior.
 
-1. **Comprehensive module-level docs** - Each file starts with clear module documentation
-2. **Field documentation** - All struct fields have doc comments
-3. **Edge case documentation** - Functions document boundary conditions (e.g., "If position is beyond end of line...")
-4. **Semantics clarity** - Range operations clearly document inclusive/exclusive semantics
-5. **Builder pattern docs** - TextArea builder methods properly marked with `#[must_use]`
-6. **Trait implementations** - Trait impls are documented even when subtle
-7. **Private helpers** - Private functions are documented for maintainability
-8. **Examples** - Implementation comments in tests serve as examples
+### 6. diff_view.rs (PASS)
 
----
+**Line counts:** 15 public items, all documented
+
+**Public API:**
+- `DiffMode` enum - documented (line 17)
+  - `Unified` variant - documented (line 20)
+  - `SideBySide` variant - documented (line 22)
+- `DiffView` struct - documented (line 44)
+- `DiffView::new()` - documented (line 72)
+- `DiffView::with_mode()` - documented (line 92)
+- `DiffView::with_unchanged_style()` - documented (line 99)
+- `DiffView::with_added_style()` - documented (line 106)
+- `DiffView::with_removed_style()` - documented (line 113)
+- `DiffView::with_border()` - documented (line 120)
+- `DiffView::set_texts()` - documented (line 127)
+- `DiffView::set_mode()` - documented (line 135)
+- `DiffView::mode()` - documented (line 141)
+- `DiffView::line_count()` - documented (line 146)
+- `DiffView::scroll_offset()` - documented (line 154)
+
+**Status:** All items documented. Clear enum variant docs.
 
 ## Test Coverage
 
-- **text_buffer.rs**: 27 comprehensive tests covering all operations
-- **cursor.rs**: 28 tests covering movement, selection, and edge cases
-- **undo.rs**: 14 tests covering push/undo/redo mechanics
-- **wrap.rs**: 17 tests covering wrapping algorithm and edge cases
-- **highlight.rs**: 8 tests for highlighter trait and keyword matching
-- **text_area.rs**: 24 tests for rendering, editing, and interaction
-- **markdown.rs**: 13 tests for markdown rendering
+All six files have comprehensive test suites:
+- `rich_log.rs`: 15 tests
+- `select_list.rs`: 43 tests
+- `data_table.rs`: 52 tests
+- `tree.rs`: 23 tests
+- `directory_tree.rs`: 10 tests
+- `diff_view.rs`: 19 tests
 
-**Total**: 131 tests validating documented behavior
+**Total:** 162 tests covering all major functionality
 
----
+## Issues Found
 
-## Build Status
+### 1. **CRITICAL: HTML Tag Warning in data_table.rs**
 
-✅ Cargo documentation build: **SUCCESS** (0 warnings)
+**Location:** Line 53
+**Issue:** Unclosed HTML tag `String` in doc comment
+**Fix:** Wrap `Vec<String>` in backticks
 
+```rust
+// OLD (line 53):
+/// Row data: each row is a Vec<String>, one per column.
+
+// FIXED:
+/// Row data: each row is a `Vec<String>`, one per column.
 ```
-Documenting fae-core v0.1.0
-Documenting fae-app v0.1.0
-Documenting fae-cli v0.1.0
-Finished `dev` profile in 0.63s
+
+**Severity:** WARNING (blocks doc build with `-D warnings`)
+**Action:** Must be fixed before Phase 4.2 completion
+
+## Documentation Quality Assessment
+
+### Strengths
+1. ✓ 100% public API coverage (no undocumented items)
+2. ✓ Module-level docs explain widget purpose and features
+3. ✓ Builder pattern clearly documented
+4. ✓ Complex behaviors (filtering, lazy loading) explained
+5. ✓ Error conditions documented (e.g., DirectoryTree::new)
+6. ✓ Enum variants documented
+7. ✓ Cross-references via doc links (`Vec<Segment>`, etc.)
+
+### Areas for Enhancement
+1. Consider adding examples in doc comments (optional, future work)
+2. Complex rendering methods could benefit from algorithm descriptions (private, OK)
+
+## Compliance Summary
+
+| Standard | Status | Notes |
+|----------|--------|-------|
+| All public items documented | PASS | 100% coverage |
+| No missing doc attributes | PASS | - |
+| Valid rustdoc HTML | FAIL | 1 warning in data_table.rs |
+| Module-level docs | PASS | All modules documented |
+| Trait implementations | PASS | Widget, InteractiveWidget impl docs present |
+
+## Recommendations
+
+### Immediate Actions (Before Phase 4.2 Merge)
+1. **Fix data_table.rs line 53** - Add backticks around `Vec<String>`
+2. Run `cargo doc --all-features --no-deps` to verify no warnings
+
+### Verification Commands
+```bash
+# Check doc build (must have zero warnings)
+cargo doc --all-features --no-deps
+
+# Verify all public items documented
+cargo doc --all-features --no-deps 2>&1 | grep -i "warning:"
 ```
 
----
+## Conclusion
 
-## Grade: A
+**Overall Status:** PASS with 1 critical fix required
 
-**Rationale**:
-- 100% public API documentation coverage across all 7 files
-- Clear, comprehensive doc comments with examples
-- Proper use of `#[must_use]` annotations
-- All edge cases and semantics documented
-- Zero documentation warnings
-- Excellent test coverage (131 tests) validating documented behavior
-- Private helpers documented for maintainability
+Phase 4.2 documentation is 100% complete with excellent coverage. All public APIs are documented with clear, comprehensive comments. The single HTML tag warning in `data_table.rs` line 53 must be fixed before merging.
 
-**Status**: Ready for production. No action required.
-
+**Documentation Score:** 99/100 (minor HTML formatting issue)

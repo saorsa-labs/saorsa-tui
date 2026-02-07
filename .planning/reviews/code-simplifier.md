@@ -1,402 +1,615 @@
-# Code Simplifier Review Report
+# Code Simplification Review: Phase 4.2 Data Widgets
 
-## Overview
-This review identifies simplification opportunities in the recently added text editing widgets (Phase 4.1). The analysis focuses on reducing complexity, eliminating redundancy, and leveraging standard library patterns.
-
-## CRITICAL Issues
-
-### 1. **Complex Cursor Movement Logic** (cursor.rs:72-122)
-**Issue**: Movement methods in `CursorState` have repetitive pattern for handling preferred column and boundary checks.
-**Current Pattern**:
-```rust
-pub fn move_up(&mut self, buffer: &TextBuffer) {
-    self.clear_selection();
-    if self.position.line > 0 {
-        let target_col = self.preferred_col.unwrap_or(self.position.col);
-        self.preferred_col = Some(target_col);
-        self.position.line -= 1;
-        let line_len = buffer.line_len(self.position.line).unwrap_or(0);
-        self.position.col = target_col.min(line_len);
-    }
-}
-```
-
-**Simplification Opportunity**: Extract common movement logic into a private helper method to reduce duplication across `move_up`, `move_down`, `move_left`, and `move_right`.
-
-### 2. **Redundant Boundary Checks** (text_buffer.rs:103-152)
-**Issue**: Multiple methods in `TextBuffer` repeat similar boundary checking patterns.
-**Current Pattern**:
-```rust
-pub fn line(&self, idx: usize) -> Option<String> {
-    if idx >= self.rope.len_lines() {
-        return None;
-    }
-    // ... rest of implementation
-}
-```
-
-**Simplification Opportunity**: Use `checked_*` methods from ropey or implement a helper for common boundary operations.
-
-## HIGH Priority Issues
-
-### 3. **Overly Complex Character Deletion** (text_buffer.rs:149-159)
-**Issue**: `delete_char` method has complex logic for handling character deletion at line boundaries.
-**Current Pattern**:
-```rust
-pub fn delete_char(&mut self, line: usize, col: usize) {
-    if let Some(char_idx) = self.line_col_to_char(line, col)
-        && char_idx < self.rope.len_chars()
-    {
-        self.rope.remove(char_idx..char_idx + 1);
-    }
-}
-```
-
-**Simplification Opportunity**: Simplify the condition chaining and improve readability.
-
-### 4. **Complex Selection Text Extraction** (cursor.rs:302-347)
-**Issue**: `selected_text` method has nested logic for multi-line selection handling.
-**Current Pattern**:
-```rust
-let line_start = if line_idx == start.line { start.col } else { 0 };
-let line_end = if line_idx == end.line {
-    end.col.min(line_text.chars().count())
-} else {
-    line_text.chars().count()
-};
-```
-
-**Simplification Opportunity**: Extract line boundary logic into a helper method to reduce complexity.
-
-### 5. **Repetitive Cursor Advancement Logic** (text_area.rs:182-194)
-**Issue**: The cursor advancement logic after string insertion duplicates line/col incrementing logic.
-**Current Pattern**:
-```rust
-// Advance cursor past inserted text
-for ch in text.chars() {
-    if ch == '\n' {
-        self.cursor.position.line += 1;
-        self.cursor.position.col = 0;
-    } else {
-        self.cursor.position.col += 1;
-    }
-}
-```
-
-**Simplification Opportunity**: Extract cursor advancement into a helper method to avoid duplication.
-
-## MEDIUM Priority Issues
-
-### 6. **Unnecessary Option Wrapping** (text_buffer.rs:60-69)
-**Issue**: `line_len` method wraps in Option when it could return 0 for invalid indices.
-**Current Pattern**:
-```rust
-pub fn line_len(&self, idx: usize) -> Option<usize> {
-    self.line(idx).map(|l| l.chars().count())
-}
-```
-
-**Simplification Opportunity**: Consider returning 0 for invalid indices to simplify caller code.
-
-### 7. **Complex Style Stack Management** (markdown.rs:113-178)
-**Issue**: Markdown renderer has complex state management for style stack and various flags.
-**Current Pattern**:
-```rust
-let mut style_stack: Vec<Style> = vec![Style::default()];
-let mut current_line: Vec<Segment> = Vec::new();
-let mut current_width: usize = 0;
-let mut in_code_block = false;
-let mut list_depth: usize = 0;
-let mut in_list_item = false;
-```
-
-**Simplification Opportunity**: Group related state into a single struct for better organization.
-
-### 8. **Redundant Error Handling in Line Access** (text_area.rs:215-220)
-**Issue**: Multiple methods check `if let Some(line_text) = self.buffer.line(pos.line)` with similar patterns.
-**Current Pattern**:
-```rust
-if let Some(line_text) = self.buffer.line(pos.line) {
-    let deleted: String = line_text
-        .chars()
-        .nth(del_col)
-        .map(String::from)
-        .unwrap_or_default();
-    // ... rest of logic
-}
-```
-
-**Simplification Opportunity**: Extract common line access and character extraction logic.
-
-## LOW Priority Issues
-
-### 9. **Verbose Test Assertions** (Multiple files)
-**Issue**: Tests use `unreachable!()` with descriptive strings instead of more concise assertions.
-**Current Pattern**:
-```rust
-match buf.line(0) {
-    Some(ref s) if s == "hello" => {}
-    _ => unreachable!("expected 'hello'"),
-}
-```
-
-**Simplification Opportunity**: Use `assert_eq!` macros for better readability and less verbose failure messages.
-
-### 10. **Complex Option Handling** (cursor.rs:144-149)
-**Issue**: `selected_text` method has complex Option chaining that could be simplified.
-**Current Pattern**:
-```rust
-pub fn selected_text(&self, buffer: &TextBuffer) -> Option<String> {
-    let sel = self.selection.as_ref()?;
-    if sel.is_empty() {
-        return None;
-    }
-    // ... rest of logic
-}
-```
-
-**Simplification Opportunity**: Use early returns to flatten the Option chain.
-
-## Summary
-
-The codebase shows good structure but has several areas where simplification would improve maintainability:
-
-1. **Extract common patterns** (cursor movement, boundary checking, line access)
-2. **Reduce Option usage** where simple defaults would suffice
-3. **Organize complex state** into logical groupings
-4. **Simplify test assertions** for better readability
-
-These changes would reduce code duplication while maintaining the same functionality, making the codebase easier to understand and maintain.
-
-## Findings
-
-### HIGH PRIORITY
-
-- **text_area.rs:288-318** - Duplicated text selection logic. The `selected_text_for()` method (30 lines) is nearly identical to `CursorState::selected_text()` in cursor.rs:217-253. This violates DRY and creates maintenance burden.
-
-- **text_area.rs:651-702** - Four nearly identical movement helper methods (`move_left_pos`, `move_right_pos`, `move_up_no_clear`, `move_down_no_clear`) duplicate logic from `CursorState`. These exist only to avoid clearing selection, which could be parameterized instead.
-
-- **text_area.rs:322-378** - The `apply_operation()` method has three large match arms with duplicated cursor calculation logic. All three branches contain identical loops that advance line/col through text character-by-character.
-
-### MEDIUM PRIORITY
-
-- **text_area.rs:559-648** - The `handle_key()` method contains nested conditionals with repeated patterns. The shift-selection handling repeats the same structure 4 times (lines 560-566, 572-578, 584-590, 596-602).
-
-- **wrap.rs:42-88** - The `wrap_line()` function has deep nesting (4 levels) and complex state management. The word boundary handling (lines 60-76) could be extracted to a helper.
-
-- **markdown.rs:86-224** - The event processing loop is long (138 lines) with nested matches. Some event handlers could be extracted to methods for clarity.
-
-- **markdown.rs:257-265** - Redundant match for heading styles. Levels 4-6 all use the same style, making the match verbose.
-
-### LOW PRIORITY
-
-- **text_buffer.rs:130-147** - The `line_col_to_char()` method has a verbose comment explaining clamping behavior (14 lines). The logic is simple enough that the comment adds more confusion than clarity.
-
-- **cursor.rs:217-253** - The `selected_text()` method has explicit bounds checking and character iteration that could use iterator methods more idiomatically.
-
-- **undo.rs:43-63** - The `inverse()` method clones strings in all branches. Since operations are consumed during undo/redo, inverse could potentially move values instead.
-
-- **highlight.rs:75-96** - The `highlight_line()` method converts between byte and character indices multiple times. This could be simplified with a single character-based scan.
-
-## Simplification Opportunities
-
-### 1. Consolidate Text Selection Logic
-
-**Current**: Duplicated 30-line methods in `text_area.rs` and `cursor.rs`
-
-**Simplified**: Move to `Selection` type as a method:
-```rust
-impl Selection {
-    pub fn extract_text(&self, buffer: &TextBuffer) -> Option<String> {
-        // Single implementation shared by both modules
-    }
-}
-```
-
-**Impact**: Removes 30 lines of duplication, single source of truth for selection logic.
+**Review Date:** 2026-02-07
+**Scope:** Phase 4.2 Data Widgets (rich_log.rs, select_list.rs, data_table.rs, tree.rs, directory_tree.rs, diff_view.rs)
+**Commit Range:** affc93e..39704b0
 
 ---
 
-### 2. Parameterize Cursor Movement
+## Executive Summary
 
-**Current**: 8 movement methods (4 in CursorState that clear selection, 4 in TextArea that don't)
+Phase 4.2 introduces 6 new data widgets with 2,907 lines of code and 439 tests. The code is well-structured and follows project patterns, but contains **significant duplication** that should be consolidated. No code changes were made during this review.
 
-**Simplified**: Add a `preserve_selection` parameter:
+### Key Findings
+
+1. **CRITICAL: Duplicated `border_chars()` Function** - Identical implementation across 5 files (292 lines total)
+2. **CRITICAL: Duplicated Border Rendering Logic** - Nearly identical `render_border()` across 5 files
+3. **CRITICAL: Duplicated `inner_area()` Logic** - Identical border accounting across 5 files
+4. **MODERATE: Repeated UTF-8 Safe Truncation Pattern** - Same character rendering loop in all widgets
+5. **MODERATE: Duplicated `ensure_selected_visible()` Logic** - Identical across 3 widgets
+6. **MINOR: Repeated Page Size Magic Number** - Hardcoded `20` appears 30+ times
+
+---
+
+## 1. CRITICAL: Duplicated `border_chars()` Function
+
+### Current State
+
+**Identical implementation in 5 files:**
+- `rich_log.rs` (lines 292-318, 27 lines)
+- `select_list.rs` (lines 534-560, 27 lines)
+- `data_table.rs` (lines 599-625, 27 lines)
+- `tree.rs` (lines 566-592, 27 lines)
+- `diff_view.rs` (lines 495-521, 27 lines)
+
+**Total duplication:** 135 lines (5 × 27)
+
+### Code Example
+
 ```rust
-impl CursorState {
-    pub fn move_left(&mut self, buffer: &TextBuffer, preserve_selection: bool) {
-        if !preserve_selection {
-            self.clear_selection();
-        }
-        // existing logic
+// DUPLICATED 5 TIMES
+fn border_chars(
+    style: BorderStyle,
+) -> Option<(
+    &'static str,
+    &'static str,
+    &'static str,
+    &'static str,
+    &'static str,
+    &'static str,
+)> {
+    match style {
+        BorderStyle::None => None,
+        BorderStyle::Single => Some((
+            "\u{250c}", "\u{2510}", "\u{2514}", "\u{2518}", "\u{2500}", "\u{2502}",
+        )),
+        BorderStyle::Double => Some((
+            "\u{2554}", "\u{2557}", "\u{255a}", "\u{255d}", "\u{2550}", "\u{2551}",
+        )),
+        BorderStyle::Rounded => Some((
+            "\u{256d}", "\u{256e}", "\u{2570}", "\u{256f}", "\u{2500}", "\u{2502}",
+        )),
+        BorderStyle::Heavy => Some((
+            "\u{250f}", "\u{2513}", "\u{2517}", "\u{251b}", "\u{2501}", "\u{2503}",
+        )),
     }
 }
 ```
 
-**Impact**: Removes 4 duplicate methods (~50 lines), clearer intent.
+### Recommendation
 
----
+**Move to a shared module** (e.g., `widget/border.rs` or add to `widget/mod.rs`):
 
-### 3. Extract Cursor Position Calculation
-
-**Current**: Duplicated in 3 branches of `apply_operation()`
-
-**Simplified**: Helper function:
 ```rust
-fn advance_position(pos: CursorPosition, text: &str) -> CursorPosition {
-    let mut line = pos.line;
-    let mut col = pos.col;
-    for ch in text.chars() {
-        if ch == '\n' {
-            line += 1;
-            col = 0;
-        } else {
-            col += 1;
+// In crates/fae-core/src/widget/border.rs (new file)
+/// Border character set: (top-left, top-right, bottom-left, bottom-right, horizontal, vertical)
+pub type BorderChars = (&'static str, &'static str, &'static str, &'static str, &'static str, &'static str);
+
+impl BorderStyle {
+    /// Get the Unicode characters for this border style.
+    pub fn chars(self) -> Option<BorderChars> {
+        match self {
+            BorderStyle::None => None,
+            BorderStyle::Single => Some((
+                "\u{250c}", "\u{2510}", "\u{2514}", "\u{2518}", "\u{2500}", "\u{2502}",
+            )),
+            BorderStyle::Double => Some((
+                "\u{2554}", "\u{2557}", "\u{255a}", "\u{255d}", "\u{2550}", "\u{2551}",
+            )),
+            BorderStyle::Rounded => Some((
+                "\u{256d}", "\u{256e}", "\u{2570}", "\u{256f}", "\u{2500}", "\u{2502}",
+            )),
+            BorderStyle::Heavy => Some((
+                "\u{250f}", "\u{2513}", "\u{2517}", "\u{251b}", "\u{2501}", "\u{2503}",
+            )),
         }
     }
-    CursorPosition::new(line, col)
 }
 ```
 
-**Impact**: Removes ~30 lines of duplication across 3 match arms.
+**Impact:** Eliminates 135 lines of duplication, centralizes border logic in `BorderStyle` type.
 
 ---
 
-### 4. Extract Shift-Selection Pattern
+## 2. CRITICAL: Duplicated Border Rendering Logic
 
-**Current**: Repeated 4 times in `handle_key()` (lines 560-566, 572-578, 584-590, 596-602)
+### Current State
 
-**Simplified**: Helper method:
+**Nearly identical `render_border()` method in 5 files:**
+- `rich_log.rs` (lines 142-181, 40 lines)
+- `select_list.rs` (lines 337-374, 38 lines)
+- `data_table.rs` (lines 289-323, 35 lines)
+- `tree.rs` (lines 354-388, 35 lines)
+- `diff_view.rs` (lines 247-282, 36 lines)
+
+**Total duplication:** ~184 lines
+
+### Code Pattern
+
 ```rust
-fn handle_selection_movement<F>(&mut self, shift: bool, move_fn: F)
-where
-    F: FnOnce(&mut CursorState, &TextBuffer),
-{
-    if shift {
-        if self.cursor.selection.is_none() {
-            self.cursor.start_selection();
+// DUPLICATED 5 TIMES (with minor style variations)
+fn render_border(&self, area: Rect, buf: &mut ScreenBuffer) {
+    let chars = border_chars(self.border);
+    let (tl, tr, bl, br, h, v) = match chars {
+        Some(c) => c,
+        None => return,
+    };
+
+    let x1 = area.position.x;
+    let y1 = area.position.y;
+    let w = area.size.width;
+    let h_val = area.size.height;
+
+    if w == 0 || h_val == 0 {
+        return;
+    }
+
+    let x2 = x1.saturating_add(w.saturating_sub(1));
+    let y2 = y1.saturating_add(h_val.saturating_sub(1));
+
+    // Corners
+    buf.set(x1, y1, Cell::new(tl, style.clone()));
+    buf.set(x2, y1, Cell::new(tr, style.clone()));
+    buf.set(x1, y2, Cell::new(bl, style.clone()));
+    buf.set(x2, y2, Cell::new(br, style.clone()));
+
+    // Edges
+    for x in (x1 + 1)..x2 {
+        buf.set(x, y1, Cell::new(h, style.clone()));
+        buf.set(x, y2, Cell::new(h, style.clone()));
+    }
+
+    for y in (y1 + 1)..y2 {
+        buf.set(x1, y, Cell::new(v, style.clone()));
+        buf.set(x2, y, Cell::new(v, style.clone()));
+    }
+}
+```
+
+### Recommendation
+
+**Create a shared utility function:**
+
+```rust
+// In crates/fae-core/src/widget/border.rs
+pub fn render_border(
+    area: Rect,
+    border_style: BorderStyle,
+    cell_style: Style,
+    buf: &mut ScreenBuffer,
+) {
+    let Some((tl, tr, bl, br, h, v)) = border_style.chars() else {
+        return;
+    };
+
+    let x1 = area.position.x;
+    let y1 = area.position.y;
+    let w = area.size.width;
+    let h_val = area.size.height;
+
+    if w == 0 || h_val == 0 {
+        return;
+    }
+
+    let x2 = x1.saturating_add(w.saturating_sub(1));
+    let y2 = y1.saturating_add(h_val.saturating_sub(1));
+
+    buf.set(x1, y1, Cell::new(tl, cell_style.clone()));
+    buf.set(x2, y1, Cell::new(tr, cell_style.clone()));
+    buf.set(x1, y2, Cell::new(bl, cell_style.clone()));
+    buf.set(x2, y2, Cell::new(br, cell_style.clone()));
+
+    for x in (x1 + 1)..x2 {
+        buf.set(x, y1, Cell::new(h, cell_style.clone()));
+        buf.set(x, y2, Cell::new(h, cell_style.clone()));
+    }
+
+    for y in (y1 + 1)..y2 {
+        buf.set(x1, y, Cell::new(v, cell_style.clone()));
+        buf.set(x2, y, Cell::new(v, cell_style.clone()));
+    }
+}
+```
+
+**Widget usage becomes:**
+
+```rust
+// Before (40 lines of duplicated code)
+fn render_border(&self, area: Rect, buf: &mut ScreenBuffer) {
+    // ... 40 lines ...
+}
+
+// After (1 line)
+border::render_border(area, self.border, self.style.clone(), buf);
+```
+
+**Impact:** Eliminates ~184 lines of duplication.
+
+---
+
+## 3. CRITICAL: Duplicated `inner_area()` Logic
+
+### Current State
+
+**Identical implementation in 5 files:**
+- `rich_log.rs` (lines 124-139, 16 lines)
+- `select_list.rs` (lines 319-335, 17 lines)
+- `data_table.rs` (lines 271-287, 17 lines)
+- `tree.rs` (lines 336-352, 17 lines)
+- `diff_view.rs` (lines 229-245, 17 lines)
+
+**Total duplication:** 84 lines
+
+### Code Pattern
+
+```rust
+// DUPLICATED 5 TIMES
+fn inner_area(&self, area: Rect) -> Rect {
+    match self.border {
+        BorderStyle::None => area,
+        _ => {
+            if area.size.width < 2 || area.size.height < 2 {
+                return Rect::new(area.position.x, area.position.y, 0, 0);
+            }
+            Rect::new(
+                area.position.x + 1,
+                area.position.y + 1,
+                area.size.width.saturating_sub(2),
+                area.size.height.saturating_sub(2),
+            )
         }
-        move_fn(&mut self.cursor, &self.buffer);
-        self.cursor.extend_selection();
-    } else {
-        move_fn(&mut self.cursor, &self.buffer);
+    }
+}
+```
+
+### Recommendation
+
+**Add as a method on `Rect` or create utility function:**
+
+```rust
+// Option A: Add to Rect (in geometry.rs)
+impl Rect {
+    /// Calculate the inner area after accounting for a border.
+    pub fn inner_with_border(self, border: BorderStyle) -> Rect {
+        match border {
+            BorderStyle::None => self,
+            _ => {
+                if self.size.width < 2 || self.size.height < 2 {
+                    return Rect::new(self.position.x, self.position.y, 0, 0);
+                }
+                Rect::new(
+                    self.position.x + 1,
+                    self.position.y + 1,
+                    self.size.width.saturating_sub(2),
+                    self.size.height.saturating_sub(2),
+                )
+            }
+        }
     }
 }
 
-// Usage:
-KeyCode::Left => {
-    self.handle_selection_movement(shift, |c, b| c.move_left(b));
+// Option B: Utility function (in widget/border.rs)
+pub fn inner_area(area: Rect, border: BorderStyle) -> Rect {
+    // Same implementation
+}
+```
+
+**Widget usage becomes:**
+
+```rust
+// Before
+fn inner_area(&self, area: Rect) -> Rect {
+    match self.border { /* 16 lines */ }
+}
+let inner = self.inner_area(area);
+
+// After (Option A - preferred)
+let inner = area.inner_with_border(self.border);
+
+// After (Option B)
+let inner = border::inner_area(area, self.border);
+```
+
+**Impact:** Eliminates 84 lines of duplication.
+
+---
+
+## 4. MODERATE: Repeated UTF-8 Safe Text Rendering Pattern
+
+### Current State
+
+**Similar character-by-character rendering loop in all 6 widgets:**
+
+```rust
+// PATTERN REPEATED 10+ TIMES across widgets
+for ch in truncated.chars() {
+    let char_w = UnicodeWidthStr::width(ch.encode_utf8(&mut [0; 4]) as &str);
+    if col as usize + char_w > width {
+        break;
+    }
+    buf.set(x, y, Cell::new(ch.to_string(), style.clone()));
+    col += char_w as u16;
+}
+```
+
+**Locations:**
+- `rich_log.rs` (lines 223-231)
+- `select_list.rs` (lines 442-450)
+- `data_table.rs` (lines 380-387)
+- `tree.rs` (lines 480-492)
+- `diff_view.rs` (lines 296-303)
+
+### Recommendation
+
+**Create a shared rendering helper:**
+
+```rust
+// In crates/fae-core/src/widget/render_util.rs (new file)
+use unicode_width::UnicodeWidthStr;
+
+/// Render text into a buffer row, handling UTF-8 width and truncation.
+///
+/// Returns the number of columns consumed.
+pub fn render_text(
+    text: &str,
+    x: u16,
+    y: u16,
+    max_width: usize,
+    style: &Style,
+    buf: &mut ScreenBuffer,
+) -> u16 {
+    let truncated = truncate_to_display_width(text, max_width);
+    let mut col: u16 = 0;
+
+    for ch in truncated.chars() {
+        let char_w = UnicodeWidthStr::width(ch.encode_utf8(&mut [0; 4]) as &str);
+        if col as usize + char_w > max_width {
+            break;
+        }
+        buf.set(x + col, y, Cell::new(ch.to_string(), style.clone()));
+        col += char_w as u16;
+    }
+
+    col
+}
+```
+
+**Widget usage becomes:**
+
+```rust
+// Before (9 lines)
+for ch in truncated.chars() {
+    let char_w = UnicodeWidthStr::width(ch.encode_utf8(&mut [0; 4]) as &str);
+    if col as usize + char_w > width {
+        break;
+    }
+    buf.set(x, y, Cell::new(ch.to_string(), style.clone()));
+    col += char_w as u16;
+}
+
+// After (1 line)
+col += render_text(&segment.text, inner.position.x + col, y, remaining, &style, buf);
+```
+
+**Impact:** Reduces 90+ lines across all widgets, centralizes UTF-8 rendering logic.
+
+---
+
+## 5. MODERATE: Duplicated `ensure_selected_visible()` Logic
+
+### Current State
+
+**Identical implementation in 3 widgets:**
+- `select_list.rs` (lines 376-389, 14 lines)
+- `data_table.rs` (lines 405-418, 14 lines)
+- `tree.rs` (lines 321-334, 14 lines)
+
+**Total duplication:** 42 lines
+
+### Code Pattern
+
+```rust
+// DUPLICATED 3 TIMES
+fn ensure_selected_visible(&mut self, visible_height: usize) {
+    if visible_height == 0 {
+        return;
+    }
+    if self.selected < self.scroll_offset {
+        self.scroll_offset = self.selected;
+    }
+    if self.selected >= self.scroll_offset + visible_height {
+        self.scroll_offset = self
+            .selected
+            .saturating_sub(visible_height.saturating_sub(1));
+    }
+}
+```
+
+### Recommendation
+
+**Create a utility function:**
+
+```rust
+// In crates/fae-core/src/widget/scroll.rs (new file)
+/// Adjust scroll offset to ensure the selected index is visible.
+pub fn ensure_visible(
+    selected: usize,
+    scroll_offset: &mut usize,
+    visible_height: usize,
+) {
+    if visible_height == 0 {
+        return;
+    }
+    if selected < *scroll_offset {
+        *scroll_offset = selected;
+    }
+    if selected >= *scroll_offset + visible_height {
+        *scroll_offset = selected.saturating_sub(visible_height.saturating_sub(1));
+    }
+}
+```
+
+**Widget usage becomes:**
+
+```rust
+// Before (14 lines)
+fn ensure_selected_visible(&mut self, visible_height: usize) {
+    if visible_height == 0 {
+        return;
+    }
+    // ... 10 more lines
+}
+
+// After (1 line)
+scroll::ensure_visible(self.selected, &mut self.scroll_offset, visible_height);
+```
+
+**Impact:** Eliminates 42 lines of duplication.
+
+---
+
+## 6. MINOR: Repeated Page Size Magic Number
+
+### Current State
+
+**Hardcoded `20` appears 30+ times across all widgets:**
+
+```rust
+// In keyboard event handlers
+KeyCode::PageUp => {
+    let page = 20;  // ← MAGIC NUMBER REPEATED 10+ TIMES
+    self.selected = self.selected.saturating_sub(page);
+    self.ensure_selected_visible(20);  // ← ALSO HERE
     EventResult::Consumed
 }
 ```
 
-**Impact**: Reduces 40 lines to 10, removes nested conditionals.
+**Locations:**
+- `rich_log.rs`: lines 263, 269, 469, 470, etc.
+- `select_list.rs`: lines 469, 481, 482, etc.
+- `data_table.rs`: lines 506, 552, etc.
+- `tree.rs`: lines 512, 536, etc.
+- `diff_view.rs`: lines 446, 451
 
----
+### Recommendation
 
-### 5. Extract Word Boundary Breaking in wrap_line()
+**Define as a constant:**
 
-**Current**: Nested logic in lines 60-76 of `wrap.rs`
-
-**Simplified**: Helper function:
 ```rust
-fn break_at_word_boundary(
-    line: &str,
-    line_start_col: usize,
-    width: usize,
-) -> Option<(String, String, usize)> {
-    // Returns (before, after, new_start_col)
-}
+// In crates/fae-core/src/widget/mod.rs or each widget
+/// Default page size for Page Up/Down navigation.
+const DEFAULT_PAGE_SIZE: usize = 20;
 ```
 
-**Impact**: Reduces nesting from 4 to 3 levels, clearer separation of concerns.
+**Usage:**
 
----
-
-### 6. Extract Markdown Event Handlers
-
-**Current**: 138-line event processing loop in `render_to_lines()`
-
-**Simplified**: Extract to methods:
 ```rust
-fn handle_start_tag(&mut self, tag: Tag, state: &mut RenderState);
-fn handle_end_tag(&mut self, tag_end: TagEnd, state: &mut RenderState);
-fn handle_text(&mut self, text: &str, state: &mut RenderState);
+// Before
+let page = 20;
+self.ensure_selected_visible(20);
+
+// After
+let page = DEFAULT_PAGE_SIZE;
+self.ensure_selected_visible(DEFAULT_PAGE_SIZE);
 ```
 
-**Impact**: Main loop reduces to 30 lines, each handler is testable independently.
+**Impact:**
+- Eliminates magic numbers
+- Makes page size configurable in the future (could become a widget field)
+- Clarifies intent
 
 ---
 
-### 7. Simplify Heading Style Selection
+## 7. Additional Observations
 
-**Current**: Match with redundant arms for levels 4-6
+### Positive Patterns (Do Not Change)
 
-**Simplified**:
-```rust
-fn heading_style(level: u8) -> Style {
-    let base = Style::new().bold(true);
-    match level {
-        1 => base.fg(Color::Named(NamedColor::Cyan)),
-        2 => base.fg(Color::Named(NamedColor::Green)),
-        3 => base.fg(Color::Named(NamedColor::Yellow)),
-        _ => base,
-    }
-}
-```
+1. **Consistent Widget Architecture** - All widgets follow the same pattern:
+   - Builder pattern with `with_*()` methods
+   - `inner_area()` → `render_border()` → render content
+   - Comprehensive tests (70-150 tests per widget)
 
-**Impact**: Removes redundant match arms, more concise.
+2. **UTF-8 Safety** - All widgets use `truncate_to_display_width()` correctly
+
+3. **Proper Error Handling** - No `.unwrap()` or `.expect()` in production code
+
+4. **Good Test Coverage** - 439 tests total, covering edge cases and UTF-8 scenarios
+
+### Non-Issues (No Action Needed)
+
+1. **Different rendering implementations** - Each widget has unique rendering logic (unified vs. side-by-side, tree indentation, table columns). This is expected and should NOT be consolidated.
+
+2. **Type-specific logic** - Generic `Tree<T>`, `SelectList<T>` vs. concrete `DirectoryTree`. This is appropriate specialization.
+
+3. **Separate `border_chars()` functions** - While duplicated, they're small and self-contained. However, consolidation is still recommended for maintainability.
 
 ---
 
-## Positive Patterns Observed
+## Consolidation Plan
 
-The following patterns are excellent and should be maintained:
+### Proposed New Files
 
-1. **Clear module boundaries** - Each module has a single, well-defined responsibility
-2. **Consistent error handling** - No `.unwrap()` or `.expect()` in production code
-3. **Comprehensive testing** - 105 tests added, covering edge cases and Unicode
-4. **Type safety** - Strong types (`CursorPosition`, `Selection`, etc.) prevent errors
-5. **Builder pattern** - `TextArea::new().with_*()` chains are idiomatic and clear
-6. **Unicode correctness** - Proper grapheme cluster handling, display width awareness
-7. **Documentation** - Module and function docs are clear and complete
+1. **`crates/fae-core/src/widget/border.rs`** (NEW)
+   - `BorderStyle::chars()` method (replaces 5 × `border_chars()`)
+   - `render_border()` utility function (replaces 5 × `render_border()` methods)
+   - `inner_area()` utility function (replaces 5 × `inner_area()` methods)
 
-## Grade: B+
+2. **`crates/fae-core/src/widget/render_util.rs`** (NEW)
+   - `render_text()` function (consolidates UTF-8 rendering loops)
 
-**Rationale:**
-- **Code Quality**: A (excellent type safety, testing, Unicode handling)
-- **Clarity**: B+ (some complexity in TextArea and markdown renderer)
-- **Maintainability**: B (duplication in text selection and cursor movement)
-- **Consistency**: A (follows project patterns, no clippy warnings)
+3. **`crates/fae-core/src/widget/scroll.rs`** (NEW)
+   - `ensure_visible()` function (consolidates scroll adjustment logic)
+   - `DEFAULT_PAGE_SIZE` constant
 
-The code is production-ready and well-structured. The identified simplifications are **refinements, not requirements**. Addressing the HIGH priority items would improve maintainability by reducing duplication, while MEDIUM/LOW items would enhance readability but are not blocking issues.
+### Migration Order
+
+1. **Phase 1 (Immediate):** Move `border_chars()` to `BorderStyle::chars()` method
+2. **Phase 2 (Immediate):** Create `border::render_border()` utility
+3. **Phase 3 (Immediate):** Create `border::inner_area()` or `Rect::inner_with_border()`
+4. **Phase 4 (Optional):** Create `render_util::render_text()` helper
+5. **Phase 5 (Optional):** Create `scroll::ensure_visible()` utility
+
+### Impact Summary
+
+| Refactoring | Lines Saved | Files Affected | Priority |
+|-------------|-------------|----------------|----------|
+| `border_chars()` consolidation | 135 | 5 | CRITICAL |
+| `render_border()` consolidation | 184 | 5 | CRITICAL |
+| `inner_area()` consolidation | 84 | 5 | CRITICAL |
+| UTF-8 rendering helper | 90+ | 6 | MODERATE |
+| `ensure_selected_visible()` | 42 | 3 | MODERATE |
+| Page size constant | 30+ | 5 | MINOR |
+| **TOTAL** | **565+** | **6** | |
+
+---
 
 ## Recommendations
 
-1. **HIGH priority**: Address text selection duplication and cursor movement parameterization before Phase 4.2
-2. **MEDIUM priority**: Extract event handlers in markdown.rs if the module grows further
-3. **LOW priority**: Apply other simplifications opportunistically during future maintenance
+### Immediate Actions (CRITICAL)
 
-## Test Quality Assessment
+1. **Create `crates/fae-core/src/widget/border.rs`** with:
+   - `BorderStyle::chars()` method
+   - `render_border()` utility function
+   - `inner_area()` utility function (or add to `Rect`)
 
-The tests are **exemplary**:
-- 105 new tests, zero failures
-- Edge cases covered (Unicode, empty input, boundaries)
-- Follow project pattern: `assert!()` + `match` instead of `.expect()`
-- No test-only `.unwrap()` violations
+2. **Update all 5 widgets** to use the new border utilities:
+   - `rich_log.rs`
+   - `select_list.rs`
+   - `data_table.rs`
+   - `tree.rs`
+   - `diff_view.rs`
 
-## Files Reviewed
+3. **Run full test suite** - All 439 existing tests should pass unchanged
 
-1. `crates/fae-core/src/text_buffer.rs` - 355 lines, 25 tests
-2. `crates/fae-core/src/cursor.rs` - 509 lines, 27 tests
-3. `crates/fae-core/src/undo.rs` - 293 lines, 12 tests
-4. `crates/fae-core/src/wrap.rs` - 261 lines, 13 tests
-5. `crates/fae-core/src/highlight.rs` - 182 lines, 9 tests
-6. `crates/fae-core/src/widget/text_area.rs` - 892 lines, 17 tests
-7. `crates/fae-core/src/widget/markdown.rs` - 454 lines, 12 tests
+### Optional Follow-Up (MODERATE)
 
-**Total**: 2,946 lines (production + tests), 115 tests
+4. **Create `crates/fae-core/src/widget/render_util.rs`** with `render_text()` helper
+
+5. **Create `crates/fae-core/src/widget/scroll.rs`** with `ensure_visible()` and constants
+
+### Future Considerations (MINOR)
+
+6. **Make page size configurable** - Add `page_size` field to widgets that support paging
 
 ---
 
-**Review Complete**: No changes made (analysis only as requested).
+## Conclusion
+
+Phase 4.2 code is well-structured and follows project standards, but contains **565+ lines of duplication** that should be consolidated. The most critical issue is the duplicated border logic across 5 files (403 lines). Consolidating into shared utilities will:
+
+- Reduce code size by ~19% (565 / 2,907 lines)
+- Improve maintainability (single source of truth for borders)
+- Simplify future border enhancements (new border styles, themes, etc.)
+- Maintain existing test coverage (no behavioral changes)
+
+**No code changes were made during this review.** All findings are recommendations for future refactoring.

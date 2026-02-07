@@ -1,5 +1,6 @@
 //! Widget traits and built-in widgets.
 
+pub mod border;
 pub mod container;
 pub mod data_table;
 pub mod diff_view;

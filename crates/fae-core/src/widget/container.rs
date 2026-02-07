@@ -23,57 +23,6 @@ pub enum BorderStyle {
     Heavy,
 }
 
-/// Border character set.
-struct BorderChars {
-    top_left: &'static str,
-    top_right: &'static str,
-    bottom_left: &'static str,
-    bottom_right: &'static str,
-    horizontal: &'static str,
-    vertical: &'static str,
-}
-
-impl BorderStyle {
-    /// Get the character set for this border style.
-    fn chars(self) -> Option<BorderChars> {
-        match self {
-            BorderStyle::None => None,
-            BorderStyle::Single => Some(BorderChars {
-                top_left: "┌",
-                top_right: "┐",
-                bottom_left: "└",
-                bottom_right: "┘",
-                horizontal: "─",
-                vertical: "│",
-            }),
-            BorderStyle::Double => Some(BorderChars {
-                top_left: "╔",
-                top_right: "╗",
-                bottom_left: "╚",
-                bottom_right: "╝",
-                horizontal: "═",
-                vertical: "║",
-            }),
-            BorderStyle::Rounded => Some(BorderChars {
-                top_left: "╭",
-                top_right: "╮",
-                bottom_left: "╰",
-                bottom_right: "╯",
-                horizontal: "─",
-                vertical: "│",
-            }),
-            BorderStyle::Heavy => Some(BorderChars {
-                top_left: "┏",
-                top_right: "┓",
-                bottom_left: "┗",
-                bottom_right: "┛",
-                horizontal: "━",
-                vertical: "┃",
-            }),
-        }
-    }
-}
-
 /// A container widget with optional border, title, and padding.
 #[derive(Clone, Debug)]
 pub struct Container {
@@ -170,7 +119,7 @@ impl Widget for Container {
             return;
         }
 
-        let Some(chars) = self.border.chars() else {
+        let Some((tl, tr, bl, br, h, v)) = self.border.chars() else {
             return; // No border to draw
         };
 
@@ -181,50 +130,30 @@ impl Widget for Container {
         buf.set(
             area.position.x,
             area.position.y,
-            Cell::new(chars.top_left, self.border_style.clone()),
+            Cell::new(tl, self.border_style.clone()),
         );
         buf.set(
             right,
             area.position.y,
-            Cell::new(chars.top_right, self.border_style.clone()),
+            Cell::new(tr, self.border_style.clone()),
         );
         buf.set(
             area.position.x,
             bottom,
-            Cell::new(chars.bottom_left, self.border_style.clone()),
+            Cell::new(bl, self.border_style.clone()),
         );
-        buf.set(
-            right,
-            bottom,
-            Cell::new(chars.bottom_right, self.border_style.clone()),
-        );
+        buf.set(right, bottom, Cell::new(br, self.border_style.clone()));
 
         // Top and bottom edges
         for x in (area.position.x + 1)..right {
-            buf.set(
-                x,
-                area.position.y,
-                Cell::new(chars.horizontal, self.border_style.clone()),
-            );
-            buf.set(
-                x,
-                bottom,
-                Cell::new(chars.horizontal, self.border_style.clone()),
-            );
+            buf.set(x, area.position.y, Cell::new(h, self.border_style.clone()));
+            buf.set(x, bottom, Cell::new(h, self.border_style.clone()));
         }
 
         // Left and right edges
         for y in (area.position.y + 1)..bottom {
-            buf.set(
-                area.position.x,
-                y,
-                Cell::new(chars.vertical, self.border_style.clone()),
-            );
-            buf.set(
-                right,
-                y,
-                Cell::new(chars.vertical, self.border_style.clone()),
-            );
+            buf.set(area.position.x, y, Cell::new(v, self.border_style.clone()));
+            buf.set(right, y, Cell::new(v, self.border_style.clone()));
         }
 
         // Title (rendered in the top border)

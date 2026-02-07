@@ -226,61 +226,6 @@ impl DiffView {
         }
     }
 
-    /// Calculate the inner area after accounting for borders.
-    fn inner_area(&self, area: Rect) -> Rect {
-        match self.border {
-            BorderStyle::None => area,
-            _ => {
-                if area.size.width < 2 || area.size.height < 2 {
-                    return Rect::new(area.position.x, area.position.y, 0, 0);
-                }
-                Rect::new(
-                    area.position.x + 1,
-                    area.position.y + 1,
-                    area.size.width.saturating_sub(2),
-                    area.size.height.saturating_sub(2),
-                )
-            }
-        }
-    }
-
-    /// Render border into the buffer.
-    fn render_border(&self, area: Rect, buf: &mut ScreenBuffer) {
-        let chars = border_chars(self.border);
-        let (tl, tr, bl, br, h, v) = match chars {
-            Some(c) => c,
-            None => return,
-        };
-
-        let x1 = area.position.x;
-        let y1 = area.position.y;
-        let w = area.size.width;
-        let h_val = area.size.height;
-
-        if w == 0 || h_val == 0 {
-            return;
-        }
-
-        let x2 = x1.saturating_add(w.saturating_sub(1));
-        let y2 = y1.saturating_add(h_val.saturating_sub(1));
-        let style = &self.unchanged_style;
-
-        buf.set(x1, y1, Cell::new(tl, style.clone()));
-        buf.set(x2, y1, Cell::new(tr, style.clone()));
-        buf.set(x1, y2, Cell::new(bl, style.clone()));
-        buf.set(x2, y2, Cell::new(br, style.clone()));
-
-        for x in (x1 + 1)..x2 {
-            buf.set(x, y1, Cell::new(h, style.clone()));
-            buf.set(x, y2, Cell::new(h, style.clone()));
-        }
-
-        for y in (y1 + 1)..y2 {
-            buf.set(x1, y, Cell::new(v, style.clone()));
-            buf.set(x2, y, Cell::new(v, style.clone()));
-        }
-    }
-
     /// Render a single line of text into the buffer at the given position.
     fn render_line(
         &self,
@@ -407,9 +352,9 @@ impl Widget for DiffView {
             return;
         }
 
-        self.render_border(area, buf);
+        super::border::render_border(area, self.border, self.unchanged_style.clone(), buf);
 
-        let inner = self.inner_area(area);
+        let inner = super::border::inner_area(area, self.border);
         if inner.size.width == 0 || inner.size.height == 0 {
             return;
         }
@@ -490,34 +435,6 @@ fn flush_sbs_pairs(
     }
     old_lines.clear();
     new_lines.clear();
-}
-
-/// Return border characters for the given style.
-fn border_chars(
-    style: BorderStyle,
-) -> Option<(
-    &'static str,
-    &'static str,
-    &'static str,
-    &'static str,
-    &'static str,
-    &'static str,
-)> {
-    match style {
-        BorderStyle::None => None,
-        BorderStyle::Single => Some((
-            "\u{250c}", "\u{2510}", "\u{2514}", "\u{2518}", "\u{2500}", "\u{2502}",
-        )),
-        BorderStyle::Double => Some((
-            "\u{2554}", "\u{2557}", "\u{255a}", "\u{255d}", "\u{2550}", "\u{2551}",
-        )),
-        BorderStyle::Rounded => Some((
-            "\u{256d}", "\u{256e}", "\u{2570}", "\u{256f}", "\u{2500}", "\u{2502}",
-        )),
-        BorderStyle::Heavy => Some((
-            "\u{250f}", "\u{2513}", "\u{2517}", "\u{251b}", "\u{2501}", "\u{2503}",
-        )),
-    }
 }
 
 #[cfg(test)]

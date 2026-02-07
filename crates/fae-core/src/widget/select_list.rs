@@ -316,63 +316,6 @@ impl<T> SelectList<T> {
         self.scroll_offset = 0;
     }
 
-    /// Calculate the inner area after accounting for borders.
-    fn inner_area(&self, area: Rect) -> Rect {
-        match self.border {
-            BorderStyle::None => area,
-            _ => {
-                if area.size.width < 2 || area.size.height < 2 {
-                    return Rect::new(area.position.x, area.position.y, 0, 0);
-                }
-                Rect::new(
-                    area.position.x + 1,
-                    area.position.y + 1,
-                    area.size.width.saturating_sub(2),
-                    area.size.height.saturating_sub(2),
-                )
-            }
-        }
-    }
-
-    /// Render the border into the buffer.
-    fn render_border(&self, area: Rect, buf: &mut ScreenBuffer) {
-        let chars = border_chars(self.border);
-        let (tl, tr, bl, br, h, v) = match chars {
-            Some(c) => c,
-            None => return,
-        };
-
-        let x1 = area.position.x;
-        let y1 = area.position.y;
-        let w = area.size.width;
-        let h_val = area.size.height;
-
-        if w == 0 || h_val == 0 {
-            return;
-        }
-
-        let x2 = x1.saturating_add(w.saturating_sub(1));
-        let y2 = y1.saturating_add(h_val.saturating_sub(1));
-
-        // Corners
-        buf.set(x1, y1, Cell::new(tl, self.item_style.clone()));
-        buf.set(x2, y1, Cell::new(tr, self.item_style.clone()));
-        buf.set(x1, y2, Cell::new(bl, self.item_style.clone()));
-        buf.set(x2, y2, Cell::new(br, self.item_style.clone()));
-
-        // Top and bottom edges
-        for x in (x1 + 1)..x2 {
-            buf.set(x, y1, Cell::new(h, self.item_style.clone()));
-            buf.set(x, y2, Cell::new(h, self.item_style.clone()));
-        }
-
-        // Left and right edges
-        for y in (y1 + 1)..y2 {
-            buf.set(x1, y, Cell::new(v, self.item_style.clone()));
-            buf.set(x2, y, Cell::new(v, self.item_style.clone()));
-        }
-    }
-
     /// Ensure the selected item is visible by adjusting scroll_offset.
     fn ensure_selected_visible(&mut self, visible_height: usize) {
         if visible_height == 0 {
@@ -395,9 +338,9 @@ impl<T> Widget for SelectList<T> {
             return;
         }
 
-        self.render_border(area, buf);
+        super::border::render_border(area, self.border, self.item_style.clone(), buf);
 
-        let inner = self.inner_area(area);
+        let inner = super::border::inner_area(area, self.border);
         if inner.size.width == 0 || inner.size.height == 0 {
             return;
         }
@@ -528,34 +471,6 @@ impl<T> InteractiveWidget for SelectList<T> {
             }
             _ => EventResult::Ignored,
         }
-    }
-}
-
-/// Return border characters for the given style, or None for `BorderStyle::None`.
-fn border_chars(
-    style: BorderStyle,
-) -> Option<(
-    &'static str,
-    &'static str,
-    &'static str,
-    &'static str,
-    &'static str,
-    &'static str,
-)> {
-    match style {
-        BorderStyle::None => None,
-        BorderStyle::Single => Some((
-            "\u{250c}", "\u{2510}", "\u{2514}", "\u{2518}", "\u{2500}", "\u{2502}",
-        )),
-        BorderStyle::Double => Some((
-            "\u{2554}", "\u{2557}", "\u{255a}", "\u{255d}", "\u{2550}", "\u{2551}",
-        )),
-        BorderStyle::Rounded => Some((
-            "\u{256d}", "\u{256e}", "\u{2570}", "\u{256f}", "\u{2500}", "\u{2502}",
-        )),
-        BorderStyle::Heavy => Some((
-            "\u{250f}", "\u{2513}", "\u{2517}", "\u{251b}", "\u{2501}", "\u{2503}",
-        )),
     }
 }
 

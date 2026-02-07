@@ -1,102 +1,191 @@
-# Error Handling Review - Phase 4.1 Text Widgets
+# Error Handling Review - Phase 4.2 Widget Code
+
+**Review Date**: 2026-02-07
+**Scope**: Phase 4.2 widgets (rich_log.rs, select_list.rs, data_table.rs, tree.rs, directory_tree.rs, diff_view.rs)
+**Total Issues Found**: 4
 
 ## Summary
-This review analyzes the error handling in the newly added text widget files from Phase 4.1. While the code generally follows good practices, several critical error handling issues were found that violate the project's zero-tolerance policy.
 
-## Critical Issues
+Found **4 error handling issues** in Phase 4.2 widget code:
+- **1 production code issue** (unwrap in render closure)
+- **3 test code issues using panic!()** (acceptable but could be improved)
 
-### 1. Multiple `.unwrap()` calls in production code
-**Severity: CRITICAL** (violates zero-tolerance policy)
+All `.unwrap()` calls in directory_tree.rs tests are properly guarded by `#[allow(clippy::unwrap_used)]`.
 
-**File: `/Users/davidirvine/Desktop/Devel/projects/fae/crates/fae-core/src/cursor.rs`**
-- Line 122: `buffer.line_len(self.position.line).unwrap_or(0)` - Should use proper error handling
-- Line 130: `buffer.line_len(self.position.line).unwrap_or(0)` - Should use proper error handling
-- Line 144: `self.preferred_col.unwrap_or(self.position.col)` - Could panic if None is unexpected
-- Line 147: `buffer.line_len(self.position.line).unwrap_or(0)` - Should use proper error handling
-- Line 156: `self.preferred_col.unwrap_or(self.position.col)` - Could panic if None is unexpected
-- Line 159: `buffer.line_len(self.position.line).unwrap_or(0)` - Should use proper error handling
-- Line 174: `buffer.line_len(self.position.line).unwrap_or(0)` - Should use proper error handling
-- Line 190: `buffer.line_len(last_line).unwrap_or(0)` - Should use proper error handling
+---
 
-**File: `/Users/davidirvine/Desktop/Devel/projects/fae/crates/fae-core/src/text_buffer.rs`**
-- Line 186: `unreachable!("expected 'hello')` - Should use assert! pattern for tests only
+## Critical Issues (Production Code)
 
-**File: `/Users/davidirvine/Desktop/Devel/projects/fae/crates/fae-core/src/undo.rs`**
-- Line 163: `unreachable!("expected Delete('hello'), got {other:?}")` - Should use assert! pattern for tests only
-- Line 176: `unreachable!("expected Insert('a'), got {other:?}")` - Should use assert! pattern for tests only
-- Line 200: `unreachable!("expected Delete('c'), got {other:?}")` - Should use assert! pattern for tests only
-- Line 226: `unreachable!("expected Delete('b'), got {other:?}")` - Should use assert! pattern for tests only
-- Line 239: `unreachable!("expected Delete, got {other:?}")` - Should use assert! pattern for tests only
-- Line 251: `unreachable!("expected Insert, got {other:?}")` - Should use assert! pattern for tests only
-- Line 271: `unreachable!("expected Replace, got {other:?}")` - Should use assert! pattern for tests only
+### 1. Production Code: unwrap_or_else in DirectoryTree render closure
 
-**File: `/Users/davidirvine/Desktop/Devel/projects/fae/crates/fae-core/src/widget/markdown.rs`**
-- Line 254: `stack.last().cloned().unwrap_or_default()` - Should handle empty stack gracefully
+**File**: `/Users/davidirvine/Desktop/Devel/projects/fae/crates/fae-core/src/widget/directory_tree.rs:56`
 
-**File: `/Users/davidirvine/Desktop/Devel/projects/fae/crates/fae-core/src/widget/text_area.rs`**
-- Line 465: `UnicodeWidthChar::width(ch).unwrap_or(0)` - Should handle character width errors properly
-- Line 492: `UnicodeWidthChar::width(c).unwrap_or(0)` - Should handle character width errors properly
-- Line 500: `.unwrap_or_else(|| " ".to_string())` - Should handle missing character gracefully
+**Severity**: Medium
+**Status**: ⚠️ SAFE (has fallback)
 
-**File: `/Users/davidirvine/Desktop/Devel/projects/fae/crates/fae-core/src/wrap.rs`**
-- Line 56: `UnicodeWidthChar::width(ch).unwrap_or(0)` - Should handle character width errors properly
-- Line 130: `UnicodeWidthChar::width(c).unwrap_or(0)` - Should handle character width errors properly
+```rust
+let name = data
+    .file_name()
+    .map(|n| n.to_string_lossy().to_string())
+    .unwrap_or_else(|| data.display().to_string());  // Line 56
+```
 
-### 2. Missing Error Propagation
-**Severity: HIGH**
+**Analysis**: This is NOT a problematic `.unwrap()` — it's an `.unwrap_or_else()` with a fallback. When `file_name()` returns None (root path or Windows NT object names), it falls back to `data.display().to_string()`. This is correct defensive programming.
 
-**File: `/Users/davidirvine/Desktop/Devel/projects/fae/crates/fae-core/src/text_buffer.rs`**
-- Lines 70-83: `insert_char`, `insert_str`, `delete_char`, `delete_range` don't propagate errors from ropey operations
-- These operations should return `Result` types to handle ropey-specific errors
+**Verdict**: ✅ ACCEPTABLE - Has explicit fallback strategy.
 
-### 3. Potential Division by Zero
-**Severity: HIGH**
+---
 
-**File: `/Users/davidirvine/Desktop/Devel/projects/fae/crates/fae-core/src/wrap.rs`**
-- Line 123: `(line_count as f64).log10().floor()` - Should handle line_count = 0 case
-- Current code has a guard for line_count == 0, but the log10 operation could still fail
+## Test Code Issues
 
-### 4. Unsafe Assumptions
-**Severity: MEDIUM**
+### 2. Test Code: panic! in data_table.rs test
 
-**File: `/Users/davidirvine/Desktop/Devel/projects/fae/crates/fae-core/src/cursor.rs`**
-- Lines 116-127: `move_left` assumes line_len will always return Some value when needed
-- Should validate the line exists before getting its length
+**File**: `/Users/davidirvine/Desktop/Devel/projects/fae/crates/fae-core/src/widget/data_table.rs:936`
 
-**File: `/Users/davidirvine/Desktop/Devel/projects/fae/crates/fae-core/src/widget/text_area.rs`**
-- Line 414: `self.buffer.line(logical_line).unwrap_or_default()` - Silently ignores missing lines
-- Should log or handle this condition properly
+**Severity**: Low
+**Context**: Test module `#[cfg(test)]` at line 627
 
-## Medium Issues
+```rust
+#[test]
+fn sort_by_column_ascending() {
+    let mut table = make_test_table();
+    table.sort_by_column(0); // Sort by Name ascending
+    assert_eq!(table.sort_state(), Some((0, true)));
+    match table.rows.first().map(|r| r[0].as_str()) {
+        Some("Alice") => {}
+        other => panic!("Expected Alice first, got {other:?}"),  // Line 936
+    }
+}
+```
 
-### 5. Test Code Violations
-**Severity: MEDIUM**
+**Issue**: Using `panic!()` instead of `assert_eq!()` in test assertion.
 
-Multiple test files use `unreachable!()` macros without proper assert guards. While these are in test code (where .unwrap() is allowed with `#[allow(clippy::unwrap_used)]`), they should be converted to proper assert! patterns for better error reporting.
+**Better Approach**:
+```rust
+assert_eq!(
+    table.rows.first().map(|r| r[0].as_str()),
+    Some("Alice"),
+    "Expected Alice first after sorting"
+);
+```
 
-## Low Issues
+**Related Issue**: Line 949 has identical pattern in `sort_toggle_descending()` test.
 
-### 6. Missing Documentation for Error Scenarios
-**Severity: LOW**
+---
 
-Public methods don't document what error conditions they might return. This should be improved with proper `Result` return types and documentation.
+### 3. Test Code: panic! in select_list.rs test
+
+**File**: `/Users/davidirvine/Desktop/Devel/projects/fae/crates/fae-core/src/widget/select_list.rs:877`
+
+**Severity**: Low
+**Context**: Test module `#[cfg(test)]` at line 562
+
+```rust
+#[test]
+fn render_with_selected_style_applies_color() {
+    let selected_style = Style::default().fg(Color::Named(crate::color::NamedColor::Red));
+    let list = make_string_list(vec!["First", "Second"]).with_selected_style(selected_style);
+
+    let mut buf = ScreenBuffer::new(Size::new(10, 5));
+    list.render(Rect::new(0, 0, 10, 5), &mut buf);
+
+    let cell = buf.get(0, 0);
+    assert!(cell.is_some());
+    match cell.map(|c| &c.style.fg) {
+        Some(Some(Color::Named(crate::color::NamedColor::Red))) => {}
+        other => panic!("Expected red fg, got {other:?}"),  // Line 877
+    }
+}
+```
+
+**Issue**: Using `panic!()` for test assertion instead of assertion macros.
+
+**Better Approach**:
+```rust
+assert_eq!(
+    cell.map(|c| &c.style.fg),
+    Some(&Some(Color::Named(crate::color::NamedColor::Red))),
+    "Expected red foreground color in first cell"
+);
+```
+
+---
+
+## Test Code: Properly Guarded unwrap() Calls
+
+### 4. DirectoryTree Tests - Properly Suppressed (✅ GOOD)
+
+**File**: `/Users/davidirvine/Desktop/Devel/projects/fae/crates/fae-core/src/widget/directory_tree.rs:197-398`
+
+**Status**: ✅ CORRECT
+
+The test module properly suppresses unwrap() with guard attribute:
+
+```rust
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]  // Line 198
+mod tests {
+    // 13 unwrap() calls throughout create_test_dir() and test functions
+    // All guarded by the module-level allow attribute
+}
+```
+
+**Unwrap locations** (all in tests, properly guarded):
+- Lines 206, 210-212, 215-221: `create_test_dir()` setup function
+- Lines 249, 263, 275, 286, 297, 320, 329, 344, 388: Test assertions after `DirectoryTree::new()`
+
+**Verdict**: ✅ ACCEPTABLE - Properly suppressed test helpers and assertions.
+
+---
+
+## Files Reviewed
+
+| File | Status | Issues |
+|------|--------|--------|
+| rich_log.rs | ✅ Clean | None found |
+| select_list.rs | ⚠️ Minor | 1 panic!() in test (line 877) |
+| data_table.rs | ⚠️ Minor | 2 panic!() in tests (lines 936, 949) |
+| tree.rs | ✅ Clean | None found |
+| directory_tree.rs | ✅ Clean | Proper unwrap suppression (lines 206-388) |
+| diff_view.rs | ✅ Clean | None found |
+
+---
 
 ## Recommendations
 
-1. **Immediate Action Required**: Remove all `.unwrap()` calls and replace with proper error handling
-2. **Change Return Types**: Edit operations should return `Result<FaeCoreError, ...>`
-3. **Add Error Types**: Define `FaeCoreError` enum for all text operation errors
-4. **Test Pattern Updates**: Convert all `unreachable!()` in tests to `assert!()` with descriptive messages
-5. **Graceful Degradation**: Handle edge cases like zero-length strings and missing lines more gracefully
+### Immediate Actions
 
-## Files Affected
-- crates/fae-core/src/cursor.rs
-- crates/fae-core/src/text_buffer.rs
-- crates/fae-core/src/undo.rs
-- crates/fae-core/src/widget/markdown.rs
-- crates/fae-core/src/widget/text_area.rs
-- crates/fae-core/src/wrap.rs
+1. **Replace panic!() with assert_eq!() in data_table.rs**:
+   - Line 936: Replace with `assert_eq!(table.rows.first().map(|r| r[0].as_str()), Some("Alice"))`
+   - Line 949: Replace with `assert_eq!(table.rows.first().map(|r| r[0].as_str()), Some("Charlie"))`
 
-## Compliance Status
-❌ **VIOLATIONS**: Multiple violations of zero-tolerance policy against `.unwrap()` in production code
-⚠️ **REQUIRES IMMEDIATE FIX**: These issues must be resolved before any code can be merged
+2. **Replace panic!() with assert_eq!() in select_list.rs**:
+   - Line 877: Use proper assertion macro instead of panic!()
+
+### Standards Compliance
+
+✅ **No production code violations** - All issues are in test modules
+✅ **No unwrap() without guards** - All test unwraps properly suppressed
+✅ **No expect() calls** - Project correctly avoids expect()
+✅ **No todo!/unimplemented!** - None found in any files
+
+### Quality Gate Status
+
+- **Production code error handling**: ✅ PASS
+- **Test code panic usage**: ⚠️ MINOR (3 improvable panic!() calls in tests)
+- **Overall compliance**: ✅ PASS with minor test improvements
+
+---
+
+## Conclusion
+
+The Phase 4.2 widget code maintains strong error handling standards:
+- Zero problematic unwrap/expect in production code
+- Proper error propagation with Result types
+- Test code follows acceptable patterns (panic!() in tests is OK, but assert macros preferred)
+
+All findings are **non-blocking** but the three panic!() calls in tests should be converted to assertion macros for consistency with Rust best practices.
+
+## Grade: A
+
+**Status**: ✅ PASS - All error handling standards met for production code
