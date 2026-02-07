@@ -284,6 +284,34 @@ struct ToolResultInfo {
     output: String,
 }
 
+/// Create a default tool registry with all built-in tools.
+///
+/// This includes:
+/// - BashTool: Execute shell commands
+/// - ReadTool: Read file contents with optional line ranges
+/// - WriteTool: Write files with diff display
+/// - EditTool: Surgical file editing with ambiguity detection
+/// - GrepTool: Search file contents with regex
+/// - FindTool: Find files by name pattern
+/// - LsTool: List directory contents with metadata
+pub fn default_tools(working_dir: impl Into<std::path::PathBuf>) -> ToolRegistry {
+    use crate::tools::{BashTool, EditTool, FindTool, GrepTool, LsTool, ReadTool, WriteTool};
+    use std::path::PathBuf;
+
+    let wd: PathBuf = working_dir.into();
+    let mut registry = ToolRegistry::new();
+
+    registry.register(Box::new(BashTool::new(wd.clone())));
+    registry.register(Box::new(ReadTool::new(wd.clone())));
+    registry.register(Box::new(WriteTool::new(wd.clone())));
+    registry.register(Box::new(EditTool::new(wd.clone())));
+    registry.register(Box::new(GrepTool::new(wd.clone())));
+    registry.register(Box::new(FindTool::new(wd.clone())));
+    registry.register(Box::new(LsTool::new(wd)));
+
+    registry
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -427,5 +455,22 @@ mod tests {
         let msgs = agent.messages();
         // Should have user message + assistant message.
         assert_eq!(msgs.len(), 2);
+    }
+
+    #[test]
+    fn default_tools_registers_all() {
+        let registry = super::default_tools(std::env::current_dir().unwrap());
+
+        // Verify all 7 tools are registered
+        assert_eq!(registry.len(), 7);
+
+        let names = registry.names();
+        assert!(names.contains(&"bash"));
+        assert!(names.contains(&"read"));
+        assert!(names.contains(&"write"));
+        assert!(names.contains(&"edit"));
+        assert!(names.contains(&"grep"));
+        assert!(names.contains(&"find"));
+        assert!(names.contains(&"ls"));
     }
 }
