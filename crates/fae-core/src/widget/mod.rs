@@ -11,6 +11,7 @@ pub mod static_widget;
 pub mod text_area;
 pub mod toast;
 pub mod tooltip;
+pub mod tree;
 
 pub use container::{BorderStyle, Container};
 pub use data_table::{Column, DataTable};
@@ -23,6 +24,7 @@ pub use static_widget::StaticWidget;
 pub use text_area::TextArea;
 pub use toast::{Toast, ToastPosition};
 pub use tooltip::Tooltip;
+pub use tree::{Tree, TreeNode};
 
 use crate::buffer::ScreenBuffer;
 use crate::event::Event;
