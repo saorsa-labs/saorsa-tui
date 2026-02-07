@@ -5,7 +5,10 @@
 //! terminal rendering capabilities.
 
 pub mod ast;
+pub mod cache;
+pub mod cascade;
 pub mod error;
+pub mod matcher;
 pub mod parser;
 pub mod property;
 pub mod selector;
@@ -13,7 +16,10 @@ pub mod tree;
 pub mod value;
 
 pub use ast::{Rule, Stylesheet};
+pub use cache::MatchCache;
+pub use cascade::{CascadeResolver, ComputedStyle};
 pub use error::TcssError;
+pub use matcher::{MatchedRule, StyleMatcher};
 pub use parser::{parse_declaration, parse_stylesheet};
 pub use property::{Declaration, PropertyName};
 pub use selector::{
@@ -196,5 +202,228 @@ mod integration_tests {
         let s = sheet("");
         assert!(s.is_empty());
         assert_eq!(s.len(), 0);
+    }
+}
+
+#[cfg(test)]
+mod pipeline_tests {
+    use super::*;
+    use crate::Color;
+    use crate::color::NamedColor;
+
+    /// Helper: parse stylesheet, build tree, match, cascade → computed style.
+    fn sheet(css: &str) -> Stylesheet {
+        let result = parse_stylesheet(css);
+        assert!(result.is_ok(), "parse failed: {result:?}");
+        match result {
+            Ok(s) => s,
+            Err(_) => unreachable!(),
+        }
+    }
+
+    #[test]
+    fn full_pipeline_simple() {
+        let css = "Label { color: red; width: 20; }";
+        let stylesheet = sheet(css);
+        let matcher = StyleMatcher::new(&stylesheet);
+
+        let mut tree = WidgetTree::new();
+        tree.add_node(WidgetNode::new(1, "Label"));
+
+        let matched = matcher.match_widget(&tree, 1);
+        let style = CascadeResolver::resolve(&matched);
+
+        assert_eq!(style.len(), 2);
+        assert!(style.has(&PropertyName::Color));
+        assert!(style.has(&PropertyName::Width));
+    }
+
+    #[test]
+    fn full_pipeline_specificity() {
+        let css = r#"
+            Label { color: white; }
+            .error { color: red; }
+        "#;
+        let stylesheet = sheet(css);
+        let matcher = StyleMatcher::new(&stylesheet);
+
+        let mut tree = WidgetTree::new();
+        tree.add_node(WidgetNode::new(1, "Label").with_class("error"));
+
+        let matched = matcher.match_widget(&tree, 1);
+        let style = CascadeResolver::resolve(&matched);
+
+        // .error (0,1,0) beats Label (0,0,1).
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Color(Color::Named(NamedColor::Red)))
+        );
+    }
+
+    #[test]
+    fn full_pipeline_important() {
+        let css = r#"
+            .error { color: red; }
+            Label { color: white !important; }
+        "#;
+        let stylesheet = sheet(css);
+        let matcher = StyleMatcher::new(&stylesheet);
+
+        let mut tree = WidgetTree::new();
+        tree.add_node(WidgetNode::new(1, "Label").with_class("error"));
+
+        let matched = matcher.match_widget(&tree, 1);
+        let style = CascadeResolver::resolve(&matched);
+
+        // !important overrides higher specificity.
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Color(Color::Named(NamedColor::White)))
+        );
+    }
+
+    #[test]
+    fn full_pipeline_child_combinator() {
+        let css = "Container > Label { color: blue; }";
+        let stylesheet = sheet(css);
+        let matcher = StyleMatcher::new(&stylesheet);
+
+        let mut tree = WidgetTree::new();
+        tree.add_node(WidgetNode::new(1, "Container"));
+        let mut label = WidgetNode::new(2, "Label");
+        label.parent = Some(1);
+        tree.add_node(label);
+
+        let matched = matcher.match_widget(&tree, 2);
+        let style = CascadeResolver::resolve(&matched);
+
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Color(Color::Named(NamedColor::Blue)))
+        );
+    }
+
+    #[test]
+    fn full_pipeline_descendant() {
+        let css = "Container Label { color: green; }";
+        let stylesheet = sheet(css);
+        let matcher = StyleMatcher::new(&stylesheet);
+
+        let mut tree = WidgetTree::new();
+        tree.add_node(WidgetNode::new(1, "Container"));
+        let mut mid = WidgetNode::new(2, "Middle");
+        mid.parent = Some(1);
+        tree.add_node(mid);
+        let mut label = WidgetNode::new(3, "Label");
+        label.parent = Some(2);
+        tree.add_node(label);
+
+        // Label is grandchild of Container — descendant match.
+        let matched = matcher.match_widget(&tree, 3);
+        let style = CascadeResolver::resolve(&matched);
+
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Color(Color::Named(NamedColor::Green)))
+        );
+    }
+
+    #[test]
+    fn full_pipeline_pseudo_class() {
+        let css = r#"
+            Label { color: white; }
+            Label:focus { color: green; }
+        "#;
+        let stylesheet = sheet(css);
+        let matcher = StyleMatcher::new(&stylesheet);
+
+        // Unfocused Label — only Label rule matches.
+        let mut tree = WidgetTree::new();
+        tree.add_node(WidgetNode::new(1, "Label"));
+
+        let matched = matcher.match_widget(&tree, 1);
+        let style = CascadeResolver::resolve(&matched);
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Color(Color::Named(NamedColor::White)))
+        );
+
+        // Now focus the label — Label:focus overrides (higher specificity).
+        tree.get_mut(1)
+            .iter_mut()
+            .for_each(|n| n.state.focused = true);
+        let matched = matcher.match_widget(&tree, 1);
+        let style = CascadeResolver::resolve(&matched);
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Color(Color::Named(NamedColor::Green)))
+        );
+    }
+
+    #[test]
+    fn full_pipeline_cached_match() {
+        let css = "Label { color: red; }";
+        let stylesheet = sheet(css);
+        let matcher = StyleMatcher::new(&stylesheet);
+
+        let mut tree = WidgetTree::new();
+        tree.add_node(WidgetNode::new(1, "Label"));
+
+        let mut cache = MatchCache::new();
+
+        // First query — cache miss.
+        assert!(cache.get(1).is_none());
+        let matched = matcher.match_widget(&tree, 1);
+        cache.insert(1, matched);
+
+        // Second query — cache hit.
+        let cached = cache.get(1);
+        assert!(cached.is_some());
+        let cached = match cached {
+            Some(m) => m,
+            None => unreachable!(),
+        };
+        assert_eq!(cached.len(), 1);
+    }
+
+    #[test]
+    fn full_pipeline_invalidation() {
+        let css = r#"
+            Label { color: white; }
+            Label:focus { color: green; }
+        "#;
+        let stylesheet = sheet(css);
+        let matcher = StyleMatcher::new(&stylesheet);
+
+        let mut tree = WidgetTree::new();
+        tree.add_node(WidgetNode::new(1, "Label"));
+
+        let mut cache = MatchCache::new();
+
+        // Initial match (unfocused).
+        let matched = matcher.match_widget(&tree, 1);
+        let style = CascadeResolver::resolve(&matched);
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Color(Color::Named(NamedColor::White)))
+        );
+        cache.insert(1, matched);
+
+        // State change — focus the label.
+        tree.get_mut(1)
+            .iter_mut()
+            .for_each(|n| n.state.focused = true);
+        cache.invalidate(1);
+        assert!(cache.get(1).is_none());
+
+        // Re-match after invalidation.
+        let matched = matcher.match_widget(&tree, 1);
+        let style = CascadeResolver::resolve(&matched);
+        assert_eq!(
+            style.get(&PropertyName::Color),
+            Some(&CssValue::Color(Color::Named(NamedColor::Green)))
+        );
+        cache.insert(1, matched);
+        assert!(cache.get(1).is_some());
     }
 }
