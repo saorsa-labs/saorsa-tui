@@ -94,9 +94,144 @@ pub fn preprocess(text: &str, config: &TextConfig) -> String {
     filter_control_chars(&expanded)
 }
 
+/// Truncate a string to a maximum byte length on a UTF-8 character boundary.
+///
+/// Returns a substring that is at most `max_bytes` bytes long, without
+/// splitting any multi-byte characters. If the full string fits, it is
+/// returned unchanged.
+pub fn truncate_to_char_boundary(text: &str, max_bytes: usize) -> &str {
+    if text.len() <= max_bytes {
+        return text;
+    }
+    // Find the largest char boundary at or before max_bytes
+    let mut end = max_bytes;
+    while end > 0 && !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    &text[..end]
+}
+
+/// Calculate the display width of text in terminal cells.
+///
+/// Uses the `unicode-width` crate to account for double-width characters
+/// (CJK, emoji, etc.). Returns the width clamped to `u16::MAX`.
+pub fn string_display_width(text: &str) -> u16 {
+    use unicode_width::UnicodeWidthStr;
+    let width = UnicodeWidthStr::width(text);
+    if width > u16::MAX as usize {
+        u16::MAX
+    } else {
+        width as u16
+    }
+}
+
+/// Truncate a string to fit within a maximum display width.
+///
+/// Iterates over characters, accumulating their display widths until the
+/// limit is reached. Returns a substring that fits within `max_width`
+/// terminal cells without splitting any characters.
+pub fn truncate_to_display_width(text: &str, max_width: usize) -> &str {
+    use unicode_width::UnicodeWidthChar;
+    let mut width = 0usize;
+    for (byte_idx, ch) in text.char_indices() {
+        let ch_width = UnicodeWidthChar::width(ch).unwrap_or(0);
+        if width + ch_width > max_width {
+            return &text[..byte_idx];
+        }
+        width += ch_width;
+    }
+    text
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn truncate_at_char_boundary_ascii() {
+        let text = "Hello World";
+        assert_eq!(truncate_to_char_boundary(text, 5), "Hello");
+    }
+
+    #[test]
+    fn truncate_at_char_boundary_emoji() {
+        // Emoji is 4 bytes; truncating at 7 bytes must not split the emoji
+        let text = "Hello \u{1F600} World";
+        let result = truncate_to_char_boundary(text, 7);
+        // "Hello " is 6 bytes, emoji is 4 bytes, so 7 bytes truncates before emoji
+        assert_eq!(result, "Hello ");
+    }
+
+    #[test]
+    fn truncate_at_char_boundary_cjk() {
+        // CJK chars are 3 bytes each
+        let text = "\u{4F60}\u{597D}\u{4E16}\u{754C}"; // 你好世界
+        let result = truncate_to_char_boundary(text, 7);
+        // 3+3=6 fits, 3+3+3=9 doesn't fit in 7 bytes
+        assert_eq!(result, "\u{4F60}\u{597D}");
+    }
+
+    #[test]
+    fn truncate_at_char_boundary_empty() {
+        assert_eq!(truncate_to_char_boundary("", 5), "");
+    }
+
+    #[test]
+    fn truncate_at_char_boundary_zero_limit() {
+        assert_eq!(truncate_to_char_boundary("Hello", 0), "");
+    }
+
+    #[test]
+    fn truncate_at_char_boundary_larger_limit() {
+        let text = "Hi";
+        assert_eq!(truncate_to_char_boundary(text, 100), "Hi");
+    }
+
+    #[test]
+    fn display_width_ascii() {
+        assert_eq!(string_display_width("Hello"), 5);
+    }
+
+    #[test]
+    fn display_width_emoji() {
+        // Emoji typically has width 2
+        assert_eq!(string_display_width("\u{1F600}"), 2);
+    }
+
+    #[test]
+    fn display_width_cjk() {
+        // Each CJK char has width 2
+        assert_eq!(string_display_width("\u{4F60}\u{597D}"), 4);
+    }
+
+    #[test]
+    fn display_width_empty() {
+        assert_eq!(string_display_width(""), 0);
+    }
+
+    #[test]
+    fn display_width_mixed() {
+        // "Hi " = 3, emoji = 2 → 5
+        assert_eq!(string_display_width("Hi \u{1F600}"), 5);
+    }
+
+    #[test]
+    fn truncate_to_display_width_ascii() {
+        assert_eq!(truncate_to_display_width("Hello World", 5), "Hello");
+    }
+
+    #[test]
+    fn truncate_to_display_width_cjk() {
+        // Each CJK is width 2; max_width 5 fits 2 chars (4 width), not 3 (6 width)
+        let text = "\u{4F60}\u{597D}\u{4E16}"; // 你好世
+        assert_eq!(truncate_to_display_width(text, 5), "\u{4F60}\u{597D}");
+    }
+
+    #[test]
+    fn truncate_to_display_width_emoji() {
+        // "Hi " is width 3, emoji is width 2 → total 5; max 4 stops before emoji
+        assert_eq!(truncate_to_display_width("Hi \u{1F600}", 4), "Hi ");
+    }
 
     #[test]
     fn expand_tabs_single_tab_at_position_zero() {

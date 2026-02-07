@@ -4,6 +4,7 @@ use crate::geometry::{Position, Rect, Size};
 use crate::overlay::{OverlayConfig, OverlayPosition, Placement};
 use crate::segment::Segment;
 use crate::style::Style;
+use crate::text::string_display_width;
 
 /// A tooltip that appears near an anchor element with smart positioning.
 ///
@@ -48,9 +49,9 @@ impl Tooltip {
         vec![vec![Segment::styled(&self.text, self.style.clone())]]
     }
 
-    /// Compute the tooltip size based on text length.
+    /// Compute the tooltip size based on display width.
     fn size(&self) -> Size {
-        let w = self.text.len() as u16;
+        let w = string_display_width(&self.text);
         Size::new(w.max(1), 1)
     }
 

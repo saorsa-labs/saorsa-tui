@@ -3,6 +3,7 @@
 use crate::overlay::{OverlayConfig, OverlayPosition};
 use crate::segment::Segment;
 use crate::style::Style;
+use crate::text::{string_display_width, truncate_to_display_width};
 use crate::widget::container::BorderStyle;
 
 /// A modal dialog widget with title, body, border, and optional dim background.
@@ -74,9 +75,10 @@ impl Modal {
         let mut top = String::new();
         top.push_str(chars.top_left);
         if !self.title.is_empty() && inner_w > 0 {
-            let max_title = inner_w.min(self.title.len());
-            top.push_str(&self.title[..max_title]);
-            for _ in max_title..inner_w {
+            let truncated_title = truncate_to_display_width(&self.title, inner_w);
+            top.push_str(truncated_title);
+            let title_w = string_display_width(truncated_title) as usize;
+            for _ in title_w..inner_w {
                 top.push_str(chars.horizontal);
             }
         } else {
@@ -96,9 +98,10 @@ impl Modal {
             if row_idx < self.body_lines.len() {
                 // We need to flatten the body line segments into text, then pad
                 let body_text: String = self.body_lines[row_idx].iter().map(|s| &*s.text).collect();
-                let text_len = body_text.len().min(inner_w);
-                row.push_str(&body_text[..text_len]);
-                for _ in text_len..inner_w {
+                let truncated_body = truncate_to_display_width(&body_text, inner_w);
+                let body_w = string_display_width(truncated_body) as usize;
+                row.push_str(truncated_body);
+                for _ in body_w..inner_w {
                     row.push(' ');
                 }
             } else {

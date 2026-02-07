@@ -42,7 +42,10 @@ pub use renderer::{DeltaBatch, Renderer, batch_changes, build_sgr_sequence};
 pub use segment::Segment;
 pub use style::Style;
 pub use terminal::{CrosstermBackend, Terminal, TestBackend};
-pub use text::{TextConfig, expand_tabs, filter_control_chars, preprocess};
+pub use text::{
+    TextConfig, expand_tabs, filter_control_chars, preprocess, string_display_width,
+    truncate_to_char_boundary, truncate_to_display_width,
+};
 pub use viewport::Viewport;
 pub use widget::{
     Alignment, BorderStyle, Container, EventResult, Label, Modal, StaticWidget, Toast,

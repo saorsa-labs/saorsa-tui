@@ -4,6 +4,7 @@ use crate::geometry::Size;
 use crate::overlay::{OverlayConfig, OverlayPosition};
 use crate::segment::Segment;
 use crate::style::Style;
+use crate::text::{string_display_width, truncate_to_display_width};
 
 /// Corner position for a toast notification.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -69,10 +70,11 @@ impl Toast {
     /// Produces a single-line notification padded to the toast width.
     pub fn render_to_lines(&self) -> Vec<Vec<Segment>> {
         let w = self.width as usize;
-        let text_len = self.message.len().min(w);
+        let truncated = truncate_to_display_width(&self.message, w);
+        let display_w = string_display_width(truncated) as usize;
         let mut padded = String::with_capacity(w);
-        padded.push_str(&self.message[..text_len]);
-        for _ in text_len..w {
+        padded.push_str(truncated);
+        for _ in display_w..w {
             padded.push(' ');
         }
         vec![vec![Segment::styled(padded, self.style.clone())]]
