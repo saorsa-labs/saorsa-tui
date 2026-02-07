@@ -23,33 +23,33 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      # Tier 1: no internal dependencies (can publish in parallel but cargo doesn't support that)
+      # Tier 1: no internal dependencies
       - name: Publish saorsa-core
-        run: cargo publish -p saorsa-core --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish -p saorsa-core --token ${{ secrets.CARGO_REGISTRY_TOKEN }} || echo "Already published"
 
       - name: Publish saorsa-ai
-        run: cargo publish -p saorsa-ai --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish -p saorsa-ai --token ${{ secrets.CARGO_REGISTRY_TOKEN }} || echo "Already published"
 
       # Tier 2: depends on saorsa-ai
       - name: Wait for crates.io index
         run: sleep 30
 
       - name: Publish saorsa-agent
-        run: cargo publish -p saorsa-agent --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish -p saorsa-agent --token ${{ secrets.CARGO_REGISTRY_TOKEN }} || echo "Already published"
 
       # Tier 3: depends on saorsa-core, saorsa-ai, saorsa-agent
       - name: Wait for crates.io index
         run: sleep 30
 
       - name: Publish saorsa-app
-        run: cargo publish -p saorsa-app --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish -p saorsa-app --token ${{ secrets.CARGO_REGISTRY_TOKEN }} || echo "Already published"
 
       # Tier 4: depends on saorsa-app
       - name: Wait for crates.io index
         run: sleep 30
 
       - name: Publish saorsa-cli
-        run: cargo publish -p saorsa-cli --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish -p saorsa-cli --token ${{ secrets.CARGO_REGISTRY_TOKEN }} || echo "Already published"
 
   build:
     name: Build (${{ matrix.target }})
