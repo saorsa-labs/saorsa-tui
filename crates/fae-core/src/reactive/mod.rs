@@ -2,7 +2,7 @@
 //!
 //! Provides [`Signal<T>`] for mutable state, [`Computed<T>`] for
 //! derived values, [`Effect`] for side effects, [`ReactiveScope`]
-//! for lifetime management, and [`batch`] for coalescing updates.
+//! for lifetime management, and [`batch()`] for coalescing updates.
 //!
 //! All primitives use automatic dependency tracking via thread-local
 //! context — reading a signal inside a computed or effect closure

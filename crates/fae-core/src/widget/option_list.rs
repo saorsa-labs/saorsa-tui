@@ -1,6 +1,6 @@
 //! Simple option list widget for static selections.
 //!
-//! A simplified alternative to [`SelectList`] for static option sets
+//! A simplified alternative to [`super::select_list::SelectList`] for static option sets
 //! without fuzzy filtering. Useful for settings screens and forms.
 
 use crate::buffer::ScreenBuffer;
@@ -16,7 +16,7 @@ use super::{BorderStyle, EventResult, InteractiveWidget, Widget};
 /// A simple option list widget.
 ///
 /// Displays a list of string options with keyboard navigation
-/// and selection highlighting. Unlike [`SelectList`], this widget
+/// and selection highlighting. Unlike [`super::select_list::SelectList`], this widget
 /// does not support filtering or generic item types.
 pub struct OptionList {
     /// Option labels.

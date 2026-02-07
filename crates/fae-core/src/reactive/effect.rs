@@ -1,7 +1,7 @@
 //! Reactive effects — side effects that re-run when dependencies change.
 //!
 //! An [`Effect`] runs a closure immediately and re-runs it whenever
-//! any of its signal dependencies change. Unlike [`Computed`], effects
+//! any of its signal dependencies change. Unlike [`super::computed::Computed`], effects
 //! are eager — they run immediately on notification rather than lazily
 //! on read.
 
