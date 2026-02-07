@@ -39,26 +39,11 @@ pub fn estimate_conversation_tokens(messages: &[Message], system: Option<&str>) 
 }
 
 /// Context window sizes for known models.
+///
+/// Delegates to the model registry in [`crate::models`]. Returns `None`
+/// for unknown models.
 pub fn context_window(model: &str) -> Option<u32> {
-    // All known Claude models share a 200k context window.
-    let known_prefixes = [
-        "claude-3-5-sonnet",
-        "claude-sonnet-4",
-        "claude-3-5-haiku",
-        "claude-haiku-4",
-        "claude-3-opus",
-        "claude-opus-4",
-        "claude-3-sonnet",
-        "claude-3-haiku",
-    ];
-    if known_prefixes
-        .iter()
-        .any(|prefix| model.starts_with(prefix))
-    {
-        Some(200_000)
-    } else {
-        None
-    }
+    crate::models::get_context_window(model)
 }
 
 /// Check if a conversation fits within the model's context window.
@@ -118,8 +103,9 @@ mod tests {
 
     #[test]
     fn context_window_known_models() {
-        assert_eq!(context_window("claude-sonnet-4-5-20250929"), Some(200_000));
-        assert_eq!(context_window("claude-opus-4-20250514"), Some(200_000));
+        assert_eq!(context_window("claude-sonnet-4"), Some(200_000));
+        assert_eq!(context_window("claude-opus-4"), Some(200_000));
+        assert_eq!(context_window("gpt-4o"), Some(128_000));
         assert_eq!(context_window("unknown-model"), None);
     }
 
@@ -129,7 +115,7 @@ mod tests {
         assert!(fits_in_context(
             &messages,
             None,
-            "claude-sonnet-4-5-20250929",
+            "claude-sonnet-4",
             4096
         ));
     }
