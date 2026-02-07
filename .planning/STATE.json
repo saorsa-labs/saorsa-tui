@@ -18,10 +18,10 @@
     "current_task": 8
   },
   "review": {
-    "status": "pending",
-    "iteration": 0,
+    "status": "reviewing",
+    "iteration": 1,
     "last_verdict": null
   },
-  "status": "in_progress",
+  "status": "reviewing",
   "last_updated": "2026-02-07T16:00:00Z"
 }
