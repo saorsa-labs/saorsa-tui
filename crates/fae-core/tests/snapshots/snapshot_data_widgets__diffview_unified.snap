@@ -1,0 +1,8 @@
+---
+source: crates/fae-core/tests/snapshot_data_widgets.rs
+expression: rendered
+---
+ line1                                  
+-line2                                  
++modified                               
+ line3

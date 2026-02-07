@@ -1,0 +1,7 @@
+---
+source: crates/fae-core/tests/snapshot_data_widgets.rs
+expression: rendered
+---
+Option 1                      
+Option 2                      
+Option 3

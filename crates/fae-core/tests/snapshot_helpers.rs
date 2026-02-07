@@ -4,6 +4,7 @@
 ///
 /// Each line of segments is concatenated and padded to width with spaces.
 /// The result is then padded to height with empty lines.
+#[allow(dead_code)]
 pub fn render_to_text(lines: &[Vec<fae_core::Segment>], width: u16, height: u16) -> String {
     let mut result = String::new();
     let width = width as usize;
