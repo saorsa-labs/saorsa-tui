@@ -70,6 +70,15 @@ impl Compositor {
         Size::new(self.screen_width, self.screen_height)
     }
 
+    /// Resizes the compositor screen dimensions.
+    ///
+    /// Clears all layers since they may no longer be valid for the new size.
+    pub fn resize(&mut self, width: u16, height: u16) {
+        self.screen_width = width;
+        self.screen_height = height;
+        self.layers.clear();
+    }
+
     /// Returns a slice of all layers in the compositor.
     pub fn layers(&self) -> &[Layer] {
         &self.layers
@@ -562,5 +571,396 @@ mod integration_tests {
         // Both buffers should work correctly
         assert!(buf1.width() == 80);
         assert!(buf2.width() == 120);
+    }
+}
+
+#[cfg(test)]
+mod advanced_integration_tests {
+    use super::*;
+    use crate::color::{Color, NamedColor};
+    use crate::geometry::{Rect, Size};
+    use crate::segment::Segment;
+    use crate::style::Style;
+
+    /// Task 7, Test 1: Syntax-highlighted code with multiple styled segments.
+    #[test]
+    fn syntax_highlighted_code() {
+        let mut compositor = Compositor::new(40, 5);
+
+        let keyword_style = Style::new().fg(Color::Named(NamedColor::Blue)).bold(true);
+        let ident_style = Style::new().fg(Color::Named(NamedColor::White));
+        let paren_style = Style::new().fg(Color::Named(NamedColor::Yellow));
+
+        let segments = vec![
+            Segment::styled("fn", keyword_style.clone()),
+            Segment::styled(" ", Style::default()),
+            Segment::styled("main", ident_style.clone()),
+            Segment::styled("()", paren_style.clone()),
+        ];
+
+        let region = Rect::new(0, 0, 40, 5);
+        compositor.add_layer(Layer::new(1, region, 0, vec![segments]));
+
+        let mut buf = ScreenBuffer::new(Size::new(40, 5));
+        compositor.compose(&mut buf);
+
+        // "fn" at positions 0-1 should have blue, bold
+        match buf.get(0, 0) {
+            Some(cell) => {
+                assert!(cell.grapheme == "f");
+                assert!(cell.style.bold);
+                assert!(matches!(
+                    cell.style.fg,
+                    Some(Color::Named(NamedColor::Blue))
+                ));
+            }
+            None => unreachable!(),
+        }
+        match buf.get(1, 0) {
+            Some(cell) => {
+                assert!(cell.grapheme == "n");
+                assert!(cell.style.bold);
+            }
+            None => unreachable!(),
+        }
+
+        // Space at position 2 should have default style
+        match buf.get(2, 0) {
+            Some(cell) => {
+                assert!(cell.grapheme == " ");
+            }
+            None => unreachable!(),
+        }
+
+        // "main" at positions 3-6 should have white fg
+        match buf.get(3, 0) {
+            Some(cell) => {
+                assert!(cell.grapheme == "m");
+                assert!(matches!(
+                    cell.style.fg,
+                    Some(Color::Named(NamedColor::White))
+                ));
+            }
+            None => unreachable!(),
+        }
+
+        // "()" at positions 7-8 should have yellow fg
+        match buf.get(7, 0) {
+            Some(cell) => {
+                assert!(cell.grapheme == "(");
+                assert!(matches!(
+                    cell.style.fg,
+                    Some(Color::Named(NamedColor::Yellow))
+                ));
+            }
+            None => unreachable!(),
+        }
+    }
+
+    /// Task 7, Test 2: Overlapping styled windows with different background colors.
+    #[test]
+    fn overlapping_styled_windows() {
+        let mut compositor = Compositor::new(20, 5);
+
+        // Bottom window (z=0) with green bg, fills region 0,0 -> 20,5
+        let green_bg = Style::new().bg(Color::Named(NamedColor::Green));
+        let green_line = vec![Segment::styled("GGGGGGGGGGGGGGGGGGG", green_bg.clone())];
+        let bottom_region = Rect::new(0, 0, 20, 5);
+        let bottom_lines = vec![green_line.clone(); 5];
+        compositor.add_layer(Layer::new(1, bottom_region, 0, bottom_lines));
+
+        // Top window (z=5) with blue bg, covers region 5,1 -> 10,3
+        let blue_bg = Style::new().bg(Color::Named(NamedColor::Blue));
+        let blue_line = vec![Segment::styled("BBBBB", blue_bg.clone())];
+        let top_region = Rect::new(5, 1, 10, 3);
+        let top_lines = vec![blue_line.clone(); 3];
+        compositor.add_layer(Layer::new(2, top_region, 5, top_lines));
+
+        let mut buf = ScreenBuffer::new(Size::new(20, 5));
+        compositor.compose(&mut buf);
+
+        // Row 0, col 5: only bottom window here -> green bg
+        match buf.get(5, 0) {
+            Some(cell) => {
+                assert!(matches!(
+                    cell.style.bg,
+                    Some(Color::Named(NamedColor::Green))
+                ));
+            }
+            None => unreachable!(),
+        }
+
+        // Row 1, col 5: top window starts here -> blue bg
+        match buf.get(5, 1) {
+            Some(cell) => {
+                assert!(matches!(
+                    cell.style.bg,
+                    Some(Color::Named(NamedColor::Blue))
+                ));
+            }
+            None => unreachable!(),
+        }
+
+        // Row 1, col 0: still bottom window region -> green bg
+        match buf.get(0, 1) {
+            Some(cell) => {
+                assert!(matches!(
+                    cell.style.bg,
+                    Some(Color::Named(NamedColor::Green))
+                ));
+            }
+            None => unreachable!(),
+        }
+    }
+
+    /// Task 7, Test 3: Full-width CJK text in compositor.
+    #[test]
+    fn cjk_text_in_compositor() {
+        let mut compositor = Compositor::new(20, 3);
+        let region = Rect::new(0, 0, 20, 3);
+        // "世界" = two CJK chars, each width 2, total width 4
+        let lines = vec![vec![Segment::new("\u{4e16}\u{754c}")]];
+        compositor.add_layer(Layer::new(1, region, 0, lines));
+
+        let mut buf = ScreenBuffer::new(Size::new(20, 3));
+        compositor.compose(&mut buf);
+
+        // First CJK char at column 0, width 2
+        match buf.get(0, 0) {
+            Some(cell) => {
+                assert!(cell.grapheme == "\u{4e16}");
+                assert!(cell.width == 2);
+            }
+            None => unreachable!(),
+        }
+
+        // Continuation cell at column 1
+        match buf.get(1, 0) {
+            Some(cell) => {
+                assert!(cell.width == 0);
+            }
+            None => unreachable!(),
+        }
+
+        // Second CJK char at column 2
+        match buf.get(2, 0) {
+            Some(cell) => {
+                assert!(cell.grapheme == "\u{754c}");
+                assert!(cell.width == 2);
+            }
+            None => unreachable!(),
+        }
+
+        // Continuation cell at column 3
+        match buf.get(3, 0) {
+            Some(cell) => {
+                assert!(cell.width == 0);
+            }
+            None => unreachable!(),
+        }
+    }
+
+    /// Task 7, Test 4: Multiple rows in a layer.
+    #[test]
+    fn multiple_rows_in_layer() {
+        let mut compositor = Compositor::new(40, 10);
+        let region = Rect::new(0, 0, 40, 10);
+        let lines = vec![
+            vec![Segment::new("Row Zero")],
+            vec![Segment::new("Row One")],
+            vec![Segment::new("Row Two")],
+        ];
+        compositor.add_layer(Layer::new(1, region, 0, lines));
+
+        let mut buf = ScreenBuffer::new(Size::new(40, 10));
+        compositor.compose(&mut buf);
+
+        // Row 0 starts with 'R' from "Row Zero"
+        match buf.get(0, 0) {
+            Some(cell) => {
+                assert!(cell.grapheme == "R");
+            }
+            None => unreachable!(),
+        }
+        match buf.get(4, 0) {
+            Some(cell) => {
+                assert!(cell.grapheme == "Z");
+            }
+            None => unreachable!(),
+        }
+
+        // Row 1 starts with 'R' from "Row One"
+        match buf.get(0, 1) {
+            Some(cell) => {
+                assert!(cell.grapheme == "R");
+            }
+            None => unreachable!(),
+        }
+        match buf.get(4, 1) {
+            Some(cell) => {
+                assert!(cell.grapheme == "O");
+            }
+            None => unreachable!(),
+        }
+
+        // Row 2 starts with 'R' from "Row Two"
+        match buf.get(0, 2) {
+            Some(cell) => {
+                assert!(cell.grapheme == "R");
+            }
+            None => unreachable!(),
+        }
+        match buf.get(4, 2) {
+            Some(cell) => {
+                assert!(cell.grapheme == "T");
+            }
+            None => unreachable!(),
+        }
+    }
+
+    /// Task 7, Test 5: Layer partially off-screen.
+    #[test]
+    fn layer_partially_off_screen() {
+        // Screen is 10x5
+        let mut compositor = Compositor::new(10, 5);
+
+        // Layer starts at x=7, width=10 — extends to x=17 which is beyond screen width 10
+        let region = Rect::new(7, 0, 10, 3);
+        let lines = vec![vec![Segment::new("ABCDEFGHIJ")]];
+        compositor.add_layer(Layer::new(1, region, 0, lines));
+
+        let mut buf = ScreenBuffer::new(Size::new(10, 5));
+        compositor.compose(&mut buf);
+
+        // Column 7 should have 'A'
+        match buf.get(7, 0) {
+            Some(cell) => {
+                assert!(cell.grapheme == "A");
+            }
+            None => unreachable!(),
+        }
+
+        // Column 9 (last column) should have 'C'
+        match buf.get(9, 0) {
+            Some(cell) => {
+                assert!(cell.grapheme == "C");
+            }
+            None => unreachable!(),
+        }
+
+        // No out-of-bounds access — buffer should be fine
+        assert!(buf.get(10, 0).is_none());
+    }
+
+    /// Task 7, Test 6: Zero-layer compositor produces all blank cells.
+    #[test]
+    fn zero_layer_compositor_all_blank() {
+        let compositor = Compositor::new(20, 10);
+        let mut buf = ScreenBuffer::new(Size::new(20, 10));
+        compositor.compose(&mut buf);
+
+        for y in 0..10 {
+            for x in 0..20 {
+                match buf.get(x, y) {
+                    Some(cell) => {
+                        assert!(cell.is_blank());
+                    }
+                    None => unreachable!(),
+                }
+            }
+        }
+    }
+
+    /// Task 7, Test 7: Background layer with overlay covering middle portion.
+    #[test]
+    fn styled_segments_split_by_overlay() {
+        let mut compositor = Compositor::new(20, 3);
+
+        // Background: "Hello World" at (0,0), z=0
+        let bg_region = Rect::new(0, 0, 20, 3);
+        let bg_lines = vec![vec![Segment::new("Hello World")]];
+        compositor.add_layer(Layer::new(1, bg_region, 0, bg_lines));
+
+        // Overlay: "XXXXX" at x=3, covering positions 3-7, z=10
+        let overlay_region = Rect::new(3, 0, 5, 3);
+        let overlay_lines = vec![vec![Segment::new("XXXXX")]];
+        compositor.add_layer(Layer::new(2, overlay_region, 10, overlay_lines));
+
+        let mut buf = ScreenBuffer::new(Size::new(20, 3));
+        compositor.compose(&mut buf);
+
+        // Positions 0-2: "Hel" from background
+        match buf.get(0, 0) {
+            Some(cell) => {
+                assert!(cell.grapheme == "H");
+            }
+            None => unreachable!(),
+        }
+        match buf.get(1, 0) {
+            Some(cell) => {
+                assert!(cell.grapheme == "e");
+            }
+            None => unreachable!(),
+        }
+        match buf.get(2, 0) {
+            Some(cell) => {
+                assert!(cell.grapheme == "l");
+            }
+            None => unreachable!(),
+        }
+
+        // Positions 3-7: "XXXXX" from overlay
+        match buf.get(3, 0) {
+            Some(cell) => {
+                assert!(cell.grapheme == "X");
+            }
+            None => unreachable!(),
+        }
+        match buf.get(7, 0) {
+            Some(cell) => {
+                assert!(cell.grapheme == "X");
+            }
+            None => unreachable!(),
+        }
+
+        // Position 8: "W" from background ("Hello World" offset by 8 = 'W')
+        // The background text "Hello World" has chars at positions:
+        // H(0) e(1) l(2) l(3) o(4) (5) W(6) o(7) r(8) l(9) d(10)
+        // But the overlay covers 3-7 of the layer, so background position 8
+        // should show "o" (position 8 in "Hello World" = 'r')
+        // Wait — "Hello World" is 11 chars, at layer origin x=0.
+        // Background position 8 maps to "Hello World"[8] = 'r'
+        match buf.get(8, 0) {
+            Some(cell) => {
+                assert!(cell.grapheme == "r");
+            }
+            None => unreachable!(),
+        }
+    }
+
+    /// Task 7, Test 8: Large number of layers — topmost always wins.
+    #[test]
+    fn many_layers_topmost_wins() {
+        let mut compositor = Compositor::new(20, 5);
+
+        // Create 25 layers, all covering the same region, with increasing z-index
+        // Each layer has its own single character
+        for i in 0u64..25 {
+            let ch = char::from(b'A' + (i as u8) % 26);
+            let region = Rect::new(0, 0, 20, 5);
+            let lines = vec![vec![Segment::new(ch.to_string())]];
+            compositor.add_layer(Layer::new(i + 1, region, i as i32, lines));
+        }
+
+        let mut buf = ScreenBuffer::new(Size::new(20, 5));
+        compositor.compose(&mut buf);
+
+        // The topmost layer (z=24) has character 'Y' (b'A' + 24)
+        match buf.get(0, 0) {
+            Some(cell) => {
+                assert!(cell.grapheme == "Y");
+            }
+            None => unreachable!(),
+        }
     }
 }

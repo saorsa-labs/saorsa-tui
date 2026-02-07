@@ -6,6 +6,7 @@
 use std::fmt::Write;
 
 use crate::buffer::CellChange;
+use crate::cell::Cell;
 use crate::color::{Color, NamedColor};
 use crate::style::Style;
 use crate::terminal::ColorSupport;
@@ -78,6 +79,139 @@ impl Renderer {
         if self.synchronized_output {
             output.push_str("\x1b[?2026l");
         }
+
+        output
+    }
+
+    /// Render cell changes using batched output for fewer escape sequences.
+    ///
+    /// Groups consecutive same-row cells into [`DeltaBatch`]es, then renders
+    /// each batch with a single cursor-move and minimal style transitions.
+    /// This can produce shorter output than [`render`](Self::render) when
+    /// many adjacent cells change.
+    pub fn render_batched(&self, changes: &[CellChange]) -> String {
+        let batches = batch_changes(changes);
+        if batches.is_empty() {
+            return String::new();
+        }
+
+        let mut output = String::with_capacity(changes.len() * 12);
+
+        if self.synchronized_output {
+            output.push_str("\x1b[?2026h");
+        }
+
+        let mut last_style = Style::default();
+        let mut style_active = false;
+        let mut last_cursor_x: Option<u16> = None;
+        let mut last_cursor_y: Option<u16> = None;
+
+        for batch in &batches {
+            // Emit cursor move if not already at the right position
+            let need_move = !matches!(
+                (last_cursor_x, last_cursor_y),
+                (Some(lx), Some(ly)) if ly == batch.y && lx == batch.x
+            );
+            if need_move {
+                let _ = write!(output, "\x1b[{};{}H", batch.y + 1, batch.x + 1);
+            }
+
+            let mut cursor_x = batch.x;
+            for cell in &batch.cells {
+                self.write_style_diff(&mut output, &last_style, &cell.style, style_active);
+                last_style = cell.style.clone();
+                style_active = true;
+
+                output.push_str(&cell.grapheme);
+                cursor_x += u16::from(cell.width);
+            }
+
+            last_cursor_x = Some(cursor_x);
+            last_cursor_y = Some(batch.y);
+        }
+
+        if style_active && !last_style.is_empty() {
+            output.push_str("\x1b[0m");
+        }
+
+        if self.synchronized_output {
+            output.push_str("\x1b[?2026l");
+        }
+
+        output
+    }
+
+    /// Render cell changes with cursor hidden and combined SGR sequences.
+    ///
+    /// This variant wraps the output with cursor-hide (`\x1b[?25l`) at the
+    /// start and cursor-show (`\x1b[?25h`) at the end, which prevents cursor
+    /// flicker during rendering. Style attributes are emitted as combined SGR
+    /// sequences (e.g. `\x1b[1;3;31m` instead of separate codes).
+    pub fn render_optimized(&self, changes: &[CellChange]) -> String {
+        if changes.is_empty() {
+            return String::new();
+        }
+
+        let mut output = String::with_capacity(changes.len() * 16);
+
+        // Hide cursor during rendering
+        output.push_str("\x1b[?25l");
+
+        // Begin synchronized output if supported
+        if self.synchronized_output {
+            output.push_str("\x1b[?2026h");
+        }
+
+        let mut last_x: Option<u16> = None;
+        let mut last_y: Option<u16> = None;
+        let mut last_style = Style::default();
+        let mut style_active = false;
+
+        for change in changes {
+            // Skip continuation cells
+            if change.cell.width == 0 {
+                continue;
+            }
+
+            // Cursor positioning
+            let need_move = !matches!((last_x, last_y), (Some(lx), Some(ly)) if ly == change.y && lx == change.x);
+            if need_move {
+                let _ = write!(output, "\x1b[{};{}H", change.y + 1, change.x + 1);
+            }
+
+            // Use combined SGR sequences for efficient style changes
+            if !style_active
+                || needs_reset(&last_style, &change.cell.style)
+                || last_style != change.cell.style
+            {
+                if style_active && !last_style.is_empty() {
+                    output.push_str("\x1b[0m");
+                }
+                let sgr = build_sgr_sequence(&change.cell.style, self.color_support);
+                output.push_str(&sgr);
+            }
+
+            last_style = change.cell.style.clone();
+            style_active = true;
+
+            output.push_str(&change.cell.grapheme);
+
+            last_x = Some(change.x + u16::from(change.cell.width));
+            last_y = Some(change.y);
+        }
+
+        // Reset style at the end
+        if style_active && !last_style.is_empty() {
+            output.push_str("\x1b[0m");
+        }
+
+        // End synchronized output if supported
+        if self.synchronized_output {
+            output.push_str("\x1b[?2026l");
+        }
+
+        // Show cursor again
+        output.push_str("\x1b[?25h");
 
         output
     }
@@ -198,6 +332,102 @@ fn needs_reset(prev: &Style, next: &Style) -> bool {
         || (prev.underline && !next.underline)
         || (prev.reverse && !next.reverse)
         || (prev.strikethrough && !next.strikethrough)
+}
+
+/// Build a single combined SGR sequence for all active attributes of a style.
+///
+/// Instead of emitting separate `\x1b[1m\x1b[3m\x1b[31m` sequences for
+/// bold, italic, and red foreground, this produces a single `\x1b[1;3;31m`.
+/// Returns an empty string if the style has no active attributes.
+pub fn build_sgr_sequence(style: &Style, color_support: ColorSupport) -> String {
+    let mut codes: Vec<String> = Vec::new();
+
+    // Text attributes
+    if style.bold {
+        codes.push("1".to_string());
+    }
+    if style.dim {
+        codes.push("2".to_string());
+    }
+    if style.italic {
+        codes.push("3".to_string());
+    }
+    if style.underline {
+        codes.push("4".to_string());
+    }
+    if style.reverse {
+        codes.push("7".to_string());
+    }
+    if style.strikethrough {
+        codes.push("9".to_string());
+    }
+
+    // Foreground color
+    if let Some(ref fg) = style.fg {
+        let downgraded = downgrade_color_standalone(fg, color_support);
+        codes.extend(fg_color_codes(&downgraded));
+    }
+
+    // Background color
+    if let Some(ref bg) = style.bg {
+        let downgraded = downgrade_color_standalone(bg, color_support);
+        codes.extend(bg_color_codes(&downgraded));
+    }
+
+    if codes.is_empty() {
+        return String::new();
+    }
+
+    format!("\x1b[{}m", codes.join(";"))
+}
+
+/// Downgrade a color to match the given color support level (standalone version).
+fn downgrade_color_standalone(color: &Color, support: ColorSupport) -> Color {
+    match support {
+        ColorSupport::TrueColor => color.clone(),
+        ColorSupport::Extended256 => match color {
+            Color::Rgb { r, g, b } => Color::Indexed(rgb_to_256(*r, *g, *b)),
+            _ => color.clone(),
+        },
+        ColorSupport::Basic16 => match color {
+            Color::Rgb { r, g, b } => Color::Named(rgb_to_named(*r, *g, *b)),
+            Color::Indexed(i) => Color::Named(index_to_named(*i)),
+            _ => color.clone(),
+        },
+        ColorSupport::NoColor => Color::Reset,
+    }
+}
+
+/// Return the SGR parameter codes for a foreground color (without the ESC[ prefix or m suffix).
+fn fg_color_codes(color: &Color) -> Vec<String> {
+    match color {
+        Color::Rgb { r, g, b } => vec![
+            "38".to_string(),
+            "2".to_string(),
+            r.to_string(),
+            g.to_string(),
+            b.to_string(),
+        ],
+        Color::Indexed(i) => vec!["38".to_string(), "5".to_string(), i.to_string()],
+        Color::Named(n) => vec![named_fg_code(n).to_string()],
+        Color::Reset => vec!["39".to_string()],
+    }
+}
+
+/// Return the SGR parameter codes for a background color (without the ESC[ prefix or m suffix).
+fn bg_color_codes(color: &Color) -> Vec<String> {
+    match color {
+        Color::Rgb { r, g, b } => vec![
+            "48".to_string(),
+            "2".to_string(),
+            r.to_string(),
+            g.to_string(),
+            b.to_string(),
+        ],
+        Color::Indexed(i) => vec!["48".to_string(), "5".to_string(), i.to_string()],
+        Color::Named(n) => vec![named_bg_code(n).to_string()],
+        Color::Reset => vec!["49".to_string()],
+    }
 }
 
 /// Write an SGR foreground color escape sequence.
@@ -352,6 +582,64 @@ pub fn rgb_to_named(r: u8, g: u8, b: u8) -> NamedColor {
         }
     }
     best
+}
+
+/// Represents a contiguous run of changed cells in the same row.
+///
+/// Batching consecutive cells allows the renderer to emit fewer cursor-move
+/// escape sequences, since cells in the same batch are adjacent.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeltaBatch {
+    /// Starting column.
+    pub x: u16,
+    /// Row.
+    pub y: u16,
+    /// The cells in this batch (left to right).
+    pub cells: Vec<Cell>,
+}
+
+/// Computes delta batches from cell changes, grouping consecutive same-row cells.
+///
+/// Two changes are grouped into the same batch when they are on the same row
+/// and the second change's x position equals the first change's x plus the
+/// first change's cell width (i.e., they are visually adjacent). Continuation
+/// cells (width 0) are skipped.
+pub fn batch_changes(changes: &[CellChange]) -> Vec<DeltaBatch> {
+    let mut batches: Vec<DeltaBatch> = Vec::new();
+
+    for change in changes {
+        // Skip continuation cells
+        if change.cell.width == 0 {
+            continue;
+        }
+
+        let can_extend = match batches.last() {
+            Some(batch) => {
+                batch.y == change.y && {
+                    // Calculate the expected next x position
+                    let last_cell_x = batch.x;
+                    let total_width: u16 = batch.cells.iter().map(|c| u16::from(c.width)).sum();
+                    last_cell_x + total_width == change.x
+                }
+            }
+            None => false,
+        };
+
+        if can_extend {
+            match batches.last_mut() {
+                Some(batch) => batch.cells.push(change.cell.clone()),
+                None => unreachable!(),
+            }
+        } else {
+            batches.push(DeltaBatch {
+                x: change.x,
+                y: change.y,
+                cells: vec![change.cell.clone()],
+            });
+        }
+    }
+
+    batches
 }
 
 /// Convert a 256-color index to the nearest named 16-color.
@@ -692,5 +980,335 @@ mod tests {
     fn rgb_to_named_pure_white() {
         let named = rgb_to_named(255, 255, 255);
         assert_eq!(named, NamedColor::BrightWhite);
+    }
+
+    // --- Delta batching tests ---
+
+    #[test]
+    fn batch_changes_empty() {
+        let batches = batch_changes(&[]);
+        assert!(batches.is_empty());
+    }
+
+    #[test]
+    fn batch_changes_single_cell() {
+        let changes = vec![CellChange {
+            x: 3,
+            y: 1,
+            cell: Cell::new("A", Style::default()),
+        }];
+        let batches = batch_changes(&changes);
+        assert_eq!(batches.len(), 1);
+        assert_eq!(batches[0].x, 3);
+        assert_eq!(batches[0].y, 1);
+        assert_eq!(batches[0].cells.len(), 1);
+        assert_eq!(batches[0].cells[0].grapheme, "A");
+    }
+
+    #[test]
+    fn batch_changes_consecutive_same_row() {
+        let changes = vec![
+            CellChange {
+                x: 0,
+                y: 0,
+                cell: Cell::new("A", Style::default()),
+            },
+            CellChange {
+                x: 1,
+                y: 0,
+                cell: Cell::new("B", Style::default()),
+            },
+            CellChange {
+                x: 2,
+                y: 0,
+                cell: Cell::new("C", Style::default()),
+            },
+        ];
+        let batches = batch_changes(&changes);
+        assert_eq!(batches.len(), 1);
+        assert_eq!(batches[0].cells.len(), 3);
+        assert_eq!(batches[0].cells[0].grapheme, "A");
+        assert_eq!(batches[0].cells[1].grapheme, "B");
+        assert_eq!(batches[0].cells[2].grapheme, "C");
+    }
+
+    #[test]
+    fn batch_changes_different_rows() {
+        let changes = vec![
+            CellChange {
+                x: 0,
+                y: 0,
+                cell: Cell::new("A", Style::default()),
+            },
+            CellChange {
+                x: 0,
+                y: 1,
+                cell: Cell::new("B", Style::default()),
+            },
+        ];
+        let batches = batch_changes(&changes);
+        assert_eq!(batches.len(), 2);
+        assert_eq!(batches[0].y, 0);
+        assert_eq!(batches[1].y, 1);
+    }
+
+    #[test]
+    fn batch_changes_gap_in_column() {
+        let changes = vec![
+            CellChange {
+                x: 0,
+                y: 0,
+                cell: Cell::new("A", Style::default()),
+            },
+            CellChange {
+                x: 5,
+                y: 0,
+                cell: Cell::new("B", Style::default()),
+            },
+        ];
+        let batches = batch_changes(&changes);
+        assert_eq!(batches.len(), 2);
+        assert_eq!(batches[0].x, 0);
+        assert_eq!(batches[1].x, 5);
+    }
+
+    #[test]
+    fn batch_changes_skips_continuation_cells() {
+        let changes = vec![
+            CellChange {
+                x: 0,
+                y: 0,
+                cell: Cell::new("\u{4e16}", Style::default()), // width=2
+            },
+            CellChange {
+                x: 1,
+                y: 0,
+                cell: Cell::continuation(), // width=0
+            },
+            CellChange {
+                x: 2,
+                y: 0,
+                cell: Cell::new("A", Style::default()),
+            },
+        ];
+        let batches = batch_changes(&changes);
+        // The wide char (width=2) starts at x=0, next expected x is 2,
+        // and "A" is at x=2, so they should be in one batch.
+        assert_eq!(batches.len(), 1);
+        assert_eq!(batches[0].cells.len(), 2);
+        assert_eq!(batches[0].cells[0].grapheme, "\u{4e16}");
+        assert_eq!(batches[0].cells[1].grapheme, "A");
+    }
+
+    #[test]
+    fn batch_changes_wide_characters() {
+        let changes = vec![
+            CellChange {
+                x: 0,
+                y: 0,
+                cell: Cell::new("\u{4e16}", Style::default()), // width=2
+            },
+            CellChange {
+                x: 1,
+                y: 0,
+                cell: Cell::continuation(),
+            },
+            CellChange {
+                x: 2,
+                y: 0,
+                cell: Cell::new("\u{754c}", Style::default()), // width=2
+            },
+        ];
+        let batches = batch_changes(&changes);
+        assert_eq!(batches.len(), 1);
+        assert_eq!(batches[0].cells.len(), 2);
+    }
+
+    #[test]
+    fn render_batched_empty() {
+        let renderer = Renderer::new(ColorSupport::TrueColor, false);
+        let output = renderer.render_batched(&[]);
+        assert!(output.is_empty());
+    }
+
+    #[test]
+    fn render_batched_produces_valid_output() {
+        let renderer = Renderer::new(ColorSupport::TrueColor, false);
+        let changes = vec![
+            CellChange {
+                x: 0,
+                y: 0,
+                cell: Cell::new("A", Style::default()),
+            },
+            CellChange {
+                x: 1,
+                y: 0,
+                cell: Cell::new("B", Style::default()),
+            },
+        ];
+        let output = renderer.render_batched(&changes);
+        assert!(output.contains('A'));
+        assert!(output.contains('B'));
+        // Should have cursor positioning
+        assert!(output.contains("\x1b[1;1H"));
+    }
+
+    #[test]
+    fn render_batched_no_longer_than_render() {
+        let renderer = Renderer::new(ColorSupport::TrueColor, false);
+        let style = Style::new().fg(Color::Named(NamedColor::Red));
+        let changes = vec![
+            CellChange {
+                x: 0,
+                y: 0,
+                cell: Cell::new("A", style.clone()),
+            },
+            CellChange {
+                x: 1,
+                y: 0,
+                cell: Cell::new("B", style.clone()),
+            },
+            CellChange {
+                x: 2,
+                y: 0,
+                cell: Cell::new("C", style),
+            },
+        ];
+        let normal_output = renderer.render(&changes);
+        let batched_output = renderer.render_batched(&changes);
+        // Batched should produce output no longer than normal render
+        assert!(batched_output.len() <= normal_output.len());
+    }
+
+    #[test]
+    fn render_batched_with_styles() {
+        let renderer = Renderer::new(ColorSupport::TrueColor, false);
+        let style = Style::new().bold(true).fg(Color::Named(NamedColor::Blue));
+        let changes = vec![CellChange {
+            x: 0,
+            y: 0,
+            cell: Cell::new("X", style),
+        }];
+        let output = renderer.render_batched(&changes);
+        assert!(output.contains("\x1b[1m")); // bold
+        assert!(output.contains("\x1b[34m")); // blue
+        assert!(output.contains('X'));
+        assert!(output.ends_with("\x1b[0m")); // reset
+    }
+
+    // --- Task 6: render_optimized and build_sgr_sequence tests ---
+
+    #[test]
+    fn render_optimized_starts_with_cursor_hide() {
+        let renderer = Renderer::new(ColorSupport::TrueColor, false);
+        let changes = vec![CellChange {
+            x: 0,
+            y: 0,
+            cell: Cell::new("A", Style::default()),
+        }];
+        let output = renderer.render_optimized(&changes);
+        assert!(output.starts_with("\x1b[?25l"));
+    }
+
+    #[test]
+    fn render_optimized_ends_with_cursor_show() {
+        let renderer = Renderer::new(ColorSupport::TrueColor, false);
+        let changes = vec![CellChange {
+            x: 0,
+            y: 0,
+            cell: Cell::new("A", Style::default()),
+        }];
+        let output = renderer.render_optimized(&changes);
+        assert!(output.ends_with("\x1b[?25h"));
+    }
+
+    #[test]
+    fn render_optimized_sync_before_cursor_show() {
+        let renderer = Renderer::new(ColorSupport::TrueColor, true);
+        let changes = vec![CellChange {
+            x: 0,
+            y: 0,
+            cell: Cell::new("A", Style::default()),
+        }];
+        let output = renderer.render_optimized(&changes);
+        // Order should be: cursor hide, sync start, ..., sync end, cursor show
+        assert!(output.starts_with("\x1b[?25l\x1b[?2026h"));
+        assert!(output.ends_with("\x1b[?2026l\x1b[?25h"));
+    }
+
+    #[test]
+    fn build_sgr_combined_bold_italic_red() {
+        let style = Style::new()
+            .bold(true)
+            .italic(true)
+            .fg(Color::Named(NamedColor::Red));
+        let sgr = build_sgr_sequence(&style, ColorSupport::TrueColor);
+        // Should be a single SGR sequence like \x1b[1;3;31m
+        assert!(sgr.starts_with("\x1b["));
+        assert!(sgr.ends_with('m'));
+        // Verify all codes are present in the combined sequence
+        assert!(sgr.contains("1;"));
+        assert!(sgr.contains(";3;"));
+        assert!(sgr.contains("31"));
+        // Should NOT have multiple separate sequences
+        let esc_count = sgr.matches("\x1b[").count();
+        assert_eq!(esc_count, 1);
+    }
+
+    #[test]
+    fn build_sgr_default_style_is_empty() {
+        let style = Style::default();
+        let sgr = build_sgr_sequence(&style, ColorSupport::TrueColor);
+        assert!(sgr.is_empty());
+    }
+
+    #[test]
+    fn render_optimized_contains_correct_content() {
+        let renderer = Renderer::new(ColorSupport::TrueColor, false);
+        let style = Style::new().bold(true).fg(Color::Named(NamedColor::Green));
+        let changes = vec![CellChange {
+            x: 0,
+            y: 0,
+            cell: Cell::new("Z", style),
+        }];
+        let output = renderer.render_optimized(&changes);
+        // Should contain the grapheme
+        assert!(output.contains('Z'));
+        // Should contain bold (1) and green (32) in a combined sequence
+        assert!(output.contains("1;"));
+        assert!(output.contains("32"));
+        // Should have reset before cursor show
+        assert!(output.contains("\x1b[0m"));
+    }
+
+    #[test]
+    fn render_optimized_empty_is_empty() {
+        let renderer = Renderer::new(ColorSupport::TrueColor, false);
+        let output = renderer.render_optimized(&[]);
+        assert!(output.is_empty());
+    }
+
+    #[test]
+    fn build_sgr_truecolor_rgb() {
+        let style = Style::new().fg(Color::Rgb {
+            r: 100,
+            g: 200,
+            b: 50,
+        });
+        let sgr = build_sgr_sequence(&style, ColorSupport::TrueColor);
+        assert_eq!(sgr, "\x1b[38;2;100;200;50m");
+    }
+
+    #[test]
+    fn build_sgr_fg_and_bg() {
+        let style = Style::new()
+            .fg(Color::Named(NamedColor::Red))
+            .bg(Color::Named(NamedColor::Blue));
+        let sgr = build_sgr_sequence(&style, ColorSupport::TrueColor);
+        // Single escape, contains both fg and bg codes
+        let esc_count = sgr.matches("\x1b[").count();
+        assert_eq!(esc_count, 1);
+        assert!(sgr.contains("31")); // red fg
+        assert!(sgr.contains("44")); // blue bg
     }
 }

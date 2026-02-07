@@ -72,11 +72,40 @@ impl Segment {
         self.text.is_empty()
     }
 
+    /// Returns each grapheme cluster in this segment together with its display width.
+    ///
+    /// Combining marks (zero-width) are grouped with their base character into
+    /// a single grapheme cluster by the Unicode segmentation algorithm.
+    pub fn grapheme_widths(&self) -> Vec<(String, usize)> {
+        if self.is_control {
+            return Vec::new();
+        }
+        self.text
+            .graphemes(true)
+            .map(|g| (g.to_string(), UnicodeWidthStr::width(g)))
+            .collect()
+    }
+
+    /// Returns the number of grapheme clusters in this segment.
+    ///
+    /// This counts user-perceived characters, so a base character followed by
+    /// combining diacritics counts as one.
+    pub fn char_count(&self) -> usize {
+        if self.is_control {
+            return 0;
+        }
+        self.text.graphemes(true).count()
+    }
+
     /// Split this segment at the given display-width offset.
     ///
     /// Returns (left, right) where left has the specified display width.
     /// If the offset falls in the middle of a wide character, the left side
-    /// is padded with a space.
+    /// is padded with a space and the right side gets a leading space.
+    ///
+    /// Combining marks (zero-width diacritics) are kept attached to their
+    /// base character: if the split point falls between a base character and
+    /// its combining marks, the combining marks travel with the base.
     pub fn split_at(&self, offset: usize) -> (Segment, Segment) {
         if offset == 0 {
             return (
@@ -91,50 +120,56 @@ impl Segment {
             );
         }
 
+        // Collect graphemes with their widths
+        let graphemes: Vec<(&str, usize)> = self
+            .text
+            .graphemes(true)
+            .map(|g| (g, UnicodeWidthStr::width(g)))
+            .collect();
+
         let mut left = String::new();
         let mut current_width = 0;
+        let mut split_idx = 0; // index of first grapheme that goes to right side
+        let mut need_left_pad = false;
 
-        for grapheme in self.text.graphemes(true) {
-            let gw = UnicodeWidthStr::width(grapheme);
+        for (i, &(grapheme, gw)) in graphemes.iter().enumerate() {
             if current_width + gw > offset {
                 // This grapheme would exceed the offset.
-                // If we're exactly at offset, stop here.
-                // If the wide char straddles the boundary, pad left with space.
-                if current_width < offset {
+                if current_width < offset && gw > 1 {
+                    // Wide char straddles the boundary — pad left with space
                     left.push(' ');
+                    need_left_pad = true;
                 }
+                split_idx = i;
                 break;
             }
             left.push_str(grapheme);
             current_width += gw;
             if current_width == offset {
+                // Check if the next grapheme(s) are zero-width combining marks
+                // that should stay with the current base character
+                let mut j = i + 1;
+                while j < graphemes.len() && graphemes[j].1 == 0 {
+                    left.push_str(graphemes[j].0);
+                    j += 1;
+                }
+                split_idx = j;
                 break;
             }
         }
 
         // Build right side from remaining graphemes
         let mut right = String::new();
-        let mut seen_width = 0;
-        let mut past_split = false;
-        for grapheme in self.text.graphemes(true) {
-            let gw = UnicodeWidthStr::width(grapheme);
-            if past_split {
+        if need_left_pad {
+            // The wide char was split; put a space on the right as placeholder
+            right.push(' ');
+            // Skip the straddled grapheme
+            for &(grapheme, _) in &graphemes[split_idx + 1..] {
                 right.push_str(grapheme);
-            } else {
-                seen_width += gw;
-                if seen_width > offset {
-                    // This grapheme straddles the boundary — skip it
-                    // (it was replaced by space on the left side, and its
-                    // right half becomes a space on the right side)
-                    if seen_width - gw < offset {
-                        right.push(' ');
-                    } else {
-                        right.push_str(grapheme);
-                    }
-                    past_split = true;
-                } else if seen_width == offset {
-                    past_split = true;
-                }
+            }
+        } else {
+            for &(grapheme, _) in &graphemes[split_idx..] {
+                right.push_str(grapheme);
             }
         }
 
@@ -214,5 +249,109 @@ mod tests {
         let (l, r) = s.split_at(2);
         assert!(l.style.bold);
         assert!(r.style.bold);
+    }
+
+    // --- Task 5: Unicode edge case tests ---
+
+    #[test]
+    fn emoji_width_is_two() {
+        // Most emoji are 2 columns wide
+        let s = Segment::new("\u{1f600}"); // grinning face
+        assert_eq!(s.width(), 2);
+    }
+
+    #[test]
+    fn emoji_at_split_boundary() {
+        // "A" (1) + emoji (2) + "B" (1) = width 4
+        let s = Segment::new("A\u{1f600}B");
+        assert_eq!(s.width(), 4);
+
+        // Split at offset 1 — before the emoji
+        let (l, r) = s.split_at(1);
+        assert_eq!(l.text, "A");
+        assert_eq!(r.text, "\u{1f600}B");
+
+        // Split at offset 2 — in the middle of the emoji
+        // The emoji is width 2 and starts at offset 1, so offset 2 is mid-emoji
+        let (l2, r2) = s.split_at(2);
+        // left should get "A" + space (padding for straddled emoji)
+        assert_eq!(l2.text, "A ");
+        assert_eq!(l2.width(), 2);
+        // right should get space (placeholder) + "B"
+        assert_eq!(r2.text, " B");
+    }
+
+    #[test]
+    fn combining_diacritics_width() {
+        // 'e' followed by combining acute accent (U+0301) = single grapheme cluster "e\u{0301}"
+        let s = Segment::new("e\u{0301}"); // é as decomposed
+        // Should be width 1 (single character with combining mark)
+        assert_eq!(s.width(), 1);
+        assert_eq!(s.char_count(), 1);
+    }
+
+    #[test]
+    fn mixed_ascii_emoji_cjk() {
+        // "Hi" (2) + emoji (2) + CJK 世 (2) = width 6
+        let s = Segment::new("Hi\u{1f600}\u{4e16}");
+        assert_eq!(s.width(), 6);
+        assert_eq!(s.char_count(), 4); // H, i, emoji, CJK
+    }
+
+    #[test]
+    fn grapheme_widths_returns_correct_values() {
+        let s = Segment::new("A\u{4e16}B");
+        let widths = s.grapheme_widths();
+        assert_eq!(widths.len(), 3);
+        assert_eq!(widths[0], ("A".to_string(), 1));
+        assert_eq!(widths[1], ("\u{4e16}".to_string(), 2));
+        assert_eq!(widths[2], ("B".to_string(), 1));
+    }
+
+    #[test]
+    fn char_count_returns_grapheme_cluster_count() {
+        // "Hello" = 5 grapheme clusters
+        assert_eq!(Segment::new("Hello").char_count(), 5);
+        // Empty = 0
+        assert_eq!(Segment::new("").char_count(), 0);
+        // CJK characters
+        assert_eq!(Segment::new("\u{4e16}\u{754c}").char_count(), 2);
+        // Control segments return 0
+        assert_eq!(Segment::control("ESC").char_count(), 0);
+    }
+
+    #[test]
+    fn split_preserves_combining_marks() {
+        // "ae\u{0301}b" = "a" + "e\u{0301}" + "b" (3 graphemes, width 3)
+        let s = Segment::new("ae\u{0301}b");
+        assert_eq!(s.width(), 3);
+        assert_eq!(s.char_count(), 3);
+
+        // Split at offset 1 — between "a" and "e\u{0301}"
+        let (l, r) = s.split_at(1);
+        assert_eq!(l.text, "a");
+        // The combining mark should stay attached to "e"
+        assert_eq!(r.text, "e\u{0301}b");
+
+        // Split at offset 2 — between "e\u{0301}" and "b"
+        let (l2, r2) = s.split_at(2);
+        assert_eq!(l2.text, "ae\u{0301}");
+        assert_eq!(r2.text, "b");
+    }
+
+    #[test]
+    fn empty_segment_grapheme_operations() {
+        let s = Segment::new("");
+        assert_eq!(s.grapheme_widths().len(), 0);
+        assert_eq!(s.char_count(), 0);
+        let (l, r) = s.split_at(0);
+        assert_eq!(l.text, "");
+        assert_eq!(r.text, "");
+    }
+
+    #[test]
+    fn grapheme_widths_empty_for_control() {
+        let s = Segment::control("\x1b[1m");
+        assert!(s.grapheme_widths().is_empty());
     }
 }
