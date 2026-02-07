@@ -171,7 +171,7 @@ impl BookmarkManager {
 impl Default for BookmarkManager {
     fn default() -> Self {
         Self::new()
-            .unwrap_or_else(|_| Self::with_path(PathBuf::from("/tmp/saorsa-tui-bookmarks.json")))
+            .unwrap_or_else(|_| Self::with_path(PathBuf::from("/tmp/saorsa-bookmarks.json")))
     }
 }
 

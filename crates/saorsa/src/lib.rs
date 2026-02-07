@@ -1,6 +1,6 @@
 //! saorsa: The AI coding agent application.
 //!
-//! This crate provides the application logic for the saorsa-tui AI coding agent,
+//! This crate provides the application logic for the saorsa AI coding agent,
 //! combining saorsa-core (TUI framework), saorsa-ai (LLM providers), and
 //! saorsa-agent (agent runtime) into a complete interactive application.
 

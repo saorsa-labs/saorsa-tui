@@ -34,7 +34,7 @@ fn render_header(state: &AppState, buf: &mut ScreenBuffer, area: Rect) {
         AppStatus::ToolRunning { tool_name } => tool_name.as_str(),
     };
 
-    let header_text = format!(" saorsa-tui | {} | {}", state.model, status_text);
+    let header_text = format!(" saorsa | {} | {}", state.model, status_text);
 
     let style = Style::default()
         .fg(Color::Named(saorsa_core::color::NamedColor::Black))

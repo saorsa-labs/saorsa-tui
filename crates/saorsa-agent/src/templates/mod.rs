@@ -1,7 +1,7 @@
 //! Prompt template system with variable substitution and conditionals.
 //!
 //! Provides built-in templates for common tasks and supports user-defined
-//! templates from ~/.saorsa-tui/templates/.
+//! templates from ~/.saorsa/templates/.
 
 pub mod builtins;
 pub mod engine;
@@ -14,12 +14,12 @@ use std::path::PathBuf;
 
 /// Discover user template files.
 ///
-/// Searches ~/.saorsa-tui/templates/*.md for user-defined templates.
+/// Searches ~/.saorsa/templates/*.md for user-defined templates.
 pub fn discover_user_templates() -> Vec<PathBuf> {
     let mut paths = Vec::new();
 
     if let Some(home) = dirs::home_dir() {
-        let template_dir = home.join(".saorsa-tui/templates");
+        let template_dir = home.join(".saorsa/templates");
         if template_dir.exists()
             && let Ok(entries) = std::fs::read_dir(&template_dir)
         {

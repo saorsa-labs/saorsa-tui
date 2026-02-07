@@ -1,4 +1,4 @@
-//! Context engineering system for the saorsa-tui AI agent.
+//! Context engineering system for the saorsa AI agent.
 //!
 //! This module provides:
 //! - Discovery of AGENTS.md and SYSTEM.md files across multiple locations

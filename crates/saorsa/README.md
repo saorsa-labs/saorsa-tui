@@ -75,7 +75,7 @@ saorsa --ephemeral        # No session persistence
 
 ```
 ┌─────────────────────────────────────────────────┐
-│ saorsa-tui │ claude-sonnet-4 │ Ready             │  Header
+│ saorsa │ claude-sonnet-4 │ Ready                 │  Header
 ├─────────────────────────────────────────────────┤
 │                                                  │
 │ > How do I read a file in Rust?                  │

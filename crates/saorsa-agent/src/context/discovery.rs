@@ -3,7 +3,7 @@
 //! Discovers context files across multiple locations with precedence:
 //! 1. Current working directory (highest precedence)
 //! 2. Parent directories (walking up to root or home)
-//! 3. Global location (~/.saorsa-tui/, lowest precedence)
+//! 3. Global location (~/.saorsa/, lowest precedence)
 
 use std::path::{Path, PathBuf};
 
@@ -31,7 +31,7 @@ impl ContextDiscovery {
     /// Returns paths ordered by precedence (highest first):
     /// - CWD/AGENTS.md
     /// - Parent directories (walking up)
-    /// - ~/.saorsa-tui/AGENTS.md
+    /// - ~/.saorsa/AGENTS.md
     pub fn discover_agents_md(&self) -> Vec<PathBuf> {
         self.discover_file("AGENTS.md")
     }
@@ -41,7 +41,7 @@ impl ContextDiscovery {
     /// Returns paths ordered by precedence (highest first):
     /// - CWD/SYSTEM.md
     /// - Parent directories (walking up)
-    /// - ~/.saorsa-tui/SYSTEM.md
+    /// - ~/.saorsa/SYSTEM.md
     pub fn discover_system_md(&self) -> Vec<PathBuf> {
         self.discover_file("SYSTEM.md")
     }
@@ -81,9 +81,9 @@ impl ContextDiscovery {
             current = parent;
         }
 
-        // 3. Check global location (~/.saorsa-tui/)
+        // 3. Check global location (~/.saorsa/)
         if let Some(home_path) = home {
-            let global_file = home_path.join(".saorsa-tui").join(filename);
+            let global_file = home_path.join(".saorsa").join(filename);
             if global_file.exists() {
                 found.push(global_file);
             }

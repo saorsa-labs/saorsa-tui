@@ -282,7 +282,7 @@ while let Some(event) = rx.recv().await {
 Sessions are persisted to disk in a structured format:
 
 ```
-~/.saorsa-tui/sessions/
+~/.saorsa/sessions/
   <session-uuid>/
     manifest.json       # SessionMetadata (title, tags, timestamps)
     tree.json           # SessionNode (parent/child relationships)
@@ -372,7 +372,7 @@ The agent searches for context files in precedence order:
 
 1. Current working directory (highest precedence)
 2. Parent directories (walking up to root/home)
-3. `~/.saorsa-tui/` (global, lowest precedence)
+3. `~/.saorsa/` (global, lowest precedence)
 
 ```rust
 use saorsa_agent::ContextDiscovery;
@@ -425,7 +425,7 @@ Skills inject specialized knowledge on demand from markdown files:
 ```rust
 use saorsa_agent::SkillRegistry;
 
-// Discover skills from ~/.saorsa-tui/skills/
+// Discover skills from ~/.saorsa/skills/
 let skills = SkillRegistry::discover_skills();
 
 for skill in &skills {
@@ -457,7 +457,7 @@ let result = render_simple("Hello {{name}}, using {{model}}!", &ctx)?;
 - Conditionals: `{{#if var}}...{{/if}}`
 - Negated: `{{#unless var}}...{{/unless}}`
 
-Built-in templates are available via `get_builtin()` and `list_builtins()`. User templates are loaded from `~/.saorsa-tui/templates/*.md`.
+Built-in templates are available via `get_builtin()` and `list_builtins()`. User templates are loaded from `~/.saorsa/templates/*.md`.
 
 ## Extension System
 
@@ -510,7 +510,7 @@ let registry = shared_registry();
 | `ExtensionToolRegistry` | Custom agent tools |
 | `WidgetRegistry` | Custom UI widgets |
 
-Extensions are loaded from `~/.saorsa-tui/extensions/`.
+Extensions are loaded from `~/.saorsa/extensions/`.
 
 ## Custom Tools
 

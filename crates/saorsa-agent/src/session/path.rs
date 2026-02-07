@@ -7,14 +7,14 @@ use std::path::{Path, PathBuf};
 /// Get the base directory for session storage.
 ///
 /// Uses XDG Base Directory specification:
-/// - `$XDG_DATA_HOME/saorsa-tui/sessions` if XDG_DATA_HOME is set
-/// - `~/.saorsa-tui/sessions` otherwise
+/// - `$XDG_DATA_HOME/saorsa/sessions` if XDG_DATA_HOME is set
+/// - `~/.saorsa/sessions` otherwise
 pub fn sessions_dir() -> Result<PathBuf, SaorsaAgentError> {
     let base = if let Ok(xdg_data) = std::env::var("XDG_DATA_HOME") {
-        PathBuf::from(xdg_data).join("saorsa-tui")
+        PathBuf::from(xdg_data).join("saorsa")
     } else if let Some(home) = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"))
     {
-        PathBuf::from(home).join(".saorsa-tui")
+        PathBuf::from(home).join(".saorsa")
     } else {
         return Err(SaorsaAgentError::Session(
             "Cannot determine home directory".to_string(),
@@ -76,7 +76,7 @@ mod tests {
         }
         let path = sessions_dir().unwrap();
         assert!(path.to_string_lossy().contains("xdg_test"));
-        assert!(path.ends_with("saorsa-tui/sessions"));
+        assert!(path.ends_with("saorsa/sessions"));
         unsafe {
             std::env::remove_var("XDG_DATA_HOME");
         }
@@ -88,8 +88,8 @@ mod tests {
             std::env::remove_var("XDG_DATA_HOME");
         }
         let path = sessions_dir().unwrap();
-        assert!(path.to_string_lossy().contains(".saorsa-tui"));
-        assert!(path.ends_with(".saorsa-tui/sessions"));
+        assert!(path.to_string_lossy().contains(".saorsa"));
+        assert!(path.ends_with(".saorsa/sessions"));
     }
 
     #[test]

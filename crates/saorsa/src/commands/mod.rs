@@ -1,4 +1,4 @@
-//! Application commands for the saorsa-tui AI agent.
+//! Application commands for the saorsa AI agent.
 
 pub mod bookmark;
 pub mod clear;

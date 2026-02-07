@@ -1,6 +1,6 @@
 # saorsa-cli
 
-Thin CLI entry point for the saorsa-tui AI coding agent.
+Thin CLI entry point for the saorsa AI coding agent.
 
 [![Crates.io](https://img.shields.io/crates/v/saorsa-cli.svg)](https://crates.io/crates/saorsa-cli)
 [![License](https://img.shields.io/crates/l/saorsa-cli.svg)](LICENSE)
@@ -8,7 +8,7 @@ Thin CLI entry point for the saorsa-tui AI coding agent.
 
 ## Overview
 
-**saorsa-cli** is the command-line entry point for the saorsa-tui project. It is a thin wrapper that delegates to `saorsa` for all application logic.
+**saorsa-cli** is the command-line entry point for the saorsa project. It is a thin wrapper that delegates to `saorsa` for all application logic.
 
 This crate exists as a separate binary to keep the CLI entry point minimal and to allow `saorsa` to be used as both a library and a binary.
 

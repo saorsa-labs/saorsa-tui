@@ -4,7 +4,7 @@
 ///
 /// Exports the current conversation and generates a shareable link.
 pub fn execute(_args: &str) -> anyhow::Result<String> {
-    let link = "https://share.saorsa-tui.dev/abc123";
+    let link = "https://share.saorsa.dev/abc123";
     Ok(format!("Conversation shared: {}", link))
 }
 

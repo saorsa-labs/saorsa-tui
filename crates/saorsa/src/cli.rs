@@ -1,10 +1,10 @@
-//! CLI argument parsing for saorsa-tui.
+//! CLI argument parsing for saorsa.
 
 use clap::Parser;
 
-/// saorsa-tui - AI coding agent for the terminal.
+/// saorsa - AI coding agent for the terminal.
 #[derive(Parser, Debug)]
-#[command(name = "saorsa-tui", version, about)]
+#[command(name = "saorsa", version, about)]
 pub struct Cli {
     /// LLM model to use.
     #[arg(long, default_value = "claude-sonnet-4-5-20250929")]
@@ -66,7 +66,7 @@ mod tests {
     #[test]
     fn cli_defaults() {
         // Note: api_key may be set via ANTHROPIC_API_KEY env var.
-        let cli = Cli::parse_from(["saorsa-tui"]);
+        let cli = Cli::parse_from(["saorsa"]);
         assert_eq!(cli.model, "claude-sonnet-4-5-20250929");
         assert_eq!(cli.max_tokens, 4096);
         assert_eq!(cli.max_turns, 10);
@@ -78,19 +78,19 @@ mod tests {
 
     #[test]
     fn cli_custom_model() {
-        let cli = Cli::parse_from(["saorsa-tui", "--model", "claude-opus-4-20250514"]);
+        let cli = Cli::parse_from(["saorsa", "--model", "claude-opus-4-20250514"]);
         assert_eq!(cli.model, "claude-opus-4-20250514");
     }
 
     #[test]
     fn cli_print_mode() {
-        let cli = Cli::parse_from(["saorsa-tui", "--print", "Hello"]);
+        let cli = Cli::parse_from(["saorsa", "--print", "Hello"]);
         assert_eq!(cli.print.as_deref(), Some("Hello"));
     }
 
     #[test]
     fn cli_api_key_from_arg() {
-        let cli = Cli::parse_from(["saorsa-tui", "--api-key", "sk-test"]);
+        let cli = Cli::parse_from(["saorsa", "--api-key", "sk-test"]);
         assert_eq!(cli.api_key(), Ok("sk-test"));
     }
 
@@ -115,25 +115,25 @@ mod tests {
 
     #[test]
     fn cli_continue_session() {
-        let cli = Cli::parse_from(["saorsa-tui", "-c"]);
+        let cli = Cli::parse_from(["saorsa", "-c"]);
         assert!(cli.continue_session);
     }
 
     #[test]
     fn cli_continue_session_long_form() {
-        let cli = Cli::parse_from(["saorsa-tui", "--continue-session"]);
+        let cli = Cli::parse_from(["saorsa", "--continue-session"]);
         assert!(cli.continue_session);
     }
 
     #[test]
     fn cli_resume_session() {
-        let cli = Cli::parse_from(["saorsa-tui", "--resume", "abc123"]);
+        let cli = Cli::parse_from(["saorsa", "--resume", "abc123"]);
         assert_eq!(cli.resume.as_deref(), Some("abc123"));
     }
 
     #[test]
     fn cli_ephemeral() {
-        let cli = Cli::parse_from(["saorsa-tui", "--ephemeral"]);
+        let cli = Cli::parse_from(["saorsa", "--ephemeral"]);
         assert!(cli.ephemeral);
     }
 }

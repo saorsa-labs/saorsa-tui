@@ -180,7 +180,7 @@ impl SessionStorage {
 impl Default for SessionStorage {
     fn default() -> Self {
         Self::new().unwrap_or_else(|_| {
-            Self::with_base_path(PathBuf::from("/tmp/saorsa-tui-sessions-fallback"))
+            Self::with_base_path(PathBuf::from("/tmp/saorsa-sessions-fallback"))
         })
     }
 }

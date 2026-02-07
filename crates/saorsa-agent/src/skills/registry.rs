@@ -24,13 +24,13 @@ impl SkillRegistry {
     /// Discover skill files in the standard locations.
     ///
     /// Searches:
-    /// - Project: .saorsa-tui/skills/*.md
-    /// - Global: ~/.saorsa-tui/skills/*.md
+    /// - Project: .saorsa/skills/*.md
+    /// - Global: ~/.saorsa/skills/*.md
     pub fn discover_skills() -> Vec<PathBuf> {
         let mut paths = Vec::new();
 
-        // Project skills (.saorsa-tui/skills/)
-        let project_dir = PathBuf::from(".saorsa-tui/skills");
+        // Project skills (.saorsa/skills/)
+        let project_dir = PathBuf::from(".saorsa/skills");
         if project_dir.exists()
             && let Ok(entries) = std::fs::read_dir(&project_dir)
         {
@@ -42,9 +42,9 @@ impl SkillRegistry {
             }
         }
 
-        // Global skills (~/.saorsa-tui/skills/)
+        // Global skills (~/.saorsa/skills/)
         if let Some(home) = dirs::home_dir() {
-            let global_dir = home.join(".saorsa-tui/skills");
+            let global_dir = home.join(".saorsa/skills");
             if global_dir.exists()
                 && let Ok(entries) = std::fs::read_dir(&global_dir)
             {
