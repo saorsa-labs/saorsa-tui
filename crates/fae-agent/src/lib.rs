@@ -15,4 +15,4 @@ pub use config::AgentConfig;
 pub use error::{FaeAgentError, Result};
 pub use event::{AgentEvent, EventReceiver, EventSender, TurnEndReason, event_channel};
 pub use tool::{Tool, ToolRegistry};
-pub use tools::{BashTool, EditTool, ReadTool, WriteTool};
+pub use tools::{BashTool, EditTool, GrepTool, ReadTool, WriteTool};
