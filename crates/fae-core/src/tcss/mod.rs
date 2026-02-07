@@ -31,7 +31,10 @@ pub use selector::{
     Combinator, CompoundSelector, PseudoClass, Selector, SelectorList, SimpleSelector,
 };
 pub use theme::{Theme, ThemeManager};
-pub use themes::{ThemeColors, ThemeRegistry, ThemeVariant};
+pub use themes::{
+    catppuccin_frappe, catppuccin_latte, catppuccin_macchiato, catppuccin_mocha, ThemeColors,
+    ThemeRegistry, ThemeVariant,
+};
 pub use tree::{WidgetNode, WidgetState, WidgetTree};
 pub use value::{CssValue, Length};
 pub use variable::{VariableEnvironment, VariableMap};

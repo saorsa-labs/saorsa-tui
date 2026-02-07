@@ -3,9 +3,13 @@
 //! This module provides strongly-typed color themes with named semantic color slots,
 //! theme metadata (name, author, variant), and a registry for managing multiple themes.
 
+pub mod catppuccin;
+
 use std::collections::HashMap;
 
 use crate::Color;
+
+pub use catppuccin::{catppuccin_frappe, catppuccin_latte, catppuccin_macchiato, catppuccin_mocha};
 
 /// Semantic color slots for a theme.
 ///
