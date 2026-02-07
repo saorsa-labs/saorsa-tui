@@ -14,6 +14,7 @@ edition = "2024"
 authors = ["David Irvine <david@saorsalabs.com>"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/saorsa-labs/fae"
+rust-version = "1.85"
 
 [workspace.dependencies]
 # Error handling
@@ -93,3 +94,15 @@ correctness = { level = "deny", priority = 1 }
 
 [workspace.lints.rust]
 missing_docs = { level = "warn", priority = 0 }
+
+# Release profile: optimized for size and speed
+[profile.release]
+lto = "thin"
+strip = true
+codegen-units = 1
+
+# Profiling profile: release + debug symbols
+[profile.release-with-debug]
+inherits = "release"
+strip = false
+debug = true

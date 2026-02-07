@@ -6,6 +6,9 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+rust-version.workspace = true
+keywords = ["llm", "ai", "anthropic", "openai", "streaming"]
+categories = ["api-bindings", "asynchronous"]
 
 [dependencies]
 thiserror = { workspace = true }

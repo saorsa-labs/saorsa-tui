@@ -6,6 +6,9 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+rust-version.workspace = true
+keywords = ["agent", "ai", "tools", "coding", "automation"]
+categories = ["development-tools", "command-line-utilities"]
 
 [dependencies]
 thiserror = { workspace = true }

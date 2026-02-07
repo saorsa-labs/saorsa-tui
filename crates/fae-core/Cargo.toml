@@ -6,6 +6,9 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+rust-version.workspace = true
+keywords = ["tui", "terminal", "css", "ui", "widgets"]
+categories = ["command-line-interface", "gui"]
 
 [dependencies]
 thiserror = { workspace = true }
