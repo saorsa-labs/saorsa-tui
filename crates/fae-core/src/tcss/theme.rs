@@ -125,6 +125,56 @@ impl ThemeManager {
         }
         env
     }
+
+    /// Create a theme manager with all built-in themes pre-registered.
+    ///
+    /// This includes:
+    /// - Built-in dark and light themes
+    /// - Catppuccin (mocha, macchiato, frappe, latte)
+    /// - Dracula (dark, light)
+    /// - Nord (dark)
+    /// - Solarized (dark, light)
+    pub fn with_defaults() -> Self {
+        let mut manager = Self::new();
+        register_all_themes(&mut manager);
+        manager
+    }
+}
+
+/// Register all built-in themes into the provided manager.
+///
+/// This registers:
+/// - Built-in dark and light themes
+/// - Catppuccin (mocha, macchiato, frappe, latte)
+/// - Dracula (dark, light)
+/// - Nord (dark)
+/// - Solarized (dark, light)
+pub fn register_all_themes(manager: &mut ThemeManager) {
+    use crate::tcss::themes::{
+        catppuccin_frappe, catppuccin_latte, catppuccin_macchiato, catppuccin_mocha, dracula_dark,
+        dracula_light, nord_dark, solarized_dark, solarized_light,
+    };
+
+    // Built-in themes
+    manager.register(builtin_dark());
+    manager.register(builtin_light());
+
+    // Catppuccin
+    manager.register(catppuccin_mocha());
+    manager.register(catppuccin_macchiato());
+    manager.register(catppuccin_frappe());
+    manager.register(catppuccin_latte());
+
+    // Dracula
+    manager.register(dracula_dark());
+    manager.register(dracula_light());
+
+    // Nord
+    manager.register(nord_dark());
+
+    // Solarized
+    manager.register(solarized_dark());
+    manager.register(solarized_light());
 }
 
 /// Create the built-in dark theme.
@@ -551,6 +601,85 @@ mod tests {
         assert_eq!(
             env.resolve("fg"),
             Some(&CssValue::Color(Color::Named(NamedColor::White)))
+        );
+    }
+
+    #[test]
+    fn manager_with_defaults() {
+        let mgr = ThemeManager::with_defaults();
+        // Should have at least: 2 builtin + 4 catppuccin + 2 dracula + 1 nord + 2 solarized = 11
+        let names = mgr.theme_names();
+        assert!(
+            names.len() >= 11,
+            "expected at least 11 themes, got {}",
+            names.len()
+        );
+    }
+
+    #[test]
+    fn register_all_includes_builtins() {
+        let mut mgr = ThemeManager::new();
+        register_all_themes(&mut mgr);
+        assert!(mgr.has_theme("dark"));
+        assert!(mgr.has_theme("light"));
+    }
+
+    #[test]
+    fn register_all_includes_catppuccin() {
+        let mut mgr = ThemeManager::new();
+        register_all_themes(&mut mgr);
+        assert!(mgr.has_theme("catppuccin-mocha"));
+        assert!(mgr.has_theme("catppuccin-macchiato"));
+        assert!(mgr.has_theme("catppuccin-frappe"));
+        assert!(mgr.has_theme("catppuccin-latte"));
+    }
+
+    #[test]
+    fn register_all_includes_dracula() {
+        let mut mgr = ThemeManager::new();
+        register_all_themes(&mut mgr);
+        assert!(mgr.has_theme("dracula"));
+        assert!(mgr.has_theme("dracula-light"));
+    }
+
+    #[test]
+    fn register_all_includes_nord() {
+        let mut mgr = ThemeManager::new();
+        register_all_themes(&mut mgr);
+        assert!(mgr.has_theme("nord"));
+    }
+
+    #[test]
+    fn register_all_includes_solarized() {
+        let mut mgr = ThemeManager::new();
+        register_all_themes(&mut mgr);
+        assert!(mgr.has_theme("solarized-dark"));
+        assert!(mgr.has_theme("solarized-light"));
+    }
+
+    #[test]
+    fn register_all_correct_count() {
+        let mut mgr = ThemeManager::new();
+        register_all_themes(&mut mgr);
+        let mut names = mgr.theme_names();
+        names.sort();
+        // Expected: 2 builtin + 4 catppuccin + 2 dracula + 1 nord + 2 solarized = 11
+        assert_eq!(mgr.theme_names().len(), 11);
+        assert_eq!(
+            names,
+            vec![
+                "catppuccin-frappe",
+                "catppuccin-latte",
+                "catppuccin-macchiato",
+                "catppuccin-mocha",
+                "dark",
+                "dracula",
+                "dracula-light",
+                "light",
+                "nord",
+                "solarized-dark",
+                "solarized-light",
+            ]
         );
     }
 }
