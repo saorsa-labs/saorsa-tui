@@ -8,7 +8,11 @@
 //! Extensions are trait-based and use dynamic dispatch, allowing for future
 //! WASM-backed implementations without adding heavy dependencies now.
 
+pub mod registry;
+
 use crate::error::Result;
+
+pub use registry::{ExtensionRegistry, SharedExtensionRegistry, shared_registry};
 
 /// Extension trait defining the lifecycle and capabilities of a plugin.
 ///
