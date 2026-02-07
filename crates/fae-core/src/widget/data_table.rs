@@ -66,6 +66,12 @@ pub struct DataTable {
     selected_style: Style,
     /// Border style.
     border: BorderStyle,
+    /// Sort state: (column_index, ascending).
+    sort_state: Option<(usize, bool)>,
+    /// Whether columns can be resized.
+    resizable_columns: bool,
+    /// Original row order (for restoring after clear_sort).
+    original_order: Vec<usize>,
 }
 
 impl DataTable {
@@ -81,6 +87,9 @@ impl DataTable {
             row_style: Style::default(),
             selected_style: Style::default().reverse(true),
             border: BorderStyle::None,
+            sort_state: None,
+            resizable_columns: false,
+            original_order: Vec::new(),
         }
     }
 
@@ -122,6 +131,8 @@ impl DataTable {
         self.rows = rows;
         self.selected_row = 0;
         self.row_offset = 0;
+        self.sort_state = None;
+        self.original_order.clear();
     }
 
     /// Get the number of rows.
@@ -161,6 +172,89 @@ impl DataTable {
     /// Get the horizontal scroll offset.
     pub fn col_offset(&self) -> u16 {
         self.col_offset
+    }
+
+    // --- Sorting API ---
+
+    /// Enable column resizing.
+    #[must_use]
+    pub fn with_resizable_columns(mut self, enabled: bool) -> Self {
+        self.resizable_columns = enabled;
+        self
+    }
+
+    /// Sort by the given column index (toggle ascending/descending).
+    ///
+    /// First call sorts ascending; repeated calls on the same column
+    /// toggle direction.
+    pub fn sort_by_column(&mut self, col_idx: usize) {
+        if col_idx >= self.columns.len() {
+            return;
+        }
+
+        // Save original order if not yet saved
+        if self.original_order.is_empty() {
+            self.original_order = (0..self.rows.len()).collect();
+        }
+
+        let ascending = match self.sort_state {
+            Some((prev_col, prev_asc)) if prev_col == col_idx => !prev_asc,
+            _ => true,
+        };
+
+        self.sort_state = Some((col_idx, ascending));
+
+        // Sort rows by the column value
+        let col = col_idx;
+        self.rows.sort_by(|a, b| {
+            let va = a.get(col).map(|s| s.as_str()).unwrap_or("");
+            let vb = b.get(col).map(|s| s.as_str()).unwrap_or("");
+            if ascending { va.cmp(vb) } else { vb.cmp(va) }
+        });
+
+        // Keep selection at row 0 after sort
+        self.selected_row = 0;
+        self.row_offset = 0;
+    }
+
+    /// Clear the sort and restore original order.
+    pub fn clear_sort(&mut self) {
+        if self.original_order.is_empty() || self.sort_state.is_none() {
+            self.sort_state = None;
+            return;
+        }
+
+        // Rebuild original order
+        let mut indexed: Vec<(usize, Vec<String>)> = self
+            .original_order
+            .iter()
+            .zip(self.rows.drain(..))
+            .map(|(&orig_idx, row)| (orig_idx, row))
+            .collect();
+        indexed.sort_by_key(|(idx, _)| *idx);
+        self.rows = indexed.into_iter().map(|(_, row)| row).collect();
+
+        self.sort_state = None;
+        self.original_order.clear();
+        self.selected_row = 0;
+        self.row_offset = 0;
+    }
+
+    /// Get the current sort state: (column_index, ascending).
+    pub fn sort_state(&self) -> Option<(usize, bool)> {
+        self.sort_state
+    }
+
+    /// Set the width of a column by index.
+    pub fn set_column_width(&mut self, col_idx: usize, width: u16) {
+        if let Some(col) = self.columns.get_mut(col_idx) {
+            col.width = width.clamp(3, 50);
+        }
+    }
+
+    /// Get the width of a column by index.
+    pub fn column_width(&self, col_idx: usize) -> Option<u16> {
+        self.columns.get(col_idx).map(|c| c.width)
     }
 
     /// Calculate total width of all columns (including separators).
@@ -340,9 +434,22 @@ impl Widget for DataTable {
         let available_width = inner.size.width;
         let total_height = inner.size.height as usize;
 
-        // First row: headers
+        // First row: headers (with sort indicators)
         if total_height > 0 {
-            let headers: Vec<String> = self.columns.iter().map(|c| c.header.clone()).collect();
+            let headers: Vec<String> = self
+                .columns
+                .iter()
+                .enumerate()
+                .map(|(idx, c)| {
+                    if let Some((sort_col, ascending)) = self.sort_state
+                        && sort_col == idx
+                    {
+                        let indicator = if ascending { "\u{2191}" } else { "\u{2193}" };
+                        return format!("{}{indicator}", c.header);
+                    }
+                    c.header.clone()
+                })
+                .collect();
             self.render_row(
                 &headers,
                 inner.position.y,
@@ -408,8 +515,16 @@ impl InteractiveWidget for DataTable {
                 EventResult::Consumed
             }
             KeyCode::Left => {
-                if modifiers.contains(crate::event::Modifiers::CTRL) {
-                    // Ctrl+Left: scroll to first column
+                let has_ctrl = modifiers.contains(crate::event::Modifiers::CTRL);
+                let has_shift = modifiers.contains(crate::event::Modifiers::SHIFT);
+                if has_ctrl && has_shift && self.resizable_columns {
+                    // Ctrl+Shift+Left: decrease selected column width
+                    let max_col = self.columns.len().saturating_sub(1);
+                    let target = self.selected_row.min(max_col);
+                    if let Some(col) = self.columns.get_mut(target) {
+                        col.width = col.width.saturating_sub(1).max(3);
+                    }
+                } else if has_ctrl {
                     self.col_offset = 0;
                 } else {
                     self.col_offset = self.col_offset.saturating_sub(1);
@@ -417,8 +532,16 @@ impl InteractiveWidget for DataTable {
                 EventResult::Consumed
             }
             KeyCode::Right => {
-                if modifiers.contains(crate::event::Modifiers::CTRL) {
-                    // Ctrl+Right: scroll to last column
+                let has_ctrl = modifiers.contains(crate::event::Modifiers::CTRL);
+                let has_shift = modifiers.contains(crate::event::Modifiers::SHIFT);
+                if has_ctrl && has_shift && self.resizable_columns {
+                    // Ctrl+Shift+Right: increase selected column width
+                    let max_col = self.columns.len().saturating_sub(1);
+                    let target = self.selected_row.min(max_col);
+                    if let Some(col) = self.columns.get_mut(target) {
+                        col.width = (col.width + 1).min(50);
+                    }
+                } else if has_ctrl {
                     self.col_offset = self.total_columns_width();
                 } else {
                     self.col_offset = self.col_offset.saturating_add(1);
@@ -449,6 +572,22 @@ impl InteractiveWidget for DataTable {
                 if !self.rows.is_empty() {
                     self.selected_row = self.rows.len().saturating_sub(1);
                     self.ensure_selected_visible(20);
+                }
+                EventResult::Consumed
+            }
+            // Ctrl+0: clear sort
+            KeyCode::Char('0') if modifiers.contains(crate::event::Modifiers::CTRL) => {
+                self.clear_sort();
+                EventResult::Consumed
+            }
+            // Ctrl+1..9: sort by column 1-9
+            KeyCode::Char(ch)
+                if modifiers.contains(crate::event::Modifiers::CTRL)
+                    && ('1'..='9').contains(ch) =>
+            {
+                let col_idx = (*ch as usize) - ('1' as usize);
+                if col_idx < self.columns.len() {
+                    self.sort_by_column(col_idx);
                 }
                 EventResult::Consumed
             }
@@ -782,5 +921,165 @@ mod tests {
             modifiers: crate::event::Modifiers::NONE,
         });
         assert_eq!(table.handle_event(&tab), EventResult::Ignored);
+    }
+
+    // --- Task 5: Sorting & Column Resize tests ---
+
+    #[test]
+    fn sort_by_column_ascending() {
+        let mut table = make_test_table();
+        // Rows: Alice, Bob, Charlie
+        table.sort_by_column(0); // Sort by Name ascending
+        assert_eq!(table.sort_state(), Some((0, true)));
+        match table.rows.first().map(|r| r[0].as_str()) {
+            Some("Alice") => {}
+            other => panic!("Expected Alice first, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn sort_toggle_descending() {
+        let mut table = make_test_table();
+        table.sort_by_column(0); // ascending
+        assert_eq!(table.sort_state(), Some((0, true)));
+        table.sort_by_column(0); // toggle to descending
+        assert_eq!(table.sort_state(), Some((0, false)));
+        match table.rows.first().map(|r| r[0].as_str()) {
+            Some("Charlie") => {}
+            other => panic!("Expected Charlie first (descending), got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn sort_indicator_in_header() {
+        let mut table = make_test_table();
+        table.sort_by_column(0); // ascending
+
+        let mut buf = ScreenBuffer::new(Size::new(35, 10));
+        table.render(Rect::new(0, 0, 35, 10), &mut buf);
+
+        // Header should include "↑" after "Name"
+        // "Name↑" — '↑' is at position 4
+        assert_eq!(buf.get(4, 0).map(|c| c.grapheme.as_str()), Some("\u{2191}"));
+    }
+
+    #[test]
+    fn sort_descending_indicator() {
+        let mut table = make_test_table();
+        table.sort_by_column(0);
+        table.sort_by_column(0); // toggle descending
+
+        let mut buf = ScreenBuffer::new(Size::new(35, 10));
+        table.render(Rect::new(0, 0, 35, 10), &mut buf);
+
+        // "Name↓"
+        assert_eq!(buf.get(4, 0).map(|c| c.grapheme.as_str()), Some("\u{2193}"));
+    }
+
+    #[test]
+    fn clear_sort_restores_order() {
+        let mut table = make_test_table();
+        // Original: Alice, Bob, Charlie
+        table.sort_by_column(0); // ascending
+        table.sort_by_column(0); // descending: Charlie, Bob, Alice
+        table.clear_sort();
+        assert!(table.sort_state().is_none());
+    }
+
+    #[test]
+    fn column_resize_increase() {
+        let mut table = make_test_table();
+        let original_width = table.column_width(0);
+        assert_eq!(original_width, Some(10));
+
+        table.set_column_width(0, 15);
+        assert_eq!(table.column_width(0), Some(15));
+    }
+
+    #[test]
+    fn column_resize_clamping() {
+        let mut table = make_test_table();
+
+        // Below minimum (3)
+        table.set_column_width(0, 1);
+        assert_eq!(table.column_width(0), Some(3));
+
+        // Above maximum (50)
+        table.set_column_width(0, 100);
+        assert_eq!(table.column_width(0), Some(50));
+    }
+
+    #[test]
+    fn keyboard_sort_ctrl_1() {
+        let mut table = make_test_table();
+
+        let ctrl_1 = Event::Key(KeyEvent {
+            code: KeyCode::Char('1'),
+            modifiers: crate::event::Modifiers::CTRL,
+        });
+
+        assert_eq!(table.handle_event(&ctrl_1), EventResult::Consumed);
+        assert_eq!(table.sort_state(), Some((0, true)));
+    }
+
+    #[test]
+    fn keyboard_sort_ctrl_0_clears() {
+        let mut table = make_test_table();
+        table.sort_by_column(0);
+        assert!(table.sort_state().is_some());
+
+        let ctrl_0 = Event::Key(KeyEvent {
+            code: KeyCode::Char('0'),
+            modifiers: crate::event::Modifiers::CTRL,
+        });
+
+        assert_eq!(table.handle_event(&ctrl_0), EventResult::Consumed);
+        assert!(table.sort_state().is_none());
+    }
+
+    #[test]
+    fn keyboard_resize_ctrl_shift_right() {
+        let mut table = make_test_table().with_resizable_columns(true);
+
+        let original = table.column_width(0);
+        assert_eq!(original, Some(10));
+
+        let ctrl_shift_right = Event::Key(KeyEvent {
+            code: KeyCode::Right,
+            modifiers: crate::event::Modifiers::CTRL | crate::event::Modifiers::SHIFT,
+        });
+
+        table.handle_event(&ctrl_shift_right);
+        assert_eq!(table.column_width(0), Some(11));
+    }
+
+    #[test]
+    fn keyboard_resize_ctrl_shift_left() {
+        let mut table = make_test_table().with_resizable_columns(true);
+
+        let ctrl_shift_left = Event::Key(KeyEvent {
+            code: KeyCode::Left,
+            modifiers: crate::event::Modifiers::CTRL | crate::event::Modifiers::SHIFT,
+        });
+
+        table.handle_event(&ctrl_shift_left);
+        assert_eq!(table.column_width(0), Some(9));
+    }
+
+    #[test]
+    fn empty_table_sorting_no_crash() {
+        let mut table = DataTable::new(vec![Column::new("X", 5)]);
+        table.sort_by_column(0);
+        assert_eq!(table.sort_state(), Some((0, true)));
+        table.clear_sort();
+        assert!(table.sort_state().is_none());
+    }
+
+    #[test]
+    fn sort_by_column_resets_selection() {
+        let mut table = make_test_table();
+        table.set_selected_row(2);
+        table.sort_by_column(0);
+        assert_eq!(table.selected_row(), 0);
     }
 }
