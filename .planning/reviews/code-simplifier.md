@@ -1,234 +1,143 @@
 # Code Simplification Review
-
-**Date**: 2026-02-07
-**Scope**: Files changed in last 5 commits + broader tool crate scan
-**Mode**: Analysis only (no changes)
-
-## Files Reviewed
-
-### Primary (changed in last 5 commits)
-- `crates/saorsa-agent/src/session/path.rs`
-- `crates/saorsa-agent/src/tools/bash.rs`
-- `crates/saorsa-agent/tests/tool_integration.rs`
-
-### Broader scan
-- `crates/saorsa-agent/src/tools/read.rs`
-- `crates/saorsa-agent/src/tools/write.rs`
-- `crates/saorsa-agent/src/tools/edit.rs`
-- `crates/saorsa-agent/src/tools/grep.rs`
-- `crates/saorsa-agent/src/tools/find.rs`
-- `crates/saorsa-agent/src/tools/ls.rs`
-- `crates/saorsa-agent/src/tools/mod.rs`
-- `crates/saorsa-agent/src/tool.rs`
-- `crates/saorsa-agent/src/agent.rs`
-
----
-
-## Finding 1: Duplicated `resolve_path` method across 5 tool structs
-
-**Severity**: Medium (redundancy / DRY violation)
-**Files**: `read.rs`, `write.rs`, `edit.rs`, `grep.rs`, `find.rs`, `ls.rs`
-
-The exact same path resolution logic is copy-pasted into 5 of the 7 tool structs (ReadTool, WriteTool, EditTool, GrepTool have the identical `fn resolve_path(&self, path: &str) -> PathBuf` signature; FindTool and LsTool have a slightly different `fn resolve_path(&self, path: Option<&str>) -> PathBuf` variant). The body is identical:
-
-```rust
-fn resolve_path(&self, path: &str) -> PathBuf {
-    let path = Path::new(path);
-    if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        self.working_dir.join(path)
-    }
-}
-```
-
-**Recommendation**: Extract a standalone function `fn resolve_path(working_dir: &Path, path: &str) -> PathBuf` in the `tools/mod.rs` module (or a shared utility), and have all tools call it. The `Option<&str>` variant used by FindTool and LsTool can be a trivial wrapper. This eliminates 6 copies of the same logic.
-
----
-
-## Finding 2: Duplicated `generate_diff` method in WriteTool and EditTool
-
-**Severity**: Medium (redundancy)
-**Files**: `write.rs` (line 46), `edit.rs` (line 51)
-
-Both WriteTool and EditTool contain nearly identical `generate_diff` methods. The only difference is the header label: WriteTool uses `"(new)"` while EditTool uses `"(edited)"`.
-
-```rust
-// write.rs
-output.push_str(&format!("+++ {} (new)\n", file_path.display()));
-
-// edit.rs
-output.push_str(&format!("+++ {} (edited)\n", file_path.display()));
-```
-
-**Recommendation**: Extract a shared `fn generate_diff(old: &str, new: &str, path: &Path, label: &str) -> String` into `tools/mod.rs`. Both tools call it with their specific label.
-
----
-
-## Finding 3: Redundant test patterns in `path.rs` -- `assert!(x.is_ok()) + match { Ok => ..., Err => unreachable!() }`
-
-**Severity**: Low (unnecessary verbosity in tests)
-**File**: `crates/saorsa-agent/src/session/path.rs`, lines 78-116
-
-Every test in path.rs follows this verbose pattern:
-
-```rust
-let dir = sessions_dir();
-assert!(dir.is_ok());
-match dir {
-    Ok(path) => {
-        assert!(path.to_string_lossy().contains("xdg_test"));
-    }
-    Err(_) => unreachable!(),
-}
-```
-
-Since the test already asserts `is_ok()`, the `Err(_) => unreachable!()` branch is dead code. This is test code, so `.unwrap()` is permitted by project standards. The simpler form would be:
-
-```rust
-let path = sessions_dir().unwrap();
-assert!(path.to_string_lossy().contains("xdg_test"));
-```
-
-This applies to all 6 tests in this file.
-
----
-
-## Finding 4: `ensure_dir` has a TOCTOU race condition
-
-**Severity**: Low (correctness)
-**File**: `crates/saorsa-agent/src/session/path.rs`, lines 60-67
-
-```rust
-pub fn ensure_dir(path: &Path) -> Result<(), SaorsaAgentError> {
-    if !path.exists() {
-        std::fs::create_dir_all(path).map_err(|e| { ... })?;
-    }
-    Ok(())
-}
-```
-
-The existence check before `create_dir_all` is unnecessary. `create_dir_all` is already idempotent -- it succeeds silently if the directory already exists. The check-then-act introduces a TOCTOU race (between `exists()` and `create_dir_all()`, another process could create or remove the directory). The entire function can be simplified to just the `create_dir_all` call.
-
-**Recommendation**:
-```rust
-pub fn ensure_dir(path: &Path) -> Result<(), SaorsaAgentError> {
-    std::fs::create_dir_all(path).map_err(|e| {
-        SaorsaAgentError::Session(format!("Failed to create directory {:?}: {}", path, e))
-    })
-}
-```
-
----
-
-## Finding 5: Duplicated `working_dir: PathBuf` field across all tool structs
-
-**Severity**: Low (structural redundancy)
-**Files**: All 7 tool files
-
-Every tool struct has the same field:
-```rust
-pub struct XxxTool {
-    working_dir: PathBuf,
-}
-```
-
-And the same constructor pattern:
-```rust
-pub fn new(working_dir: impl Into<PathBuf>) -> Self {
-    Self { working_dir: working_dir.into() }
-}
-```
-
-**Recommendation**: This is a borderline finding. A shared `ToolBase` struct or a common trait could reduce this, but the current approach is clear and explicit. If more fields are added to tools in the future (e.g., config, permissions), this duplication would compound. For now, this is acceptable but worth noting.
-
----
-
-## Finding 6: Redundant `assert!(result.is_ok())` before `result.unwrap()` in integration tests
-
-**Severity**: Low (noise)
-**File**: `crates/saorsa-agent/tests/tool_integration.rs`
-
-Many tests have the pattern:
-```rust
-assert!(read_result.is_ok());
-let content = read_result.unwrap();
-```
-
-The `assert!` is redundant since `unwrap()` on the next line would panic with the error displayed. Either use just `unwrap()` or use `expect("descriptive message")` for better error messages. The `assert!` + `unwrap()` pattern provides no additional value.
-
-**Recommendation**: Use just `.unwrap()` or `.expect("context")` in tests. The `.unwrap()` already panics with the Err value when it fails, which is more informative than `assertion failed: result.is_ok()`.
-
----
-
-## Finding 7: Double JSON parsing in `agent.rs::execute_tool_calls`
-
-**Severity**: Low (unnecessary allocation)
-**File**: `crates/saorsa-agent/src/agent.rs`, lines 155 and 231
-
-In the `run` method, tool call JSON is parsed once at line 155 to emit the event, then the raw JSON string is stored in the assistant content block. Later in `execute_tool_calls`, the same JSON string is parsed again at line 231. The input is parsed twice for each tool call.
-
-**Recommendation**: Parse the JSON once and pass the parsed `serde_json::Value` to `execute_tool_calls` instead of having it re-parse the string. This requires changing `ToolCallInfo` to store a `serde_json::Value` instead of (or alongside) the raw string.
-
----
-
-## Finding 8: `unwrap_or` with `serde_json::Value::Object(serde_json::Map::new())` in agent.rs
-
-**Severity**: Low (readability)
-**File**: `crates/saorsa-agent/src/agent.rs`, lines 155-156 and 231-232
-
-```rust
-let input: serde_json::Value = serde_json::from_str(&tc.input_json)
-    .unwrap_or(serde_json::Value::Object(serde_json::Map::new()));
-```
-
-This appears twice. The intent is "default to empty object on parse failure", but the production code standard prohibits `unwrap_or` variants silently swallowing errors. A malformed tool call JSON being silently replaced with `{}` could cause confusing downstream errors.
-
-**Recommendation**: At minimum, log a warning when the JSON fails to parse. Ideally, surface it as an error to the LLM via the tool result so it can correct its output.
-
----
-
-## Finding 9: `BashTool::truncate_output` may split on a multi-byte character boundary
-
-**Severity**: Low (correctness edge case)
-**File**: `crates/saorsa-agent/src/tools/bash.rs`, line 44
-
-```rust
-let truncated = &output[..MAX_OUTPUT_BYTES];
-```
-
-If the output contains multi-byte UTF-8 characters, slicing at an arbitrary byte offset could panic. This is safe in practice because `String::from_utf8_lossy` was used to construct the output (which guarantees valid UTF-8), but truncating at a byte boundary within a multi-byte sequence will panic.
-
-**Recommendation**: Use `output.char_indices()` to find the last valid character boundary at or before `MAX_OUTPUT_BYTES`, or use `output.get(..MAX_OUTPUT_BYTES).unwrap_or(output)` to handle it gracefully. Alternatively, use `floor_char_boundary` (nightly) or a manual scan.
-
----
-
-## Finding 10: `LsTool::entry_type` calls `fs::metadata` redundantly
-
-**Severity**: Low (unnecessary I/O)
-**File**: `crates/saorsa-agent/src/tools/ls.rs`, lines 70-83
-
-In both the recursive and non-recursive listing branches, the code already fetches metadata for size calculation. Then `entry_type` is called, which fetches metadata again via `fs::metadata(path)`. This doubles the syscalls per entry.
-
-**Recommendation**: Pass the already-fetched `Metadata` to `entry_type` instead of having it re-read from the filesystem.
-
----
+**Date**: 2026-02-08
+**Mode**: gsd (phase review)
+**Scope**: Last commit (HEAD~1..HEAD)
 
 ## Summary
 
-| # | Finding | Severity | Category |
-|---|---------|----------|----------|
-| 1 | Duplicated `resolve_path` across 6 tool files | Medium | DRY violation |
-| 2 | Duplicated `generate_diff` in WriteTool and EditTool | Medium | DRY violation |
-| 3 | Verbose test patterns in path.rs (assert + match + unreachable) | Low | Readability |
-| 4 | TOCTOU race in `ensure_dir` (unnecessary existence check) | Low | Correctness |
-| 5 | Duplicated `working_dir` field and constructor across all tools | Low | Structural |
-| 6 | Redundant `assert!(is_ok())` before `unwrap()` in integration tests | Low | Readability |
-| 7 | Double JSON parsing of tool call input in agent.rs | Low | Performance |
-| 8 | Silent error swallowing on malformed tool call JSON | Low | Error handling |
-| 9 | Byte-boundary truncation may panic on multi-byte UTF-8 | Low | Correctness |
-| 10 | Redundant `fs::metadata` call in `LsTool::entry_type` | Low | Performance |
+Reviewed 28 modified Rust files from the last commit, focusing on:
+- `saorsa-agent/src/config/import.rs` (946 new lines) - Configuration import from ~/.pi and ~/.claude
+- `saorsa-agent/src/tools/web_search.rs` (534 new lines) - DuckDuckGo web search tool
+- `saorsa-agent/src/cost.rs` (192 new lines) - LLM cost tracking
+- `saorsa/src/main.rs` (242 lines modified) - Main application with session management
+- Various config modules (auth, models, settings, paths)
+
+## Findings
+
+### MEDIUM Priority
+
+1. **File: `saorsa-agent/src/config/import.rs:269-341`**
+   - **Pattern**: Duplicate logic in `import_skills()` function
+   - **Issue**: The function handles two different file patterns (`.md` files and `SKILL.md` subdirs) within a single loop with repeated `copy_skill_file()` calls
+   - **Suggestion**: Extract file pattern detection into a helper function that returns `Option<(source_path, target_name)>`, simplifying the main loop
+
+2. **File: `saorsa-agent/src/config/import.rs:351-397`**
+   - **Pattern**: Similar structure to `import_skills()` but slightly different
+   - **Issue**: `import_agents()` and `import_skills()` share substantial structural similarity but are separate functions
+   - **Suggestion**: Consider extracting a generic `import_files()` function with a predicate/transformer closure to reduce duplication
+
+3. **File: `saorsa/src/main.rs:319-380`**
+   - **Pattern**: Duplicated code in `CycleModel` and `CycleModelBackward` handlers
+   - **Issue**: Both branches contain nearly identical logic (80+ lines each) for API key resolution and model switching
+   - **Suggestion**: Extract a helper function `switch_to_model(state, new_model, &mut api_key, &mut provider_kind, &mut model)` to eliminate ~160 lines of duplication
+
+4. **File: `saorsa-agent/src/tools/web_search.rs:80-137`**
+   - **Pattern**: Complex string parsing with nested conditionals
+   - **Issue**: The `parse_ddg_html()` function has deeply nested logic for extracting URLs, titles, and snippets
+   - **Suggestion**: Extract URL extraction into a dedicated function `extract_result_url()` that handles both backward and forward href searches, improving readability
+
+5. **File: `saorsa/src/main.rs:211-258`**
+   - **Pattern**: Nested if-let-else chain for session loading
+   - **Issue**: Three-level conditional with repeated `state.add_system_message()` patterns
+   - **Suggestion**: Use early returns or match expressions instead of nested if-else to reduce indentation
+
+### LOW Priority
+
+6. **File: `saorsa-agent/src/cost.rs:40-64`**
+   - **Pattern**: Chained `and_then` with inline calculations
+   - **Issue**: The `track()` method has complex inline cost calculation logic
+   - **Suggestion**: Extract cost calculation into a separate `calculate_cost(model_info, usage) -> f64` function for clarity
+
+7. **File: `saorsa-agent/src/config/import.rs:108-152`**
+   - **Pattern**: Repeated error handling pattern
+   - **Issue**: `import_pi_auth()`, `import_pi_models()`, and `import_pi_settings()` all use identical early-return patterns
+   - **Observation**: The pattern is reasonable, but could benefit from a macro or helper if this pattern expands
+
+8. **File: `saorsa-agent/src/tools/web_search.rs:259-292`**
+   - **Pattern**: Manual whitespace normalization
+   - **Issue**: `clean_text()` manually iterates with state tracking for whitespace
+   - **Suggestion**: Could use `text.split_whitespace().collect::<Vec<_>>().join(" ")` for simpler logic (though current approach is more efficient)
+
+9. **File: `saorsa/src/main.rs:533-556`**
+   - **Pattern**: Match expression with repetitive string truncation
+   - **Issue**: `add_message_to_state()` has duplicate truncation logic in two branches
+   - **Suggestion**: Extract `truncate_display(text, max_len)` helper
+
+## Simplification Opportunities
+
+### High Impact (Recommended)
+
+1. **Consolidate model switching logic** (`saorsa/src/main.rs`)
+   - Extract common code from `CycleModel` and `CycleModelBackward` handlers
+   - **Savings**: ~160 lines → ~50 lines (110 lines eliminated)
+   - **Complexity**: Reduces maintenance burden significantly
+
+2. **Simplify config import functions** (`saorsa-agent/src/config/import.rs`)
+   - Create generic file import helper to reduce duplication between `import_skills()` and `import_agents()`
+   - **Savings**: ~90 lines → ~60 lines (30 lines eliminated)
+   - **Complexity**: Improves testability and reduces error-prone duplication
+
+3. **Refactor HTML parsing** (`saorsa-agent/src/tools/web_search.rs`)
+   - Extract URL/title/snippet extraction into separate focused functions
+   - **Savings**: Minimal line reduction, but significant readability improvement
+   - **Complexity**: Makes the parsing logic much easier to test and debug
+
+### Medium Impact (Consider)
+
+4. **Extract cost calculation logic** (`saorsa-agent/src/cost.rs`)
+   - Separate calculation from tracking
+   - **Benefit**: Easier to test cost formulas independently
+
+5. **Simplify session loading flow** (`saorsa/src/main.rs`)
+   - Use match or early returns instead of nested if-let-else
+   - **Benefit**: Reduces indentation depth from 4 to 2 levels
+
+## Code Quality Assessment
+
+**Strengths:**
+- Excellent error handling with proper `Result` types throughout
+- Comprehensive test coverage (all new modules have substantial test suites)
+- Clear separation of concerns (auth, models, settings as separate modules)
+- Consistent use of `#[allow(clippy::unwrap_used)]` in test modules only
+- Good documentation with module-level and function-level doc comments
+
+**Areas for Improvement:**
+- Some functions exceed comfortable length (100+ lines)
+- Duplication in model cycling logic is significant
+- Complex parsing logic could benefit from better decomposition
+
+**Patterns Observed:**
+- Heavy use of early returns for error cases (good)
+- Consistent error type conversion with descriptive messages (good)
+- Preference for explicit code over compact/clever solutions (good)
+- Some functions accumulate multiple responsibilities
 
 ## Grade: B+
 
-The code is well-structured and readable overall. The most impactful improvements would be extracting the duplicated `resolve_path` and `generate_diff` helpers (findings 1 and 2), which would eliminate roughly 60 lines of duplicated logic. The remaining findings are minor cleanups that improve correctness and clarity without changing behavior.
+**Rationale:**
+
+The code demonstrates strong fundamentals with excellent error handling, comprehensive testing, and clear documentation. The primary issues are:
+
+1. **Duplication** in the model switching logic (major)
+2. **Complexity** in some parsing and import functions (moderate)
+3. **Function length** in a few cases (minor)
+
+These issues are addressable through targeted refactoring without requiring architectural changes. The code follows project standards well (zero unwrap/expect in production, proper error types, good test coverage).
+
+**Deductions:**
+- -0.5: Significant duplication in model cycling handlers
+- -0.5: Complex nested logic in HTML parsing and session loading
+- -0.5: Some functions exceed 100 lines (import_skills, parse_ddg_html)
+
+**What would make this an A:**
+- Extract model switching logic to eliminate ~110 lines of duplication
+- Decompose `parse_ddg_html()` into smaller, focused functions
+- Simplify session loading flow with match expressions or early returns
+
+## Recommendations
+
+1. **Immediate**: Extract model switching helper in `main.rs` (high impact, low risk)
+2. **Short-term**: Refactor HTML parsing in `web_search.rs` (improves testability)
+3. **Long-term**: Consider generic import helper if more import sources are added
+
+All findings are refinement opportunities, not critical issues. The code is production-ready as-is.
