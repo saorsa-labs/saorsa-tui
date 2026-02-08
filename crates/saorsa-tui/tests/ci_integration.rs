@@ -3,7 +3,7 @@
 #![allow(clippy::unwrap_used)]
 
 use saorsa_tui::{
-    Cell, Color, Event, KeyCode, KeyEvent, Position, Rect, SaorsaCoreError, ScreenBuffer, Segment,
+    Cell, Color, Event, KeyCode, KeyEvent, Position, Rect, SaorsaTuiError, ScreenBuffer, Segment,
     Size, Style,
 };
 
@@ -26,7 +26,7 @@ fn workspace_version_consistency() {
 #[test]
 fn error_type_traits() {
     fn assert_error<T: std::error::Error + std::fmt::Display + std::fmt::Debug>() {}
-    assert_error::<SaorsaCoreError>();
+    assert_error::<SaorsaTuiError>();
 }
 
 /// Verify Style is Clone + Default.

@@ -4,6 +4,7 @@
 //! It supports selectors, properties, and values specific to
 //! terminal rendering capabilities.
 
+pub mod apply;
 pub mod ast;
 pub mod cache;
 pub mod cascade;
@@ -19,6 +20,7 @@ pub mod tree;
 pub mod value;
 pub mod variable;
 
+pub use apply::ApplyComputedStyle;
 pub use ast::{Rule, Stylesheet, VariableDefinition};
 pub use cache::MatchCache;
 pub use cascade::{CascadeResolver, ComputedStyle};

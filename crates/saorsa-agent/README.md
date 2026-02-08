@@ -29,6 +29,10 @@ saorsa-ai = "0.1"
 tokio = { version = "1", features = ["full"] }
 ```
 
+Note: `saorsa-agent` is provider-agnostic. Any `Box<dyn saorsa_ai::StreamingProvider>` works,
+including in-process providers like `saorsa_ai::MistralrsProvider` (feature-gated behind
+`saorsa-ai`'s `mistralrs` feature).
+
 ### Running the Agent Loop
 
 ```rust

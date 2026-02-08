@@ -147,6 +147,32 @@ impl LayoutEngine {
         Ok(())
     }
 
+    /// Replace the children list for an existing node.
+    pub fn set_children(
+        &mut self,
+        widget_id: WidgetId,
+        children: &[WidgetId],
+    ) -> Result<(), LayoutError> {
+        let node = self
+            .widget_to_node
+            .get(&widget_id)
+            .copied()
+            .ok_or(LayoutError::WidgetNotFound(widget_id))?;
+        let child_nodes: Vec<NodeId> = children
+            .iter()
+            .map(|id| {
+                self.widget_to_node
+                    .get(id)
+                    .copied()
+                    .ok_or(LayoutError::WidgetNotFound(*id))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        self.taffy
+            .set_children(node, &child_nodes)
+            .map_err(|e| LayoutError::TaffyError(format!("{e}")))?;
+        Ok(())
+    }
+
     /// Remove a node from the layout tree.
     pub fn remove_node(&mut self, widget_id: WidgetId) -> Result<(), LayoutError> {
         let node = self

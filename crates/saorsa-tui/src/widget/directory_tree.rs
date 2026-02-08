@@ -6,7 +6,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::buffer::ScreenBuffer;
-use crate::error::SaorsaCoreError;
+use crate::error::SaorsaTuiError;
 use crate::event::Event;
 use crate::geometry::Rect;
 use crate::segment::Segment;
@@ -31,15 +31,15 @@ impl DirectoryTree {
     /// Create a directory tree rooted at the given path.
     ///
     /// Returns an error if the path does not exist or is not a directory.
-    pub fn new(root: PathBuf) -> Result<Self, SaorsaCoreError> {
+    pub fn new(root: PathBuf) -> Result<Self, SaorsaTuiError> {
         if !root.exists() {
-            return Err(SaorsaCoreError::Widget(format!(
+            return Err(SaorsaTuiError::Widget(format!(
                 "path does not exist: {}",
                 root.display()
             )));
         }
         if !root.is_dir() {
-            return Err(SaorsaCoreError::Widget(format!(
+            return Err(SaorsaTuiError::Widget(format!(
                 "path is not a directory: {}",
                 root.display()
             )));

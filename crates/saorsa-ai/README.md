@@ -109,6 +109,69 @@ async fn main() -> saorsa_ai::Result<()> {
 }
 ```
 
+## In-Process Local Inference (mistralrs / GGUF)
+
+If you want to run fully in-process (single binary) without an external HTTP server, `saorsa-ai`
+provides an optional `mistralrs`-backed provider behind a feature flag.
+
+Add the feature and the `mistralrs` dependency:
+
+```toml
+[dependencies]
+saorsa-ai = { version = "0.1", features = ["mistralrs"] }
+mistralrs = "0.7"
+tokio = { version = "1", features = ["full"] }
+```
+
+Default download/cache location for model files (Hugging Face hub cache):
+- `HF_HOME/hub` if `HF_HOME` is set
+- otherwise `~/.cache/huggingface/hub`
+
+```rust,no_run
+use std::sync::Arc;
+
+use saorsa_ai::{CompletionRequest, Message, MistralrsConfig, MistralrsProvider, StreamingProvider};
+
+#[tokio::main]
+async fn main() -> saorsa_ai::Result<()> {
+    // Load a GGUF model (downloads/caches under the HF hub cache).
+    // Provide the HF repo id + GGUF filename(s).
+    let model = mistralrs::GgufModelBuilder::new(
+        "TheBloke/CodeLlama-7B-Instruct-GGUF".to_string(),
+        vec!["codellama-7b-instruct.Q4_K_M.gguf".to_string()],
+    )
+    .with_force_cpu()
+    .build()
+    .await
+    .map_err(|e| saorsa_ai::SaorsaAiError::Provider {
+        provider: "mistralrs".into(),
+        message: e.to_string(),
+    })?;
+
+    let provider = MistralrsProvider::new(Arc::new(model), MistralrsConfig::default());
+
+    // MVP: text-only (no tools).
+    let request = CompletionRequest::new(
+        "local",
+        vec![Message::user("Write a short Rust function that adds two i32 values.")],
+        256,
+    )
+    .system("You are a helpful programming assistant.");
+
+    let mut rx = provider.stream(request).await?;
+    while let Some(ev) = rx.recv().await {
+        if let saorsa_ai::StreamEvent::ContentBlockDelta {
+            delta: saorsa_ai::ContentDelta::TextDelta { text },
+            ..
+        } = ev?
+        {
+            print!("{text}");
+        }
+    }
+    Ok(())
+}
+```
+
 ## Provider Catalog
 
 ### Anthropic (Claude)

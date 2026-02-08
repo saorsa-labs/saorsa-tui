@@ -1,6 +1,6 @@
 //! Color types for terminal rendering.
 
-use crate::error::{Result, SaorsaCoreError};
+use crate::error::{Result, SaorsaTuiError};
 
 /// A terminal color.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -68,27 +68,27 @@ impl Color {
         match hex.len() {
             6 => {
                 let r = u8::from_str_radix(&hex[0..2], 16)
-                    .map_err(|e| SaorsaCoreError::Style(format!("invalid hex color: {e}")))?;
+                    .map_err(|e| SaorsaTuiError::Style(format!("invalid hex color: {e}")))?;
                 let g = u8::from_str_radix(&hex[2..4], 16)
-                    .map_err(|e| SaorsaCoreError::Style(format!("invalid hex color: {e}")))?;
+                    .map_err(|e| SaorsaTuiError::Style(format!("invalid hex color: {e}")))?;
                 let b = u8::from_str_radix(&hex[4..6], 16)
-                    .map_err(|e| SaorsaCoreError::Style(format!("invalid hex color: {e}")))?;
+                    .map_err(|e| SaorsaTuiError::Style(format!("invalid hex color: {e}")))?;
                 Ok(Self::Rgb { r, g, b })
             }
             3 => {
                 let r = u8::from_str_radix(&hex[0..1], 16)
-                    .map_err(|e| SaorsaCoreError::Style(format!("invalid hex color: {e}")))?;
+                    .map_err(|e| SaorsaTuiError::Style(format!("invalid hex color: {e}")))?;
                 let g = u8::from_str_radix(&hex[1..2], 16)
-                    .map_err(|e| SaorsaCoreError::Style(format!("invalid hex color: {e}")))?;
+                    .map_err(|e| SaorsaTuiError::Style(format!("invalid hex color: {e}")))?;
                 let b = u8::from_str_radix(&hex[2..3], 16)
-                    .map_err(|e| SaorsaCoreError::Style(format!("invalid hex color: {e}")))?;
+                    .map_err(|e| SaorsaTuiError::Style(format!("invalid hex color: {e}")))?;
                 Ok(Self::Rgb {
                     r: r * 17,
                     g: g * 17,
                     b: b * 17,
                 })
             }
-            _ => Err(SaorsaCoreError::Style(format!(
+            _ => Err(SaorsaTuiError::Style(format!(
                 "invalid hex color length: expected 3 or 6, got {}",
                 hex.len()
             ))),

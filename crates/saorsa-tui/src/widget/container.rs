@@ -31,6 +31,7 @@ pub struct Container {
     title: Option<String>,
     title_style: Style,
     padding: u16,
+    fill_style: Style,
 }
 
 impl Container {
@@ -42,6 +43,7 @@ impl Container {
             title: None,
             title_style: Style::default(),
             padding: 0,
+            fill_style: Style::default(),
         }
     }
 
@@ -73,11 +75,51 @@ impl Container {
         self
     }
 
+    /// Set (or clear) the title displayed in the top border.
+    pub fn set_title(&mut self, title: Option<String>) {
+        self.title = title;
+    }
+
+    /// Convenience: set the title text.
+    pub fn set_title_text(&mut self, title: impl Into<String>) {
+        self.title = Some(title.into());
+    }
+
     /// Set inner padding (cells on each side).
     #[must_use]
     pub fn padding(mut self, padding: u16) -> Self {
         self.padding = padding;
         self
+    }
+
+    /// Get the current border style kind.
+    pub fn border_style_kind(&self) -> BorderStyle {
+        self.border
+    }
+
+    /// Set the border style kind.
+    pub fn set_border(&mut self, style: BorderStyle) {
+        self.border = style;
+    }
+
+    /// Set the border color/style.
+    pub fn set_border_style(&mut self, style: Style) {
+        self.border_style = style;
+    }
+
+    /// Set the title style.
+    pub fn set_title_style(&mut self, style: Style) {
+        self.title_style = style;
+    }
+
+    /// Set inner padding (cells on each side).
+    pub fn set_padding(&mut self, padding: u16) {
+        self.padding = padding;
+    }
+
+    /// Set the fill style for the container background.
+    pub fn set_fill_style(&mut self, style: Style) {
+        self.fill_style = style;
     }
 
     /// Calculate the inner area (after border and padding).
@@ -117,6 +159,19 @@ impl Widget for Container {
     fn render(&self, area: Rect, buf: &mut ScreenBuffer) {
         if area.size.width < 2 || area.size.height < 2 {
             return;
+        }
+
+        // Background fill.
+        if self.fill_style.bg.is_some() || self.fill_style.fg.is_some() {
+            for y in 0..area.size.height {
+                for x in 0..area.size.width {
+                    buf.set(
+                        area.position.x + x,
+                        area.position.y + y,
+                        Cell::new(" ", self.fill_style.clone()),
+                    );
+                }
+            }
         }
 
         let Some((tl, tr, bl, br, h, v)) = self.border.chars() else {

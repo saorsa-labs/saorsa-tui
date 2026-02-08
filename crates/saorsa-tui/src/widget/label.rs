@@ -64,6 +64,26 @@ impl Label {
     pub fn set_text(&mut self, text: impl Into<String>) {
         self.text = text.into();
     }
+
+    /// Get the current style.
+    pub fn style_ref(&self) -> &Style {
+        &self.style
+    }
+
+    /// Set the style.
+    pub fn set_style(&mut self, style: Style) {
+        self.style = style;
+    }
+
+    /// Get the current alignment.
+    pub fn alignment_value(&self) -> Alignment {
+        self.alignment
+    }
+
+    /// Set the alignment.
+    pub fn set_alignment(&mut self, alignment: Alignment) {
+        self.alignment = alignment;
+    }
 }
 
 impl Widget for Label {
@@ -74,6 +94,18 @@ impl Widget for Label {
 
         let width = usize::from(area.size.width);
         let text_width = UnicodeWidthStr::width(self.text.as_str());
+
+        // If a background is set, fill the entire row. This makes
+        // `background` styling behave like a block element in the terminal.
+        if self.style.bg.is_some() {
+            for x in 0..area.size.width {
+                buf.set(
+                    area.position.x + x,
+                    area.position.y,
+                    Cell::new(" ", self.style.clone()),
+                );
+            }
+        }
 
         // Truncate with ellipsis if needed
         let display_text = if text_width > width {

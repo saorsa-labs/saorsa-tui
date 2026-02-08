@@ -12,5 +12,6 @@ pub mod input;
 pub mod keybindings;
 pub mod operating_mode;
 pub mod render_throttle;
+pub mod tui_runtime;
 pub mod ui;
 pub mod widgets;

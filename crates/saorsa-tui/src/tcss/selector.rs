@@ -153,6 +153,10 @@ pub enum Combinator {
     Descendant,
     /// Child combinator: `A > B`.
     Child,
+    /// Adjacent sibling combinator: `A + B`.
+    AdjacentSibling,
+    /// General sibling combinator: `A ~ B`.
+    GeneralSibling,
 }
 
 impl fmt::Display for Combinator {
@@ -160,6 +164,8 @@ impl fmt::Display for Combinator {
         match self {
             Self::Descendant => write!(f, " "),
             Self::Child => write!(f, " > "),
+            Self::AdjacentSibling => write!(f, " + "),
+            Self::GeneralSibling => write!(f, " ~ "),
         }
     }
 }
@@ -277,30 +283,36 @@ fn parse_selector(input: &mut Parser<'_, '_>) -> Result<Selector, TcssError> {
     let mut combinators = Vec::new();
 
     loop {
-        // Try to detect a combinator: `>` for child, whitespace for descendant.
+        // Try to detect a combinator: `>`, `+`, `~`, or whitespace for descendant.
         let combinator = input.try_parse(|input| {
             if input.try_parse(|p| p.expect_delim('>')).is_ok() {
-                Ok(Combinator::Child)
-            } else {
-                // Check if there's another compound selector following (descendant combinator).
-                // We peek at the next token — if it's an ident, `.`, `#`, `*`, or `:`,
-                // there's a descendant relationship.
-                let state = input.state();
-                match input.next() {
-                    Ok(
-                        Token::Ident(_)
-                        | Token::Delim('.')
-                        | Token::Delim('*')
-                        | Token::Colon
-                        | Token::IDHash(_),
-                    ) => {
-                        input.reset(&state);
-                        Ok(Combinator::Descendant)
-                    }
-                    _ => {
-                        input.reset(&state);
-                        Err(input.new_error_for_next_token::<()>())
-                    }
+                return Ok(Combinator::Child);
+            }
+            if input.try_parse(|p| p.expect_delim('+')).is_ok() {
+                return Ok(Combinator::AdjacentSibling);
+            }
+            if input.try_parse(|p| p.expect_delim('~')).is_ok() {
+                return Ok(Combinator::GeneralSibling);
+            }
+
+            // Check if there's another compound selector following (descendant combinator).
+            // We peek at the next token — if it's an ident, `.`, `#`, `*`, or `:`,
+            // there's a descendant relationship.
+            let state = input.state();
+            match input.next() {
+                Ok(
+                    Token::Ident(_)
+                    | Token::Delim('.')
+                    | Token::Delim('*')
+                    | Token::Colon
+                    | Token::IDHash(_),
+                ) => {
+                    input.reset(&state);
+                    Ok(Combinator::Descendant)
+                }
+                _ => {
+                    input.reset(&state);
+                    Err(input.new_error_for_next_token::<()>())
                 }
             }
         });
@@ -345,10 +357,32 @@ fn parse_compound_selector(input: &mut Parser<'_, '_>) -> Result<CompoundSelecto
                         Ok(SimpleSelector::Class(name))
                     }
                     Token::Colon => {
-                        let name = input.expect_ident()?.to_string();
-                        PseudoClass::from_name(&name)
-                            .map(SimpleSelector::PseudoClass)
-                            .ok_or_else(|| input.new_error_for_next_token::<()>())
+                        let next = input.next_including_whitespace()?.clone();
+                        match &next {
+                            Token::Ident(name) => PseudoClass::from_name(name.as_ref())
+                                .map(SimpleSelector::PseudoClass)
+                                .ok_or_else(|| input.new_error_for_next_token::<()>()),
+                            Token::Function(name) if name.eq_ignore_ascii_case("nth-child") => {
+                                let pseudo = input.parse_nested_block(|p| {
+                                    if let Ok(n) = p.try_parse(|p| p.expect_integer()) {
+                                        Ok(PseudoClass::NthChild(n))
+                                    } else if let Ok(ident) = p.try_parse(|p| {
+                                        let s = p.expect_ident()?;
+                                        Ok::<String, cssparser::ParseError<'_, ()>>(s.to_string())
+                                    }) {
+                                        match ident.to_ascii_lowercase().as_str() {
+                                            "odd" => Ok(PseudoClass::Odd),
+                                            "even" => Ok(PseudoClass::Even),
+                                            _ => Err(p.new_error_for_next_token::<()>()),
+                                        }
+                                    } else {
+                                        Err(p.new_error_for_next_token::<()>())
+                                    }
+                                })?;
+                                Ok(SimpleSelector::PseudoClass(pseudo))
+                            }
+                            _ => Err(input.new_error_for_next_token::<()>()),
+                        }
                     }
                     Token::IDHash(name) => Ok(SimpleSelector::Id(name.to_string())),
                     _ => Err(input.new_error_for_next_token::<()>()),
@@ -383,13 +417,44 @@ fn parse_simple_selector(input: &mut Parser<'_, '_>) -> Result<SimpleSelector, T
         }
         Token::IDHash(name) => Ok(SimpleSelector::Id(name.to_string())),
         Token::Colon => {
-            let name = input
-                .expect_ident()
+            let next = input
+                .next()
                 .map_err(|e| TcssError::SelectorError(format!("{e:?}")))?
-                .to_string();
-            PseudoClass::from_name(&name)
-                .map(SimpleSelector::PseudoClass)
-                .ok_or_else(|| TcssError::SelectorError(format!("unknown pseudo-class: {name}")))
+                .clone();
+            match &next {
+                Token::Ident(name) => {
+                    let name = name.to_string();
+                    PseudoClass::from_name(&name)
+                        .map(SimpleSelector::PseudoClass)
+                        .ok_or_else(|| {
+                            TcssError::SelectorError(format!("unknown pseudo-class: {name}"))
+                        })
+                }
+                Token::Function(name) if name.eq_ignore_ascii_case("nth-child") => {
+                    let pseudo = input
+                        .parse_nested_block(|p| {
+                            if let Ok(n) = p.try_parse(|p| p.expect_integer()) {
+                                Ok(PseudoClass::NthChild(n))
+                            } else if let Ok(ident) = p.try_parse(|p| {
+                                let s = p.expect_ident()?;
+                                Ok::<String, cssparser::ParseError<'_, ()>>(s.to_string())
+                            }) {
+                                match ident.to_ascii_lowercase().as_str() {
+                                    "odd" => Ok(PseudoClass::Odd),
+                                    "even" => Ok(PseudoClass::Even),
+                                    _ => Err(p.new_error_for_next_token::<()>()),
+                                }
+                            } else {
+                                Err(p.new_error_for_next_token::<()>())
+                            }
+                        })
+                        .map_err(|e| TcssError::SelectorError(format!("{e:?}")))?;
+                    Ok(SimpleSelector::PseudoClass(pseudo))
+                }
+                other => Err(TcssError::SelectorError(format!(
+                    "expected pseudo-class, got {other:?}"
+                ))),
+            }
         }
         other => Err(TcssError::SelectorError(format!(
             "expected selector, got {other:?}"
@@ -651,6 +716,53 @@ mod tests {
         assert_eq!(sel.head.components[0], SimpleSelector::Type("Label".into()));
         assert_eq!(sel.chain.len(), 1);
         assert_eq!(sel.chain[0].0, Combinator::Descendant);
+    }
+
+    #[test]
+    fn parse_adjacent_sibling_combinator() {
+        let list = parse_ok("Label + Container");
+        let sel = &list.selectors[0];
+        assert_eq!(
+            sel.head.components[0],
+            SimpleSelector::Type("Container".into())
+        );
+        assert_eq!(sel.chain.len(), 1);
+        assert_eq!(sel.chain[0].0, Combinator::AdjacentSibling);
+        assert_eq!(
+            sel.chain[0].1.components[0],
+            SimpleSelector::Type("Label".into())
+        );
+        assert_eq!(sel.to_string(), "Label + Container");
+    }
+
+    #[test]
+    fn parse_general_sibling_combinator() {
+        let list = parse_ok("Label ~ Container");
+        let sel = &list.selectors[0];
+        assert_eq!(
+            sel.head.components[0],
+            SimpleSelector::Type("Container".into())
+        );
+        assert_eq!(sel.chain.len(), 1);
+        assert_eq!(sel.chain[0].0, Combinator::GeneralSibling);
+        assert_eq!(
+            sel.chain[0].1.components[0],
+            SimpleSelector::Type("Label".into())
+        );
+        assert_eq!(sel.to_string(), "Label ~ Container");
+    }
+
+    #[test]
+    fn parse_pseudo_class_nth_child_function() {
+        let list = parse_ok("Label:nth-child(2)");
+        let sel = &list.selectors[0];
+        assert!(
+            sel.head
+                .components
+                .iter()
+                .any(|c| matches!(c, SimpleSelector::PseudoClass(PseudoClass::NthChild(2))))
+        );
+        assert_eq!(sel.to_string(), "Label:nth-child(2)");
     }
 
     #[test]

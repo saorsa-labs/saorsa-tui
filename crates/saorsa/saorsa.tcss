@@ -1,0 +1,32 @@
+/* saorsa default stylesheet (hot-reloadable during development). */
+
+#root {
+    display: flex;
+    flex-direction: column;
+}
+
+#header {
+    height: 1;
+    background: white;
+    color: black;
+    text-style: bold;
+}
+
+#messages {
+    flex-grow: 1;
+}
+
+#input_box {
+    height: 3;
+    border: round;
+    border-color: blue;
+    background: black;
+    color: white;
+    padding-left: 1;
+    padding-right: 1;
+}
+
+#input_text {
+    text-align: left;
+}
+

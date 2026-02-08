@@ -20,6 +20,13 @@ serde_json = { workspace = true }
 reqwest = { workspace = true }
 reqwest-eventsource = { workspace = true }
 tracing = { workspace = true }
+mistralrs = { version = "0.7.0", optional = true }
+hf-hub = { version = "0.4.3", optional = true }
 
 [lints]
 workspace = true
+
+[features]
+default = []
+# In-process local inference provider backed by mistralrs (GGUF).
+mistralrs = ["dep:mistralrs", "dep:hf-hub"]

@@ -24,6 +24,7 @@ pub fn render(state: &AppState, buf: &mut ScreenBuffer) {
     render_header(state, buf, chunks[0]);
     render_messages(state, buf, chunks[1]);
     render_input(state, buf, chunks[2]);
+    render_autocomplete(state, buf, chunks[2]);
 }
 
 /// Render the header bar showing model and status.
@@ -152,9 +153,126 @@ fn render_input(state: &AppState, buf: &mut ScreenBuffer, area: Rect) {
     }
 }
 
+/// Render the autocomplete dropdown above the input area.
+///
+/// The dropdown appears directly above the input box and shows matching
+/// command suggestions with descriptions. The selected item is highlighted.
+fn render_autocomplete(state: &AppState, buf: &mut ScreenBuffer, input_area: Rect) {
+    let suggestions = state.autocomplete_suggestions();
+    if suggestions.is_empty() {
+        return;
+    }
+
+    let max_visible = state.max_visible_suggestions();
+    let visible_count = suggestions.len().min(max_visible);
+    let selected = state.autocomplete_index();
+
+    // Calculate scroll window within suggestions when there are more than max_visible.
+    let (scroll_start, scroll_end) = if suggestions.len() <= max_visible {
+        (0, suggestions.len())
+    } else {
+        // Keep selected item visible in the scroll window.
+        let half = max_visible / 2;
+        let start = if selected < half {
+            0
+        } else if selected + half >= suggestions.len() {
+            suggestions.len() - max_visible
+        } else {
+            selected - half
+        };
+        (start, start + max_visible)
+    };
+
+    let visible_suggestions = &suggestions[scroll_start..scroll_end];
+
+    // Calculate dropdown dimensions.
+    // Height: visible items + 2 for border.
+    let dropdown_height = (visible_count as u16) + 2;
+
+    // Width: fit to longest suggestion, capped at terminal width - 4.
+    let max_content_width = visible_suggestions
+        .iter()
+        .map(|s| {
+            let desc_len = s.description.as_ref().map_or(0, |d| d.len() + 3); // " - desc"
+            s.text.len() + desc_len
+        })
+        .max()
+        .unwrap_or(10);
+    // Add 2 for border padding, cap at terminal width - 4.
+    let dropdown_width = (max_content_width + 4).min(buf.width() as usize).max(20) as u16;
+
+    // Position: directly above the input box.
+    let dropdown_y = input_area.position.y.saturating_sub(dropdown_height);
+    let dropdown_x = input_area.position.x;
+
+    let dropdown_area = Rect::new(dropdown_x, dropdown_y, dropdown_width, dropdown_height);
+
+    // Draw border.
+    let has_more = suggestions.len() > max_visible;
+    let title = if has_more {
+        format!("Commands ({}/{})", selected + 1, suggestions.len())
+    } else {
+        "Commands".to_string()
+    };
+
+    let dropdown_border_style = Style::default()
+        .fg(Color::Named(saorsa_tui::color::NamedColor::Blue))
+        .bold(true);
+
+    let container = Container::new()
+        .border(BorderStyle::Rounded)
+        .title(&title)
+        .border_style(dropdown_border_style);
+    container.render(dropdown_area, buf);
+
+    let inner = container.inner_area(dropdown_area);
+    if inner.size.height == 0 || inner.size.width == 0 {
+        return;
+    }
+
+    // Render each suggestion row.
+    for (i, suggestion) in visible_suggestions.iter().enumerate() {
+        let y = inner.position.y + i as u16;
+        if y >= inner.position.y + inner.size.height {
+            break;
+        }
+
+        let row_area = Rect::new(inner.position.x, y, inner.size.width, 1);
+        let is_selected = (scroll_start + i) == selected;
+
+        let desc_text = suggestion
+            .description
+            .as_ref()
+            .map_or(String::new(), |d| format!(" - {d}"));
+
+        let row_text = format!("{}{}", suggestion.text, desc_text);
+
+        // Truncate to fit width.
+        let display_width = inner.size.width as usize;
+        let display_text = if row_text.len() > display_width {
+            format!("{}...", &row_text[..display_width.saturating_sub(3)])
+        } else {
+            row_text
+        };
+
+        let style = if is_selected {
+            Style::default()
+                .fg(Color::Named(saorsa_tui::color::NamedColor::Black))
+                .bg(Color::Named(saorsa_tui::color::NamedColor::Cyan))
+                .bold(true)
+        } else {
+            Style::default().fg(Color::Named(saorsa_tui::color::NamedColor::White))
+        };
+
+        let label = Label::new(&display_text).style(style);
+        label.render(row_area, buf);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::autocomplete::Autocomplete;
     use saorsa_tui::geometry::Size;
 
     #[test]
@@ -219,5 +337,46 @@ mod tests {
         state.add_system_message("Connected to Claude");
         let mut buf = ScreenBuffer::new(Size::new(80, 24));
         render(&state, &mut buf);
+    }
+
+    #[test]
+    fn render_with_autocomplete_visible() {
+        let mut state = AppState::new("test-model");
+        state.input = "/".into();
+        state.cursor = 1;
+        let ac = Autocomplete::new();
+        state.update_autocomplete(&ac);
+        assert!(state.is_autocomplete_visible());
+
+        let mut buf = ScreenBuffer::new(Size::new(80, 24));
+        render(&state, &mut buf);
+        // Should not panic.
+    }
+
+    #[test]
+    fn render_autocomplete_in_small_terminal() {
+        let mut state = AppState::new("test-model");
+        state.input = "/he".into();
+        state.cursor = 3;
+        let ac = Autocomplete::new();
+        state.update_autocomplete(&ac);
+
+        let mut buf = ScreenBuffer::new(Size::new(30, 8));
+        render(&state, &mut buf);
+        // Should not panic even with limited space.
+    }
+
+    #[test]
+    fn render_autocomplete_no_suggestions() {
+        let mut state = AppState::new("test-model");
+        state.input = "/zzzzz".into();
+        state.cursor = 6;
+        let ac = Autocomplete::new();
+        state.update_autocomplete(&ac);
+        assert!(!state.is_autocomplete_visible());
+
+        let mut buf = ScreenBuffer::new(Size::new(80, 24));
+        render(&state, &mut buf);
+        // Should not panic, no dropdown shown.
     }
 }

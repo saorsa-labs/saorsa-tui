@@ -18,6 +18,18 @@ pub struct Cli {
     #[arg(long)]
     pub provider: Option<String>,
 
+    /// Hugging Face repo id for a GGUF model (used when `--provider=mistralrs`).
+    ///
+    /// Can also be set via `SAORSA_MISTRALRS_GGUF_REPO`.
+    #[arg(long, env = "SAORSA_MISTRALRS_GGUF_REPO")]
+    pub mistralrs_gguf_repo: Option<String>,
+
+    /// GGUF file name(s) within the repo (repeatable or comma-separated; used when `--provider=mistralrs`).
+    ///
+    /// Can also be set via `SAORSA_MISTRALRS_GGUF_FILE` (comma-separated).
+    #[arg(long, env = "SAORSA_MISTRALRS_GGUF_FILE", value_delimiter = ',')]
+    pub mistralrs_gguf_file: Vec<String>,
+
     /// System prompt for the agent.
     #[arg(long, default_value = "You are a helpful AI coding assistant.")]
     pub system_prompt: String,
@@ -104,6 +116,8 @@ mod tests {
             model: "test".into(),
             api_key: None,
             provider: None,
+            mistralrs_gguf_repo: None,
+            mistralrs_gguf_file: Vec::new(),
             system_prompt: "test".into(),
             max_tokens: 4096,
             max_turns: 10,
@@ -120,6 +134,47 @@ mod tests {
     fn cli_provider_flag() {
         let cli = Cli::parse_from(["saorsa", "--provider", "openai"]);
         assert_eq!(cli.provider.as_deref(), Some("openai"));
+    }
+
+    #[test]
+    fn cli_mistralrs_repo_flag() {
+        let cli = Cli::parse_from([
+            "saorsa",
+            "--provider",
+            "mistralrs",
+            "--mistralrs-gguf-repo",
+            "TheBloke/CodeLlama-7B-Instruct-GGUF",
+        ]);
+        assert_eq!(
+            cli.mistralrs_gguf_repo.as_deref(),
+            Some("TheBloke/CodeLlama-7B-Instruct-GGUF")
+        );
+    }
+
+    #[test]
+    fn cli_mistralrs_file_flag_repeatable() {
+        let cli = Cli::parse_from([
+            "saorsa",
+            "--provider",
+            "mistralrs",
+            "--mistralrs-gguf-file",
+            "a.gguf",
+            "--mistralrs-gguf-file",
+            "b.gguf",
+        ]);
+        assert_eq!(cli.mistralrs_gguf_file, vec!["a.gguf", "b.gguf"]);
+    }
+
+    #[test]
+    fn cli_mistralrs_file_flag_comma_delimited() {
+        let cli = Cli::parse_from([
+            "saorsa",
+            "--provider",
+            "mistralrs",
+            "--mistralrs-gguf-file",
+            "a.gguf,b.gguf",
+        ]);
+        assert_eq!(cli.mistralrs_gguf_file, vec!["a.gguf", "b.gguf"]);
     }
 
     #[test]

@@ -61,6 +61,7 @@
 //! - `Signal<T>`: Reactive state container with automatic dependency tracking
 //! - `Compositor`: Manages layers and composition into final screen buffer
 
+pub mod app;
 pub mod buffer;
 pub mod cell;
 pub mod color;
@@ -87,12 +88,15 @@ pub mod viewport;
 pub mod widget;
 pub mod wrap;
 
+#[cfg(test)]
+mod test_env;
+
 pub use buffer::{CellChange, ScreenBuffer};
 pub use cell::Cell;
 pub use color::Color;
 pub use compositor::{Compositor, CompositorError, CompositorRegion, Layer};
 pub use cursor::{CursorPosition, CursorState, Selection};
-pub use error::{Result, SaorsaCoreError};
+pub use error::{Result, SaorsaTuiError};
 pub use event::{Event, KeyCode, KeyEvent, Modifiers, MouseEvent};
 pub use focus::{FocusManager, FocusState, WidgetId};
 pub use geometry::{Position, Rect, Size};

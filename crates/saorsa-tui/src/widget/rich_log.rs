@@ -59,6 +59,26 @@ impl RichLog {
         self
     }
 
+    /// Get the current base style.
+    pub fn base_style(&self) -> &Style {
+        &self.style
+    }
+
+    /// Set the base style.
+    pub fn set_base_style(&mut self, style: Style) {
+        self.style = style;
+    }
+
+    /// Get the current border style kind.
+    pub fn border_style_kind(&self) -> BorderStyle {
+        self.border
+    }
+
+    /// Set the border style kind.
+    pub fn set_border(&mut self, border: BorderStyle) {
+        self.border = border;
+    }
+
     /// Enable or disable auto-scrolling to the bottom on new entries.
     #[must_use]
     pub fn with_auto_scroll(mut self, enabled: bool) -> Self {
@@ -118,6 +138,22 @@ impl RichLog {
     /// Get the current scroll offset.
     pub fn scroll_offset(&self) -> usize {
         self.scroll_offset
+    }
+
+    /// Scroll up by `lines`, clamping at 0.
+    pub fn scroll_up_by(&mut self, lines: usize) {
+        self.scroll_offset = self.scroll_offset.saturating_sub(lines);
+        self.auto_scroll = false;
+    }
+
+    /// Scroll down by `lines`, clamping at the last entry.
+    pub fn scroll_down_by(&mut self, lines: usize) {
+        if self.entries.is_empty() {
+            return;
+        }
+        let max = self.entries.len().saturating_sub(1);
+        self.scroll_offset = (self.scroll_offset + lines).min(max);
+        self.auto_scroll = false;
     }
 }
 

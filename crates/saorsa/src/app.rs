@@ -1,5 +1,10 @@
 //! Application state for the chat interface.
 
+use crate::autocomplete::{Autocomplete, Suggestion};
+
+/// Maximum number of suggestions visible in the dropdown.
+const MAX_VISIBLE_SUGGESTIONS: usize = 8;
+
 /// Active overlay mode for the application.
 ///
 /// Overlays capture input while visible. The main input field is inactive
@@ -90,6 +95,10 @@ pub struct AppState {
     dirty: bool,
     /// Pending stream text accumulated between render frames.
     pending_stream_text: String,
+    /// Current autocomplete suggestions.
+    autocomplete_suggestions: Vec<Suggestion>,
+    /// Selected index in the autocomplete dropdown.
+    autocomplete_index: usize,
 }
 
 impl AppState {
@@ -112,6 +121,8 @@ impl AppState {
             scroll_offset: 0,
             dirty: true,
             pending_stream_text: String::new(),
+            autocomplete_suggestions: Vec::new(),
+            autocomplete_index: 0,
         }
     }
 
@@ -305,6 +316,93 @@ impl AppState {
     /// Current scroll offset (number of messages from the bottom).
     pub fn scroll_offset(&self) -> usize {
         self.scroll_offset
+    }
+
+    /// Update autocomplete suggestions from the current input.
+    ///
+    /// Should be called whenever the input changes and starts with `/`.
+    pub fn update_autocomplete(&mut self, autocomplete: &Autocomplete) {
+        if self.input.starts_with('/') {
+            self.autocomplete_suggestions = autocomplete.suggest(&self.input);
+            // Clamp index to valid range.
+            if self.autocomplete_suggestions.is_empty() {
+                self.autocomplete_index = 0;
+            } else if self.autocomplete_index >= self.autocomplete_suggestions.len() {
+                self.autocomplete_index = self.autocomplete_suggestions.len() - 1;
+            }
+            self.dirty = true;
+        } else {
+            self.dismiss_autocomplete();
+        }
+    }
+
+    /// Whether the autocomplete dropdown should be displayed.
+    pub fn is_autocomplete_visible(&self) -> bool {
+        !self.autocomplete_suggestions.is_empty()
+    }
+
+    /// Move the autocomplete selection up.
+    pub fn autocomplete_up(&mut self) {
+        if !self.autocomplete_suggestions.is_empty() {
+            if self.autocomplete_index == 0 {
+                self.autocomplete_index = self.autocomplete_suggestions.len() - 1;
+            } else {
+                self.autocomplete_index -= 1;
+            }
+            self.dirty = true;
+        }
+    }
+
+    /// Move the autocomplete selection down.
+    pub fn autocomplete_down(&mut self) {
+        if !self.autocomplete_suggestions.is_empty() {
+            self.autocomplete_index =
+                (self.autocomplete_index + 1) % self.autocomplete_suggestions.len();
+            self.dirty = true;
+        }
+    }
+
+    /// Accept the current autocomplete selection.
+    ///
+    /// Returns the accepted suggestion text, or `None` if no suggestions are
+    /// visible.
+    pub fn autocomplete_accept(&mut self) -> Option<String> {
+        if self.autocomplete_suggestions.is_empty() {
+            return None;
+        }
+        let text = self.autocomplete_suggestions[self.autocomplete_index]
+            .text
+            .clone();
+        self.input = text.clone();
+        self.cursor = self.input.len();
+        self.autocomplete_suggestions.clear();
+        self.autocomplete_index = 0;
+        self.dirty = true;
+        Some(text)
+    }
+
+    /// Dismiss the autocomplete dropdown.
+    pub fn dismiss_autocomplete(&mut self) {
+        if !self.autocomplete_suggestions.is_empty() {
+            self.autocomplete_suggestions.clear();
+            self.autocomplete_index = 0;
+            self.dirty = true;
+        }
+    }
+
+    /// Current autocomplete suggestions.
+    pub fn autocomplete_suggestions(&self) -> &[Suggestion] {
+        &self.autocomplete_suggestions
+    }
+
+    /// Currently selected autocomplete index.
+    pub fn autocomplete_index(&self) -> usize {
+        self.autocomplete_index
+    }
+
+    /// Maximum number of suggestions visible in the dropdown.
+    pub fn max_visible_suggestions(&self) -> usize {
+        MAX_VISIBLE_SUGGESTIONS
     }
 }
 

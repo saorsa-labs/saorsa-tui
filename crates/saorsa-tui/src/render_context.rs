@@ -221,19 +221,21 @@ mod tests {
 
     #[test]
     fn styled_cell_rendering() {
-        let mut backend = TestBackend::new(10, 5);
-        let renderer = Renderer::new(ColorSupport::TrueColor, false);
-        let mut ctx = RenderContext::with_size(Size::new(10, 5), renderer);
+        crate::test_env::without_no_color(|| {
+            let mut backend = TestBackend::new(10, 5);
+            let renderer = Renderer::new(ColorSupport::TrueColor, false);
+            let mut ctx = RenderContext::with_size(Size::new(10, 5), renderer);
 
-        let style = Style::new().fg(Color::Named(NamedColor::Red)).bold(true);
-        ctx.buffer_mut().set(0, 0, Cell::new("X", style));
-        let _ = ctx.end_frame(&mut backend);
+            let style = Style::new().fg(Color::Named(NamedColor::Red)).bold(true);
+            ctx.buffer_mut().set(0, 0, Cell::new("X", style));
+            let _ = ctx.end_frame(&mut backend);
 
-        let output = backend.buffer();
-        let output_str = String::from_utf8_lossy(output);
-        assert!(output_str.contains("\x1b[31m")); // red fg
-        assert!(output_str.contains("\x1b[1m")); // bold
-        assert!(output_str.contains('X'));
+            let output = backend.buffer();
+            let output_str = String::from_utf8_lossy(output);
+            assert!(output_str.contains("\x1b[31m")); // red fg
+            assert!(output_str.contains("\x1b[1m")); // bold
+            assert!(output_str.contains('X'));
+        });
     }
 
     // --- New compositor integration tests ---

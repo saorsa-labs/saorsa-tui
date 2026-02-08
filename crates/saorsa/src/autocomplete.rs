@@ -15,8 +15,8 @@ pub struct Suggestion {
 pub struct Autocomplete {
     /// Available file paths.
     file_paths: Vec<PathBuf>,
-    /// Available commands.
-    commands: Vec<String>,
+    /// Available commands with descriptions.
+    commands: Vec<(&'static str, &'static str)>,
 }
 
 impl Autocomplete {
@@ -25,25 +25,26 @@ impl Autocomplete {
         Self {
             file_paths: Vec::new(),
             commands: vec![
-                "/help".to_string(),
-                "/model".to_string(),
-                "/thinking".to_string(),
-                "/compact".to_string(),
-                "/clear".to_string(),
-                "/hotkeys".to_string(),
-                "/settings".to_string(),
-                "/providers".to_string(),
-                "/cost".to_string(),
-                "/agents".to_string(),
-                "/skills".to_string(),
-                "/status".to_string(),
-                "/tree".to_string(),
-                "/bookmark".to_string(),
-                "/export".to_string(),
-                "/share".to_string(),
-                "/fork".to_string(),
-                "/login".to_string(),
-                "/logout".to_string(),
+                ("/help", "Show available commands"),
+                ("/model", "Show or switch AI model"),
+                ("/thinking", "Set extended-thinking level"),
+                ("/compact", "Toggle compact display mode"),
+                ("/clear", "Clear conversation history"),
+                ("/hotkeys", "Show keyboard shortcuts"),
+                ("/settings", "Show current settings"),
+                ("/providers", "List configured LLM providers"),
+                ("/cost", "Show session cost breakdown"),
+                ("/agents", "List available agent tools"),
+                ("/skills", "List available skills"),
+                ("/status", "Show session information"),
+                ("/tree", "Show conversation tree"),
+                ("/bookmark", "Manage bookmarks"),
+                ("/export", "Export conversation"),
+                ("/share", "Share conversation link"),
+                ("/fork", "Fork conversation"),
+                ("/login", "Configure API keys"),
+                ("/logout", "Remove API keys"),
+                ("/config", "View or change settings"),
             ],
         }
     }
@@ -83,14 +84,16 @@ impl Autocomplete {
             .collect()
     }
 
-    /// Suggest commands.
+    /// Suggest commands matching a prefix.
+    ///
+    /// When the input is exactly `/`, all commands are returned.
     fn suggest_commands(&self, prefix: &str) -> Vec<Suggestion> {
         self.commands
             .iter()
-            .filter(|cmd| cmd.starts_with(prefix))
-            .map(|cmd| Suggestion {
-                text: cmd.clone(),
-                description: None,
+            .filter(|(name, _)| name.starts_with(prefix))
+            .map(|(name, desc)| Suggestion {
+                text: (*name).to_string(),
+                description: Some((*desc).to_string()),
             })
             .collect()
     }
@@ -119,6 +122,20 @@ mod tests {
         let suggestions = ac.suggest("/mod");
         assert!(!suggestions.is_empty());
         assert!(suggestions.iter().any(|s| s.text == "/model"));
+    }
+
+    #[test]
+    fn suggest_commands_have_descriptions() {
+        let ac = Autocomplete::new();
+        let suggestions = ac.suggest("/mod");
+        assert!(suggestions.iter().all(|s| s.description.is_some()));
+    }
+
+    #[test]
+    fn suggest_all_commands_on_slash() {
+        let ac = Autocomplete::new();
+        let suggestions = ac.suggest("/");
+        assert_eq!(suggestions.len(), ac.commands.len());
     }
 
     #[test]

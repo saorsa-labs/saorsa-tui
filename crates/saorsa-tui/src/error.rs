@@ -1,10 +1,10 @@
-//! Error types for saorsa-core.
+//! Error types for saorsa-tui.
 
 use std::io;
 
-/// Error type for saorsa-core operations.
+/// Error type for saorsa-tui operations.
 #[derive(Debug, thiserror::Error)]
-pub enum SaorsaCoreError {
+pub enum SaorsaTuiError {
     /// I/O error.
     #[error("I/O error: {0}")]
     Io(#[from] io::Error),
@@ -42,8 +42,8 @@ pub enum SaorsaCoreError {
     Internal(String),
 }
 
-/// Result type alias for saorsa-core operations.
-pub type Result<T> = std::result::Result<T, SaorsaCoreError>;
+/// Result type alias for saorsa-tui operations.
+pub type Result<T> = std::result::Result<T, SaorsaTuiError>;
 
 #[cfg(test)]
 mod tests {
@@ -51,14 +51,14 @@ mod tests {
 
     #[test]
     fn error_display() {
-        let err = SaorsaCoreError::Terminal("no tty".into());
+        let err = SaorsaTuiError::Terminal("no tty".into());
         assert_eq!(err.to_string(), "terminal error: no tty");
     }
 
     #[test]
     fn io_error_converts() {
         let io_err = io::Error::new(io::ErrorKind::NotFound, "missing");
-        let err: SaorsaCoreError = io_err.into();
-        assert!(matches!(err, SaorsaCoreError::Io(_)));
+        let err: SaorsaTuiError = io_err.into();
+        assert!(matches!(err, SaorsaTuiError::Io(_)));
     }
 }

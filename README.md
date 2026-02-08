@@ -71,6 +71,7 @@ saorsa-agent = "0.1"  # Agent runtime
 ### saorsa-ai - LLM Providers
 
 - **5 provider families** - Anthropic, OpenAI, Gemini, Ollama, OpenAI-compatible (Azure, Groq, Mistral, OpenRouter, xAI, Cerebras)
+- **Optional in-process provider** - mistralrs (GGUF) behind the `saorsa-ai` feature flag `mistralrs`
 - **Unified streaming** - Same `StreamEvent` types across all providers
 - **Tool calling** - JSON Schema-based tool definitions with automatic format translation
 - **Model registry** - Context windows, capability metadata, prefix matching

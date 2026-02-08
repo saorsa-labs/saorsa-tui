@@ -188,6 +188,22 @@
 - Google Gemini
 - Azure OpenAI, Bedrock, Mistral, Groq, Cerebras, xAI, OpenRouter
 - Ollama (local inference)
+- **In-process local inference (GGUF): mistralrs provider (feature-gated)**
+  - Add `saorsa-ai` provider impls: `Provider` + `StreamingProvider`
+  - Backed by `mistralrs::Model::stream_chat_request`
+  - Feature flag: `features = ["mistralrs"]` so `mistralrs`/`candle` deps are optional
+  - API:
+    - `pub struct MistralrsProvider { model: Arc<mistralrs::Model>, config: MistralrsConfig }`
+    - `pub struct MistralrsConfig { temperature: f64, top_p: f64 }` (stop seqs/tools later)
+    - Constructor takes an already-loaded `Arc<Model>` (apps manage download/load)
+  - Streaming behavior (MVP text-only):
+    - Emit `StreamEvent::MessageStart`
+    - Emit one `ContentBlockStart(Text)` then `ContentBlockDelta(TextDelta)` per token
+    - Emit `MessageDelta(stop_reason=EndTurn)` then `MessageStop`
+    - Provider metadata: “no tools supported” for now
+  - Acceptance:
+    - Example or test that runs `AgentLoop::new(Box::new(MistralrsProvider), ...)` and streams a prompt
+    - `cargo test` passes with and without the `mistralrs` feature enabled
 - GitHub Copilot (OAuth)
 - Custom OpenAI-compatible providers (models.json)
 

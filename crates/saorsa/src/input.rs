@@ -33,6 +33,8 @@ pub enum InputAction {
     OpenModelSelector,
     /// Tab-complete the current input.
     TabComplete,
+    /// Accept the currently selected autocomplete suggestion.
+    AutocompleteAccept,
 }
 
 /// Handle an input event and return the resulting action.
@@ -79,6 +81,30 @@ fn handle_key(state: &mut AppState, code: KeyCode, modifiers: Modifiers) -> Inpu
     // Only process editing keys when idle.
     if !state.is_idle() {
         return InputAction::None;
+    }
+
+    // When autocomplete dropdown is visible, intercept navigation keys.
+    if state.is_autocomplete_visible() {
+        match code {
+            KeyCode::Up => {
+                state.autocomplete_up();
+                return InputAction::Redraw;
+            }
+            KeyCode::Down => {
+                state.autocomplete_down();
+                return InputAction::Redraw;
+            }
+            KeyCode::Tab | KeyCode::Enter => {
+                return InputAction::AutocompleteAccept;
+            }
+            KeyCode::Escape => {
+                state.dismiss_autocomplete();
+                return InputAction::Redraw;
+            }
+            _ => {
+                // Fall through to normal handling for typing, backspace, etc.
+            }
+        }
     }
 
     // Ctrl+P: cycle model forward.
@@ -142,6 +168,7 @@ fn handle_key(state: &mut AppState, code: KeyCode, modifiers: Modifiers) -> Inpu
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::autocomplete::Autocomplete;
     use saorsa_tui::event::KeyEvent;
 
     fn key_event(code: KeyCode) -> Event {
@@ -376,5 +403,83 @@ mod tests {
         state.status = crate::app::AppStatus::Thinking;
         let action = handle_event(&mut state, &key_event(KeyCode::PageUp));
         assert_eq!(action, InputAction::ScrollUp(PAGE_SCROLL_LINES));
+    }
+
+    // Autocomplete dropdown tests.
+
+    #[test]
+    fn autocomplete_up_navigates() {
+        let mut state = AppState::new("test");
+        state.input = "/".into();
+        state.cursor = 1;
+        let ac = Autocomplete::new();
+        state.update_autocomplete(&ac);
+        assert!(state.is_autocomplete_visible());
+
+        // Down then up should return to index 0.
+        let action = handle_event(&mut state, &key_event(KeyCode::Down));
+        assert_eq!(action, InputAction::Redraw);
+        assert_eq!(state.autocomplete_index(), 1);
+
+        let action = handle_event(&mut state, &key_event(KeyCode::Up));
+        assert_eq!(action, InputAction::Redraw);
+        assert_eq!(state.autocomplete_index(), 0);
+    }
+
+    #[test]
+    fn autocomplete_enter_accepts() {
+        let mut state = AppState::new("test");
+        state.input = "/he".into();
+        state.cursor = 3;
+        let ac = Autocomplete::new();
+        state.update_autocomplete(&ac);
+        assert!(state.is_autocomplete_visible());
+
+        let action = handle_event(&mut state, &key_event(KeyCode::Enter));
+        assert_eq!(action, InputAction::AutocompleteAccept);
+    }
+
+    #[test]
+    fn autocomplete_tab_accepts() {
+        let mut state = AppState::new("test");
+        state.input = "/he".into();
+        state.cursor = 3;
+        let ac = Autocomplete::new();
+        state.update_autocomplete(&ac);
+        assert!(state.is_autocomplete_visible());
+
+        let action = handle_event(&mut state, &key_event(KeyCode::Tab));
+        assert_eq!(action, InputAction::AutocompleteAccept);
+    }
+
+    #[test]
+    fn autocomplete_escape_dismisses() {
+        let mut state = AppState::new("test");
+        state.input = "/he".into();
+        state.cursor = 3;
+        let ac = Autocomplete::new();
+        state.update_autocomplete(&ac);
+        assert!(state.is_autocomplete_visible());
+
+        let action = handle_event(&mut state, &key_event(KeyCode::Escape));
+        assert_eq!(action, InputAction::Redraw);
+        assert!(!state.is_autocomplete_visible());
+        // Input should NOT be cleared when dismissing autocomplete.
+        assert_eq!(state.input, "/he");
+    }
+
+    #[test]
+    fn typing_falls_through_when_autocomplete_visible() {
+        let mut state = AppState::new("test");
+        state.input = "/he".into();
+        state.cursor = 3;
+        let ac = Autocomplete::new();
+        state.update_autocomplete(&ac);
+        assert!(state.is_autocomplete_visible());
+
+        // Typing a character should still insert it.
+        let action = handle_event(&mut state, &key_event(KeyCode::Char('l')));
+        assert_eq!(action, InputAction::Redraw);
+        assert_eq!(state.input, "/hel");
     }
 }

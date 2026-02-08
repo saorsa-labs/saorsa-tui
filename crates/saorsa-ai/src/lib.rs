@@ -73,10 +73,15 @@ pub mod provider;
 pub mod tokens;
 pub mod types;
 
+#[cfg(feature = "mistralrs")]
+pub mod mistralrs;
+
 pub use anthropic::AnthropicProvider;
 pub use error::{Result, SaorsaAiError};
 pub use gemini::GeminiProvider;
 pub use message::{ContentBlock, Message, Role, ToolDefinition};
+#[cfg(feature = "mistralrs")]
+pub use mistralrs::{MistralrsConfig, MistralrsProvider};
 pub use models::{
     ModelInfo, all_models, get_context_window, lookup_by_provider_prefix, lookup_model,
     lookup_model_by_prefix, supports_tools, supports_vision,

@@ -147,6 +147,14 @@ impl WidgetTree {
         self.root
     }
 
+    /// Set the root node ID explicitly.
+    ///
+    /// This is used by retained runtimes that build nodes before the final
+    /// root is known. It does not validate parent/child relationships.
+    pub fn set_root(&mut self, id: WidgetId) {
+        self.root = Some(id);
+    }
+
     /// Return the parent node of the given widget.
     pub fn parent(&self, id: WidgetId) -> Option<&WidgetNode> {
         self.nodes

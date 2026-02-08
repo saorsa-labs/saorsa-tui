@@ -879,6 +879,7 @@ mod tests {
     use super::*;
     use crate::buffer::CellChange;
     use crate::cell::Cell;
+    use crate::test_env::{with_no_color_set, without_no_color};
 
     #[test]
     fn render_empty_changes() {
@@ -925,36 +926,40 @@ mod tests {
 
     #[test]
     fn render_fg_truecolor() {
-        let renderer = Renderer::new(ColorSupport::TrueColor, false);
-        let style = Style::new().fg(Color::Rgb {
-            r: 255,
-            g: 128,
-            b: 0,
+        without_no_color(|| {
+            let renderer = Renderer::new(ColorSupport::TrueColor, false);
+            let style = Style::new().fg(Color::Rgb {
+                r: 255,
+                g: 128,
+                b: 0,
+            });
+            let changes = vec![CellChange {
+                x: 0,
+                y: 0,
+                cell: Cell::new("X", style),
+            }];
+            let output = renderer.render(&changes);
+            assert!(output.contains("\x1b[38;2;255;128;0m"));
         });
-        let changes = vec![CellChange {
-            x: 0,
-            y: 0,
-            cell: Cell::new("X", style),
-        }];
-        let output = renderer.render(&changes);
-        assert!(output.contains("\x1b[38;2;255;128;0m"));
     }
 
     #[test]
     fn render_bg_truecolor() {
-        let renderer = Renderer::new(ColorSupport::TrueColor, false);
-        let style = Style::new().bg(Color::Rgb {
-            r: 0,
-            g: 128,
-            b: 255,
+        without_no_color(|| {
+            let renderer = Renderer::new(ColorSupport::TrueColor, false);
+            let style = Style::new().bg(Color::Rgb {
+                r: 0,
+                g: 128,
+                b: 255,
+            });
+            let changes = vec![CellChange {
+                x: 0,
+                y: 0,
+                cell: Cell::new("X", style),
+            }];
+            let output = renderer.render(&changes);
+            assert!(output.contains("\x1b[48;2;0;128;255m"));
         });
-        let changes = vec![CellChange {
-            x: 0,
-            y: 0,
-            cell: Cell::new("X", style),
-        }];
-        let output = renderer.render(&changes);
-        assert!(output.contains("\x1b[48;2;0;128;255m"));
     }
 
     #[test]
@@ -973,28 +978,32 @@ mod tests {
 
     #[test]
     fn render_named_color() {
-        let renderer = Renderer::new(ColorSupport::TrueColor, false);
-        let style = Style::new().fg(Color::Named(NamedColor::Red));
-        let changes = vec![CellChange {
-            x: 0,
-            y: 0,
-            cell: Cell::new("X", style),
-        }];
-        let output = renderer.render(&changes);
-        assert!(output.contains("\x1b[31m")); // red fg
+        without_no_color(|| {
+            let renderer = Renderer::new(ColorSupport::TrueColor, false);
+            let style = Style::new().fg(Color::Named(NamedColor::Red));
+            let changes = vec![CellChange {
+                x: 0,
+                y: 0,
+                cell: Cell::new("X", style),
+            }];
+            let output = renderer.render(&changes);
+            assert!(output.contains("\x1b[31m")); // red fg
+        });
     }
 
     #[test]
     fn render_indexed_color() {
-        let renderer = Renderer::new(ColorSupport::TrueColor, false);
-        let style = Style::new().fg(Color::Indexed(42));
-        let changes = vec![CellChange {
-            x: 0,
-            y: 0,
-            cell: Cell::new("X", style),
-        }];
-        let output = renderer.render(&changes);
-        assert!(output.contains("\x1b[38;5;42m"));
+        without_no_color(|| {
+            let renderer = Renderer::new(ColorSupport::TrueColor, false);
+            let style = Style::new().fg(Color::Indexed(42));
+            let changes = vec![CellChange {
+                x: 0,
+                y: 0,
+                cell: Cell::new("X", style),
+            }];
+            let output = renderer.render(&changes);
+            assert!(output.contains("\x1b[38;5;42m"));
+        });
     }
 
     #[test]
@@ -1075,48 +1084,54 @@ mod tests {
 
     #[test]
     fn truecolor_passthrough() {
-        let renderer = Renderer::new(ColorSupport::TrueColor, false);
-        let style = Style::new().fg(Color::Rgb {
-            r: 100,
-            g: 200,
-            b: 50,
+        without_no_color(|| {
+            let renderer = Renderer::new(ColorSupport::TrueColor, false);
+            let style = Style::new().fg(Color::Rgb {
+                r: 100,
+                g: 200,
+                b: 50,
+            });
+            let changes = vec![CellChange {
+                x: 0,
+                y: 0,
+                cell: Cell::new("X", style),
+            }];
+            let output = renderer.render(&changes);
+            assert!(output.contains("\x1b[38;2;100;200;50m"));
         });
-        let changes = vec![CellChange {
-            x: 0,
-            y: 0,
-            cell: Cell::new("X", style),
-        }];
-        let output = renderer.render(&changes);
-        assert!(output.contains("\x1b[38;2;100;200;50m"));
     }
 
     #[test]
     fn truecolor_to_256() {
-        let renderer = Renderer::new(ColorSupport::Extended256, false);
-        let style = Style::new().fg(Color::Rgb { r: 255, g: 0, b: 0 });
-        let changes = vec![CellChange {
-            x: 0,
-            y: 0,
-            cell: Cell::new("X", style),
-        }];
-        let output = renderer.render(&changes);
-        // Should use 256-color index, not truecolor
-        assert!(output.contains("\x1b[38;5;"));
-        assert!(!output.contains("\x1b[38;2;"));
+        without_no_color(|| {
+            let renderer = Renderer::new(ColorSupport::Extended256, false);
+            let style = Style::new().fg(Color::Rgb { r: 255, g: 0, b: 0 });
+            let changes = vec![CellChange {
+                x: 0,
+                y: 0,
+                cell: Cell::new("X", style),
+            }];
+            let output = renderer.render(&changes);
+            // Should use 256-color index, not truecolor
+            assert!(output.contains("\x1b[38;5;"));
+            assert!(!output.contains("\x1b[38;2;"));
+        });
     }
 
     #[test]
     fn truecolor_to_16() {
-        let renderer = Renderer::new(ColorSupport::Basic16, false);
-        let style = Style::new().fg(Color::Rgb { r: 255, g: 0, b: 0 });
-        let changes = vec![CellChange {
-            x: 0,
-            y: 0,
-            cell: Cell::new("X", style),
-        }];
-        let output = renderer.render(&changes);
-        // Should use named color code (bright red = 91)
-        assert!(output.contains("\x1b[91m"));
+        without_no_color(|| {
+            let renderer = Renderer::new(ColorSupport::Basic16, false);
+            let style = Style::new().fg(Color::Rgb { r: 255, g: 0, b: 0 });
+            let changes = vec![CellChange {
+                x: 0,
+                y: 0,
+                cell: Cell::new("X", style),
+            }];
+            let output = renderer.render(&changes);
+            // Should use named color code (bright red = 91)
+            assert!(output.contains("\x1b[91m"));
+        });
     }
 
     #[test]
@@ -1376,18 +1391,20 @@ mod tests {
 
     #[test]
     fn render_batched_with_styles() {
-        let renderer = Renderer::new(ColorSupport::TrueColor, false);
-        let style = Style::new().bold(true).fg(Color::Named(NamedColor::Blue));
-        let changes = vec![CellChange {
-            x: 0,
-            y: 0,
-            cell: Cell::new("X", style),
-        }];
-        let output = renderer.render_batched(&changes);
-        assert!(output.contains("\x1b[1m")); // bold
-        assert!(output.contains("\x1b[34m")); // blue
-        assert!(output.contains('X'));
-        assert!(output.ends_with("\x1b[0m")); // reset
+        without_no_color(|| {
+            let renderer = Renderer::new(ColorSupport::TrueColor, false);
+            let style = Style::new().bold(true).fg(Color::Named(NamedColor::Blue));
+            let changes = vec![CellChange {
+                x: 0,
+                y: 0,
+                cell: Cell::new("X", style),
+            }];
+            let output = renderer.render_batched(&changes);
+            assert!(output.contains("\x1b[1m")); // bold
+            assert!(output.contains("\x1b[34m")); // blue
+            assert!(output.contains('X'));
+            assert!(output.ends_with("\x1b[0m")); // reset
+        });
     }
 
     // --- Task 6: render_optimized and build_sgr_sequence tests ---
@@ -1432,21 +1449,23 @@ mod tests {
 
     #[test]
     fn build_sgr_combined_bold_italic_red() {
-        let style = Style::new()
-            .bold(true)
-            .italic(true)
-            .fg(Color::Named(NamedColor::Red));
-        let sgr = build_sgr_sequence(&style, ColorSupport::TrueColor);
-        // Should be a single SGR sequence like \x1b[1;3;31m
-        assert!(sgr.starts_with("\x1b["));
-        assert!(sgr.ends_with('m'));
-        // Verify all codes are present in the combined sequence
-        assert!(sgr.contains("1;"));
-        assert!(sgr.contains(";3;"));
-        assert!(sgr.contains("31"));
-        // Should NOT have multiple separate sequences
-        let esc_count = sgr.matches("\x1b[").count();
-        assert_eq!(esc_count, 1);
+        without_no_color(|| {
+            let style = Style::new()
+                .bold(true)
+                .italic(true)
+                .fg(Color::Named(NamedColor::Red));
+            let sgr = build_sgr_sequence(&style, ColorSupport::TrueColor);
+            // Should be a single SGR sequence like \x1b[1;3;31m
+            assert!(sgr.starts_with("\x1b["));
+            assert!(sgr.ends_with('m'));
+            // Verify all codes are present in the combined sequence
+            assert!(sgr.contains("1;"));
+            assert!(sgr.contains(";3;"));
+            assert!(sgr.contains("31"));
+            // Should NOT have multiple separate sequences
+            let esc_count = sgr.matches("\x1b[").count();
+            assert_eq!(esc_count, 1);
+        });
     }
 
     #[test]
@@ -1458,21 +1477,23 @@ mod tests {
 
     #[test]
     fn render_optimized_contains_correct_content() {
-        let renderer = Renderer::new(ColorSupport::TrueColor, false);
-        let style = Style::new().bold(true).fg(Color::Named(NamedColor::Green));
-        let changes = vec![CellChange {
-            x: 0,
-            y: 0,
-            cell: Cell::new("Z", style),
-        }];
-        let output = renderer.render_optimized(&changes);
-        // Should contain the grapheme
-        assert!(output.contains('Z'));
-        // Should contain bold (1) and green (32) in a combined sequence
-        assert!(output.contains("1;"));
-        assert!(output.contains("32"));
-        // Should have reset before cursor show
-        assert!(output.contains("\x1b[0m"));
+        without_no_color(|| {
+            let renderer = Renderer::new(ColorSupport::TrueColor, false);
+            let style = Style::new().bold(true).fg(Color::Named(NamedColor::Green));
+            let changes = vec![CellChange {
+                x: 0,
+                y: 0,
+                cell: Cell::new("Z", style),
+            }];
+            let output = renderer.render_optimized(&changes);
+            // Should contain the grapheme
+            assert!(output.contains('Z'));
+            // Should contain bold (1) and green (32) in a combined sequence
+            assert!(output.contains("1;"));
+            assert!(output.contains("32"));
+            // Should have reset before cursor show
+            assert!(output.contains("\x1b[0m"));
+        });
     }
 
     #[test]
@@ -1484,26 +1505,30 @@ mod tests {
 
     #[test]
     fn build_sgr_truecolor_rgb() {
-        let style = Style::new().fg(Color::Rgb {
-            r: 100,
-            g: 200,
-            b: 50,
+        without_no_color(|| {
+            let style = Style::new().fg(Color::Rgb {
+                r: 100,
+                g: 200,
+                b: 50,
+            });
+            let sgr = build_sgr_sequence(&style, ColorSupport::TrueColor);
+            assert_eq!(sgr, "\x1b[38;2;100;200;50m");
         });
-        let sgr = build_sgr_sequence(&style, ColorSupport::TrueColor);
-        assert_eq!(sgr, "\x1b[38;2;100;200;50m");
     }
 
     #[test]
     fn build_sgr_fg_and_bg() {
-        let style = Style::new()
-            .fg(Color::Named(NamedColor::Red))
-            .bg(Color::Named(NamedColor::Blue));
-        let sgr = build_sgr_sequence(&style, ColorSupport::TrueColor);
-        // Single escape, contains both fg and bg codes
-        let esc_count = sgr.matches("\x1b[").count();
-        assert_eq!(esc_count, 1);
-        assert!(sgr.contains("31")); // red fg
-        assert!(sgr.contains("44")); // blue bg
+        without_no_color(|| {
+            let style = Style::new()
+                .fg(Color::Named(NamedColor::Red))
+                .bg(Color::Named(NamedColor::Blue));
+            let sgr = build_sgr_sequence(&style, ColorSupport::TrueColor);
+            // Single escape, contains both fg and bg codes
+            let esc_count = sgr.matches("\x1b[").count();
+            assert_eq!(esc_count, 1);
+            assert!(sgr.contains("31")); // red fg
+            assert!(sgr.contains("44")); // blue bg
+        });
     }
 
     // --- Task 4: Enhanced color downgrading tests ---
@@ -1622,125 +1647,85 @@ mod tests {
 
     #[test]
     fn no_color_environment_variable() {
-        // Set NO_COLOR environment variable
-        unsafe {
-            std::env::set_var("NO_COLOR", "1");
-        }
+        with_no_color_set("1", || {
+            let renderer = Renderer::new(ColorSupport::TrueColor, false);
+            let style = Style::new().fg(Color::Rgb { r: 255, g: 0, b: 0 });
+            let changes = vec![CellChange {
+                x: 0,
+                y: 0,
+                cell: Cell::new("X", style),
+            }];
+            let output = renderer.render(&changes);
 
-        let renderer = Renderer::new(ColorSupport::TrueColor, false);
-        let style = Style::new().fg(Color::Rgb { r: 255, g: 0, b: 0 });
-        let changes = vec![CellChange {
-            x: 0,
-            y: 0,
-            cell: Cell::new("X", style),
-        }];
-        let output = renderer.render(&changes);
-
-        // Should use reset color, not any specific color
-        assert!(output.contains("\x1b[39m")); // fg reset
-        assert!(!output.contains("\x1b[38;2;")); // No truecolor
-
-        // Clean up
-        unsafe {
-            std::env::remove_var("NO_COLOR");
-        }
+            // Should use reset color, not any specific color
+            assert!(output.contains("\x1b[39m")); // fg reset
+            assert!(!output.contains("\x1b[38;2;")); // No truecolor
+        });
     }
 
     #[test]
     fn no_color_strips_all_colors() {
-        // Set NO_COLOR environment variable
-        unsafe {
-            std::env::set_var("NO_COLOR", "1");
-        }
+        with_no_color_set("1", || {
+            let renderer = Renderer::new(ColorSupport::TrueColor, false);
+            let style = Style::new()
+                .fg(Color::Rgb { r: 255, g: 0, b: 0 })
+                .bg(Color::Named(NamedColor::Blue));
+            let changes = vec![CellChange {
+                x: 0,
+                y: 0,
+                cell: Cell::new("X", style),
+            }];
+            let output = renderer.render(&changes);
 
-        let renderer = Renderer::new(ColorSupport::TrueColor, false);
-        let style = Style::new()
-            .fg(Color::Rgb { r: 255, g: 0, b: 0 })
-            .bg(Color::Named(NamedColor::Blue));
-        let changes = vec![CellChange {
-            x: 0,
-            y: 0,
-            cell: Cell::new("X", style),
-        }];
-        let output = renderer.render(&changes);
-
-        // Should use reset colors for both fg and bg
-        assert!(output.contains("\x1b[39m")); // fg reset
-        assert!(output.contains("\x1b[49m")); // bg reset
-
-        // Clean up
-        unsafe {
-            std::env::remove_var("NO_COLOR");
-        }
+            // Should use reset colors for both fg and bg
+            assert!(output.contains("\x1b[39m")); // fg reset
+            assert!(output.contains("\x1b[49m")); // bg reset
+        });
     }
 
     #[test]
     fn no_color_overrides_color_support() {
-        // Set NO_COLOR environment variable
-        unsafe {
-            std::env::set_var("NO_COLOR", "1");
-        }
+        with_no_color_set("1", || {
+            // Even with TrueColor support, NO_COLOR should strip colors
+            let renderer = Renderer::new(ColorSupport::TrueColor, false);
+            let style = Style::new().fg(Color::Rgb {
+                r: 100,
+                g: 200,
+                b: 50,
+            });
+            let changes = vec![CellChange {
+                x: 0,
+                y: 0,
+                cell: Cell::new("X", style),
+            }];
+            let output = renderer.render(&changes);
 
-        // Even with TrueColor support, NO_COLOR should strip colors
-        let renderer = Renderer::new(ColorSupport::TrueColor, false);
-        let style = Style::new().fg(Color::Rgb {
-            r: 100,
-            g: 200,
-            b: 50,
+            assert!(output.contains("\x1b[39m"));
+            assert!(!output.contains("\x1b[38;2;"));
         });
-        let changes = vec![CellChange {
-            x: 0,
-            y: 0,
-            cell: Cell::new("X", style),
-        }];
-        let output = renderer.render(&changes);
-
-        assert!(output.contains("\x1b[39m"));
-        assert!(!output.contains("\x1b[38;2;"));
-
-        // Clean up
-        unsafe {
-            std::env::remove_var("NO_COLOR");
-        }
     }
 
     #[test]
     fn downgrade_color_standalone_no_color() {
-        // Set NO_COLOR environment variable
-        unsafe {
-            std::env::set_var("NO_COLOR", "1");
-        }
-
-        let color = Color::Rgb { r: 255, g: 0, b: 0 };
-        let result = downgrade_color_standalone(&color, ColorSupport::TrueColor);
-        assert_eq!(result, Color::Reset);
-
-        // Clean up
-        unsafe {
-            std::env::remove_var("NO_COLOR");
-        }
+        with_no_color_set("1", || {
+            let color = Color::Rgb { r: 255, g: 0, b: 0 };
+            let result = downgrade_color_standalone(&color, ColorSupport::TrueColor);
+            assert_eq!(result, Color::Reset);
+        });
     }
 
     #[test]
     fn build_sgr_with_no_color() {
-        // Set NO_COLOR environment variable
-        unsafe {
-            std::env::set_var("NO_COLOR", "1");
-        }
+        with_no_color_set("1", || {
+            let style = Style::new()
+                .bold(true)
+                .fg(Color::Rgb { r: 255, g: 0, b: 0 });
+            let sgr = build_sgr_sequence(&style, ColorSupport::TrueColor);
 
-        let style = Style::new()
-            .bold(true)
-            .fg(Color::Rgb { r: 255, g: 0, b: 0 });
-        let sgr = build_sgr_sequence(&style, ColorSupport::TrueColor);
-
-        // Should include bold but fg should be reset
-        assert!(sgr.contains('1'));
-        assert!(sgr.contains("39")); // fg reset
-
-        // Clean up
-        unsafe {
-            std::env::remove_var("NO_COLOR");
-        }
+            // Should include bold but fg should be reset
+            assert!(sgr.contains('1'));
+            assert!(sgr.contains("39")); // fg reset
+        });
     }
 
     #[test]

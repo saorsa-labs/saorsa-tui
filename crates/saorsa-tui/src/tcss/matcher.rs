@@ -192,6 +192,57 @@ pub fn matches_selector(tree: &WidgetTree, node_id: WidgetId, selector: &Selecto
                     return false;
                 }
             }
+            Combinator::AdjacentSibling => {
+                let parent = match tree.parent(current_id) {
+                    Some(p) => p,
+                    None => return false,
+                };
+                let idx = match parent.children.iter().position(|&c| c == current_id) {
+                    Some(i) => i,
+                    None => return false,
+                };
+                if idx == 0 {
+                    return false;
+                }
+                let sib_id = parent.children[idx - 1];
+                let sib = match tree.get(sib_id) {
+                    Some(s) => s,
+                    None => return false,
+                };
+                if !matches_compound(tree, sib, compound) {
+                    return false;
+                }
+                current_id = sib.id;
+            }
+            Combinator::GeneralSibling => {
+                let parent = match tree.parent(current_id) {
+                    Some(p) => p,
+                    None => return false,
+                };
+                let idx = match parent.children.iter().position(|&c| c == current_id) {
+                    Some(i) => i,
+                    None => return false,
+                };
+                if idx == 0 {
+                    return false;
+                }
+
+                let mut found = None;
+                for &sib_id in &parent.children[..idx] {
+                    let sib = match tree.get(sib_id) {
+                        Some(s) => s,
+                        None => continue,
+                    };
+                    if matches_compound(tree, sib, compound) {
+                        found = Some(sib.id);
+                    }
+                }
+
+                let Some(sib_id) = found else {
+                    return false;
+                };
+                current_id = sib_id;
+            }
         }
     }
 
@@ -660,6 +711,34 @@ mod tests {
             )],
         };
         assert!(!matches_selector(&tree, 2, &sel));
+    }
+
+    #[test]
+    fn match_adjacent_sibling_combinator() {
+        // Root(1): Label(2), Container(3)
+        let (mut tree, _) = make_tree_with_root("Root");
+        add_child(&mut tree, 2, 1, "Label");
+        add_child(&mut tree, 3, 1, "Container");
+
+        #[allow(clippy::expect_used)]
+        let list = SelectorList::parse("Label + Container").expect("selector parse should succeed");
+        assert_eq!(list.selectors.len(), 1);
+        assert!(matches_selector(&tree, 3, &list.selectors[0]));
+        assert!(!matches_selector(&tree, 2, &list.selectors[0]));
+    }
+
+    #[test]
+    fn match_general_sibling_combinator() {
+        // Root(1): Label(2), Label(3), Container(4)
+        let (mut tree, _) = make_tree_with_root("Root");
+        add_child(&mut tree, 2, 1, "Label");
+        add_child(&mut tree, 3, 1, "Label");
+        add_child(&mut tree, 4, 1, "Container");
+
+        #[allow(clippy::expect_used)]
+        let list = SelectorList::parse("Label ~ Container").expect("selector parse should succeed");
+        assert_eq!(list.selectors.len(), 1);
+        assert!(matches_selector(&tree, 4, &list.selectors[0]));
     }
 
     #[test]
