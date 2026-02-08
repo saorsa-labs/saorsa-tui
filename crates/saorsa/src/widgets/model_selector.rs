@@ -207,6 +207,9 @@ impl ModelSelector {
                         ProviderKind::Gemini => " [Gemini]",
                         ProviderKind::Ollama => " [Ollama]",
                         ProviderKind::OpenAiCompatible => " [Compatible]",
+                        ProviderKind::LmStudio => " [LM Studio]",
+                        ProviderKind::Vllm => " [vLLM]",
+                        ProviderKind::OpenRouter => " [OpenRouter]",
                     };
                     segments.push(Segment::styled(
                         provider_str,

@@ -21,6 +21,10 @@
 //!
 //! - **BashTool** (`bash`) - Execute shell commands in a controlled environment
 //!
+//! ## Web
+//!
+//! - **WebSearchTool** (`web_search`) - Search the web via DuckDuckGo (no API key required)
+//!
 //! # Usage
 //!
 //! All tools follow the same pattern:
@@ -186,6 +190,22 @@
 //! }
 //! ```
 //!
+//! ## WebSearchTool
+//!
+//! Search the web using DuckDuckGo. No API key required.
+//!
+//! **Input:**
+//! - `query` (required): Search query string
+//! - `max_results` (optional): Maximum number of results (default: 5, max: 20)
+//!
+//! **Example:**
+//! ```json
+//! {
+//!   "query": "Rust async programming",
+//!   "max_results": 3
+//! }
+//! ```
+//!
 //! # Error Handling
 //!
 //! All tools return `Result<String, SaorsaAgentError>`. Common errors include:
@@ -208,6 +228,7 @@ pub mod find;
 pub mod grep;
 pub mod ls;
 pub mod read;
+pub mod web_search;
 pub mod write;
 
 pub use bash::BashTool;
@@ -216,6 +237,7 @@ pub use find::FindTool;
 pub use grep::GrepTool;
 pub use ls::LsTool;
 pub use read::ReadTool;
+pub use web_search::WebSearchTool;
 pub use write::WriteTool;
 
 use std::path::{Path, PathBuf};

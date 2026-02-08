@@ -9,7 +9,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 authors = ["David Irvine <david@saorsalabs.com>"]
 license = "MIT OR Apache-2.0"
@@ -81,10 +81,10 @@ uuid = { version = "1.11", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 
 # Internal crates
-saorsa-core = { version = "0.1.0", path = "crates/saorsa-core" }
-saorsa-ai = { version = "0.1.0", path = "crates/saorsa-ai" }
-saorsa-agent = { version = "0.1.0", path = "crates/saorsa-agent" }
-saorsa = { version = "0.3.0", path = "crates/saorsa" }
+saorsa-core = { version = "0.2.0", path = "crates/saorsa-core" }
+saorsa-ai = { version = "0.2.0", path = "crates/saorsa-ai" }
+saorsa-agent = { version = "0.2.0", path = "crates/saorsa-agent" }
+saorsa = { version = "0.4.0", path = "crates/saorsa" }
 
 [workspace.lints.clippy]
 unwrap_used = { level = "deny", priority = 1 }

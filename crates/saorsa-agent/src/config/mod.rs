@@ -1,5 +1,11 @@
 //! Agent configuration.
 
+pub mod auth;
+pub mod import;
+pub mod models;
+pub mod paths;
+pub mod settings;
+
 use crate::context::ContextBundle;
 
 /// Configuration for the agent loop.
@@ -65,6 +71,7 @@ impl Default for AgentConfig {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

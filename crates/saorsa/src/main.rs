@@ -8,11 +8,11 @@ use futures::StreamExt;
 use tracing::debug;
 
 use saorsa_agent::{
-    AgentConfig, AgentEvent, AgentLoop, BashTool, Message, SessionStorage, ToolRegistry,
-    TurnEndReason, event_channel, find_last_active_session, find_session_by_prefix,
-    restore_session,
+    AgentConfig, AgentEvent, AgentLoop, AuthConfig, Message, SessionStorage, Settings,
+    TurnEndReason, default_tools, ensure_config_dir, event_channel, find_last_active_session,
+    find_session_by_prefix, restore_session,
 };
-use saorsa_ai::{AnthropicProvider, ProviderConfig, ProviderKind};
+use saorsa_ai::{ProviderConfig, ProviderKind, ProviderRegistry, determine_provider};
 use saorsa_core::render_context::RenderContext;
 use saorsa_core::terminal::{CrosstermBackend, Terminal};
 
@@ -21,8 +21,60 @@ use saorsa::cli::Cli;
 use saorsa::input::{InputAction, handle_event};
 use saorsa::ui;
 
-/// Type alias for session loading result
+/// Type alias for session loading result.
 type SessionLoadResult = Result<Option<(String, Vec<Message>)>, Box<dyn std::error::Error>>;
+
+/// Resolve the API key from CLI, auth.json, or environment variable.
+///
+/// Resolution order:
+/// 1. CLI `--api-key` argument
+/// 2. `auth.json` lookup by provider display name (lowercase)
+/// 3. Environment variable for the provider kind
+fn resolve_api_key(
+    cli_key: Option<&str>,
+    auth_config: &AuthConfig,
+    provider_kind: ProviderKind,
+) -> anyhow::Result<String> {
+    // 1. CLI argument wins.
+    if let Some(key) = cli_key {
+        return Ok(key.to_string());
+    }
+
+    // 2. Lookup in auth.json by lowercase provider display name.
+    let provider_name = provider_kind.display_name().to_lowercase();
+    if let Ok(key) = saorsa_agent::config::auth::get_key(auth_config, &provider_name) {
+        return Ok(key);
+    }
+
+    // 3. Environment variable fallback.
+    let env_name = provider_kind.env_var_name();
+    if let Ok(key) = std::env::var(env_name) {
+        return Ok(key);
+    }
+
+    Err(anyhow::anyhow!(
+        "No API key found for {}. Set {} env var, use --api-key, \
+         or add '{}' to ~/.saorsa/auth.json",
+        provider_kind.display_name(),
+        env_name,
+        provider_name,
+    ))
+}
+
+/// Parse a provider name string into a [`ProviderKind`].
+fn parse_provider_kind(name: &str) -> Option<ProviderKind> {
+    match name.to_lowercase().as_str() {
+        "anthropic" => Some(ProviderKind::Anthropic),
+        "openai" => Some(ProviderKind::OpenAi),
+        "gemini" | "google" => Some(ProviderKind::Gemini),
+        "ollama" => Some(ProviderKind::Ollama),
+        "openai-compatible" | "openai_compatible" => Some(ProviderKind::OpenAiCompatible),
+        "lmstudio" | "lm-studio" | "lm_studio" => Some(ProviderKind::LmStudio),
+        "vllm" => Some(ProviderKind::Vllm),
+        "openrouter" => Some(ProviderKind::OpenRouter),
+        _ => None,
+    }
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -35,38 +87,74 @@ async fn main() -> anyhow::Result<()> {
 
     let cli = Cli::parse_args();
 
-    let api_key = cli
-        .api_key()
-        .map_err(|e| anyhow::anyhow!("{e}"))?
-        .to_string();
+    // Ensure ~/.saorsa/ exists.
+    let config_dir = ensure_config_dir().map_err(|e| anyhow::anyhow!("{e}"))?;
+
+    // Load configurations.
+    let auth_config = saorsa_agent::config::auth::load(&config_dir.join("auth.json"))
+        .map_err(|e| anyhow::anyhow!("{e}"))?;
+    let settings = saorsa_agent::config::settings::load(&config_dir.join("settings.json"))
+        .map_err(|e| anyhow::anyhow!("{e}"))?;
+
+    // Resolve model: CLI --model > settings default_model > hardcoded default.
+    let model = if cli.model != "claude-sonnet-4-5-20250929" {
+        // User explicitly provided --model (not the default value).
+        cli.model.clone()
+    } else if let Some(ref default_model) = settings.default_model {
+        default_model.clone()
+    } else {
+        cli.model.clone()
+    };
+
+    // Resolve provider kind: CLI --provider > determine_provider(model) > OpenAiCompatible.
+    let provider_kind = if let Some(ref provider_name) = cli.provider {
+        parse_provider_kind(provider_name)
+            .ok_or_else(|| anyhow::anyhow!("Unknown provider: {provider_name}"))?
+    } else {
+        determine_provider(&model).unwrap_or(ProviderKind::OpenAiCompatible)
+    };
+
+    // Resolve API key.
+    let api_key = resolve_api_key(cli.api_key(), &auth_config, provider_kind)?;
 
     // Print mode: single prompt, no TUI.
     if let Some(prompt) = &cli.print {
-        return run_print_mode(&cli, &api_key, prompt).await;
+        return run_print_mode(&cli, provider_kind, &api_key, &model, prompt).await;
     }
 
     // Interactive mode.
-    run_interactive(&cli, &api_key).await
+    run_interactive(&cli, &settings, provider_kind, &api_key, &model).await
 }
 
 /// Run in print mode: send a single prompt and print the response.
-async fn run_print_mode(cli: &Cli, api_key: &str, prompt: &str) -> anyhow::Result<()> {
-    let provider_config = ProviderConfig::new(ProviderKind::Anthropic, api_key, &cli.model);
-    let provider = AnthropicProvider::new(provider_config).context("Failed to create provider")?;
+async fn run_print_mode(
+    cli: &Cli,
+    provider_kind: ProviderKind,
+    api_key: &str,
+    model: &str,
+    prompt: &str,
+) -> anyhow::Result<()> {
+    let registry = ProviderRegistry::default();
+    let provider_config = ProviderConfig::new(provider_kind, api_key, model);
+    let provider = registry
+        .create(provider_config)
+        .map_err(|e| anyhow::anyhow!("{e}"))
+        .context("Failed to create provider")?;
 
-    let agent_config = AgentConfig::new(&cli.model)
+    let agent_config = AgentConfig::new(model)
         .system_prompt(&cli.system_prompt)
         .max_turns(cli.max_turns)
         .max_tokens(cli.max_tokens);
 
-    let mut tools = ToolRegistry::new();
-    tools.register(Box::new(BashTool::new(
-        std::env::current_dir().context("Failed to get current directory")?,
-    )));
+    let tools = if let Ok(cwd) = std::env::current_dir() {
+        default_tools(cwd)
+    } else {
+        default_tools(std::path::PathBuf::from("."))
+    };
 
     let (event_tx, mut event_rx) = event_channel(256);
 
-    let mut agent = AgentLoop::new(Box::new(provider), agent_config, tools, event_tx);
+    let mut agent = AgentLoop::new(provider, agent_config, tools, event_tx);
 
     // Spawn event consumer that prints to stdout.
     let print_handle = tokio::spawn(async move {
@@ -97,8 +185,24 @@ async fn run_print_mode(cli: &Cli, api_key: &str, prompt: &str) -> anyhow::Resul
 }
 
 /// Run in interactive TUI mode.
-async fn run_interactive(cli: &Cli, api_key: &str) -> anyhow::Result<()> {
-    let mut state = AppState::new(&cli.model);
+async fn run_interactive(
+    cli: &Cli,
+    settings: &Settings,
+    mut provider_kind: ProviderKind,
+    api_key: &str,
+    initial_model: &str,
+) -> anyhow::Result<()> {
+    let mut state = AppState::new(initial_model);
+
+    // Populate enabled_models from settings.
+    state.enabled_models = settings.enabled_models.clone();
+
+    // Set model_index to the position of the current model in the list, or 0.
+    state.model_index = state
+        .enabled_models
+        .iter()
+        .position(|m| m == initial_model)
+        .unwrap_or(0);
 
     // Handle session continuation/resumption
     if !cli.ephemeral {
@@ -141,14 +245,16 @@ async fn run_interactive(cli: &Cli, api_key: &str) -> anyhow::Result<()> {
             }
         } else {
             state.add_system_message(format!(
-                "Connected to {}. Type a message to start.",
-                cli.model
+                "Connected to {} ({}). Type a message to start.",
+                state.model,
+                provider_kind.display_name(),
             ));
         }
     } else {
         state.add_system_message(format!(
-            "Connected to {} (ephemeral mode). Type a message to start.",
-            cli.model
+            "Connected to {} ({}, ephemeral mode). Type a message to start.",
+            state.model,
+            provider_kind.display_name(),
         ));
     }
 
@@ -166,8 +272,8 @@ async fn run_interactive(cli: &Cli, api_key: &str) -> anyhow::Result<()> {
     let mut event_stream = EventStream::new();
 
     // Store provider config for creating agents per interaction.
-    let api_key = api_key.to_string();
-    let model = cli.model.clone();
+    let mut api_key = api_key.to_string();
+    let mut model = initial_model.to_string();
     let system_prompt = cli.system_prompt.clone();
     let max_turns = cli.max_turns;
     let max_tokens = cli.max_tokens;
@@ -194,6 +300,7 @@ async fn run_interactive(cli: &Cli, api_key: &str) -> anyhow::Result<()> {
                             &mut state,
                             &mut ctx,
                             &mut backend,
+                            provider_kind,
                             &api_key,
                             &model,
                             &system_prompt,
@@ -207,6 +314,68 @@ async fn run_interactive(cli: &Cli, api_key: &str) -> anyhow::Result<()> {
                         render_ui(&state, &mut ctx, &mut backend);
                     }
                     InputAction::Redraw => {
+                        render_ui(&state, &mut ctx, &mut backend);
+                    }
+                    InputAction::CycleModel => {
+                        if let Some(new_model) = state.cycle_model_forward() {
+                            let new_model = new_model.to_string();
+                            let new_kind = determine_provider(&new_model)
+                                .unwrap_or(ProviderKind::OpenAiCompatible);
+                            // Re-resolve API key for the new provider.
+                            // Load auth config fresh in case it changed.
+                            if let Ok(config_dir) = ensure_config_dir()
+                                .map_err(|e| anyhow::anyhow!("{e}"))
+                            {
+                                let auth_config = saorsa_agent::config::auth::load(
+                                    &config_dir.join("auth.json"),
+                                ).ok().unwrap_or_default();
+                                if let Ok(key) = resolve_api_key(None, &auth_config, new_kind) {
+                                    api_key = key;
+                                }
+                            }
+                            provider_kind = new_kind;
+                            model = new_model.clone();
+                            state.model = new_model.clone();
+                            state.add_system_message(format!(
+                                "Switched to {} ({})",
+                                new_model,
+                                provider_kind.display_name(),
+                            ));
+                        } else {
+                            state.add_system_message(
+                                "No other models configured. Add models to ~/.saorsa/settings.json"
+                            );
+                        }
+                        render_ui(&state, &mut ctx, &mut backend);
+                    }
+                    InputAction::CycleModelBackward => {
+                        if let Some(new_model) = state.cycle_model_backward() {
+                            let new_model = new_model.to_string();
+                            let new_kind = determine_provider(&new_model)
+                                .unwrap_or(ProviderKind::OpenAiCompatible);
+                            if let Ok(config_dir) = ensure_config_dir()
+                                .map_err(|e| anyhow::anyhow!("{e}"))
+                            {
+                                let auth_config = saorsa_agent::config::auth::load(
+                                    &config_dir.join("auth.json"),
+                                ).ok().unwrap_or_default();
+                                if let Ok(key) = resolve_api_key(None, &auth_config, new_kind) {
+                                    api_key = key;
+                                }
+                            }
+                            provider_kind = new_kind;
+                            model = new_model.clone();
+                            state.model = new_model.clone();
+                            state.add_system_message(format!(
+                                "Switched to {} ({})",
+                                new_model,
+                                provider_kind.display_name(),
+                            ));
+                        } else {
+                            state.add_system_message(
+                                "No other models configured. Add models to ~/.saorsa/settings.json"
+                            );
+                        }
                         render_ui(&state, &mut ctx, &mut backend);
                     }
                     InputAction::None => {}
@@ -232,6 +401,7 @@ async fn run_agent_interaction(
     state: &mut AppState,
     ctx: &mut RenderContext,
     backend: &mut CrosstermBackend,
+    provider_kind: ProviderKind,
     api_key: &str,
     model: &str,
     system_prompt: &str,
@@ -239,8 +409,9 @@ async fn run_agent_interaction(
     max_tokens: u32,
     prompt: &str,
 ) {
-    let provider_config = ProviderConfig::new(ProviderKind::Anthropic, api_key, model);
-    let provider = match AnthropicProvider::new(provider_config) {
+    let registry = ProviderRegistry::default();
+    let provider_config = ProviderConfig::new(provider_kind, api_key, model);
+    let provider = match registry.create(provider_config) {
         Ok(p) => p,
         Err(e) => {
             state.add_system_message(format!("Provider error: {e}"));
@@ -253,14 +424,15 @@ async fn run_agent_interaction(
         .max_turns(max_turns)
         .max_tokens(max_tokens);
 
-    let mut tools = ToolRegistry::new();
-    if let Ok(cwd) = std::env::current_dir() {
-        tools.register(Box::new(BashTool::new(cwd)));
-    }
+    let tools = if let Ok(cwd) = std::env::current_dir() {
+        default_tools(cwd)
+    } else {
+        default_tools(std::path::PathBuf::from("."))
+    };
 
     let (event_tx, mut event_rx) = event_channel(256);
 
-    let mut agent = AgentLoop::new(Box::new(provider), agent_config, tools, event_tx);
+    let mut agent = AgentLoop::new(provider, agent_config, tools, event_tx);
 
     let prompt = prompt.to_string();
 

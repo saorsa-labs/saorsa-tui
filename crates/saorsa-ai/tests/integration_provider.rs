@@ -191,12 +191,16 @@ fn usage_calculation() {
     let usage = Usage {
         input_tokens: 100,
         output_tokens: 50,
+        cache_read_tokens: 0,
+        cache_write_tokens: 0,
     };
     assert_eq!(usage.total(), 150);
 
     let usage_default = Usage::default();
     assert_eq!(usage_default.input_tokens, 0);
     assert_eq!(usage_default.output_tokens, 0);
+    assert_eq!(usage_default.cache_read_tokens, 0);
+    assert_eq!(usage_default.cache_write_tokens, 0);
     assert_eq!(usage_default.total(), 0);
 }
 

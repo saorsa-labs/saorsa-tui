@@ -55,6 +55,10 @@ pub struct AppState {
     pub model: String,
     /// Streaming text buffer for current assistant response.
     pub streaming_text: String,
+    /// Available model IDs for cycling.
+    pub enabled_models: Vec<String>,
+    /// Current position in enabled_models list.
+    pub model_index: usize,
 }
 
 impl AppState {
@@ -68,6 +72,8 @@ impl AppState {
             should_quit: false,
             model: model.into(),
             streaming_text: String::new(),
+            enabled_models: Vec::new(),
+            model_index: 0,
         }
     }
 
@@ -149,6 +155,32 @@ impl AppState {
     pub fn take_input(&mut self) -> String {
         self.cursor = 0;
         std::mem::take(&mut self.input)
+    }
+
+    /// Cycle to the next model in the enabled list.
+    ///
+    /// Returns `None` if fewer than two models are available.
+    pub fn cycle_model_forward(&mut self) -> Option<&str> {
+        if self.enabled_models.len() < 2 {
+            return None;
+        }
+        self.model_index = (self.model_index + 1) % self.enabled_models.len();
+        Some(&self.enabled_models[self.model_index])
+    }
+
+    /// Cycle to the previous model in the enabled list.
+    ///
+    /// Returns `None` if fewer than two models are available.
+    pub fn cycle_model_backward(&mut self) -> Option<&str> {
+        if self.enabled_models.len() < 2 {
+            return None;
+        }
+        if self.model_index == 0 {
+            self.model_index = self.enabled_models.len() - 1;
+        } else {
+            self.model_index -= 1;
+        }
+        Some(&self.enabled_models[self.model_index])
     }
 
     /// Check if the app is idle.
@@ -250,6 +282,51 @@ mod tests {
     fn status_checks() {
         let state = AppState::new("test");
         assert!(state.is_idle());
+    }
+
+    #[test]
+    fn cycle_model_forward() {
+        let mut state = AppState::new("model-a");
+        state.enabled_models = vec!["model-a".into(), "model-b".into(), "model-c".into()];
+        state.model_index = 0;
+
+        assert_eq!(state.cycle_model_forward(), Some("model-b"));
+        assert_eq!(state.model_index, 1);
+        assert_eq!(state.cycle_model_forward(), Some("model-c"));
+        assert_eq!(state.model_index, 2);
+        // Wraps around.
+        assert_eq!(state.cycle_model_forward(), Some("model-a"));
+        assert_eq!(state.model_index, 0);
+    }
+
+    #[test]
+    fn cycle_model_backward() {
+        let mut state = AppState::new("model-a");
+        state.enabled_models = vec!["model-a".into(), "model-b".into(), "model-c".into()];
+        state.model_index = 0;
+
+        // Wraps to end.
+        assert_eq!(state.cycle_model_backward(), Some("model-c"));
+        assert_eq!(state.model_index, 2);
+        assert_eq!(state.cycle_model_backward(), Some("model-b"));
+        assert_eq!(state.model_index, 1);
+        assert_eq!(state.cycle_model_backward(), Some("model-a"));
+        assert_eq!(state.model_index, 0);
+    }
+
+    #[test]
+    fn cycle_model_returns_none_when_empty() {
+        let mut state = AppState::new("test");
+        assert!(state.cycle_model_forward().is_none());
+        assert!(state.cycle_model_backward().is_none());
+    }
+
+    #[test]
+    fn cycle_model_returns_none_with_single_model() {
+        let mut state = AppState::new("test");
+        state.enabled_models = vec!["only-model".into()];
+        assert!(state.cycle_model_forward().is_none());
+        assert!(state.cycle_model_backward().is_none());
     }
 
     #[test]

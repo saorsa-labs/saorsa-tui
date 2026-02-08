@@ -350,6 +350,7 @@ fn parse_compat_response(resp: CompatResponse) -> Result<CompletionResponse> {
     let usage = Usage {
         input_tokens: resp.usage.prompt_tokens,
         output_tokens: resp.usage.completion_tokens,
+        ..Usage::default()
     };
 
     Ok(CompletionResponse {
@@ -406,6 +407,7 @@ fn parse_sse_event(data: &str) -> Option<StreamEvent> {
             usage: chunk.usage.map_or_else(Usage::default, |u| Usage {
                 input_tokens: u.prompt_tokens.unwrap_or(0),
                 output_tokens: u.completion_tokens.unwrap_or(0),
+                ..Usage::default()
             }),
         });
     }

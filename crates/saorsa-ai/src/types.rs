@@ -4,6 +4,16 @@ use serde::{Deserialize, Serialize};
 
 use crate::message::{ContentBlock, Message, ToolDefinition};
 
+/// Configuration for extended thinking/reasoning.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ThinkingConfig {
+    /// Whether thinking is enabled.
+    pub enabled: bool,
+    /// Maximum tokens for thinking budget.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub budget_tokens: Option<u32>,
+}
+
 /// A completion request to send to an LLM provider.
 #[derive(Clone, Debug, Serialize)]
 pub struct CompletionRequest {
@@ -28,6 +38,9 @@ pub struct CompletionRequest {
     /// Stop sequences.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub stop_sequences: Vec<String>,
+    /// Extended thinking configuration.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thinking: Option<ThinkingConfig>,
 }
 
 impl CompletionRequest {
@@ -42,6 +55,7 @@ impl CompletionRequest {
             stream: false,
             temperature: None,
             stop_sequences: Vec::new(),
+            thinking: None,
         }
     }
 
@@ -70,6 +84,13 @@ impl CompletionRequest {
     #[must_use]
     pub fn tools(mut self, tools: Vec<ToolDefinition>) -> Self {
         self.tools = tools;
+        self
+    }
+
+    /// Set extended thinking configuration.
+    #[must_use]
+    pub fn thinking(mut self, config: ThinkingConfig) -> Self {
+        self.thinking = Some(config);
         self
     }
 }
@@ -112,12 +133,18 @@ pub struct Usage {
     /// Number of output tokens.
     #[serde(default)]
     pub output_tokens: u32,
+    /// Number of input tokens read from cache.
+    #[serde(default)]
+    pub cache_read_tokens: u32,
+    /// Number of input tokens written to cache.
+    #[serde(default)]
+    pub cache_write_tokens: u32,
 }
 
 impl Usage {
-    /// Total tokens (input + output).
+    /// Total tokens (input + output + cache).
     pub fn total(&self) -> u32 {
-        self.input_tokens + self.output_tokens
+        self.input_tokens + self.output_tokens + self.cache_read_tokens + self.cache_write_tokens
     }
 }
 
@@ -184,6 +211,11 @@ pub enum ContentDelta {
         /// Partial JSON string.
         partial_json: String,
     },
+    /// A thinking/reasoning delta.
+    ThinkingDelta {
+        /// The incremental thinking text.
+        text: String,
+    },
 }
 
 #[cfg(test)]
@@ -237,7 +269,10 @@ mod tests {
         assert!(resp.is_ok());
         if let Ok(resp) = resp {
             assert_eq!(resp.id, "msg_123");
+            // total = 10 + 5 + 0 (cache_read) + 0 (cache_write)
             assert_eq!(resp.usage.total(), 15);
+            assert_eq!(resp.usage.cache_read_tokens, 0);
+            assert_eq!(resp.usage.cache_write_tokens, 0);
         }
     }
 
@@ -257,8 +292,21 @@ mod tests {
         let u = Usage {
             input_tokens: 100,
             output_tokens: 50,
+            cache_read_tokens: 0,
+            cache_write_tokens: 0,
         };
         assert_eq!(u.total(), 150);
+    }
+
+    #[test]
+    fn usage_total_with_cache_tokens() {
+        let u = Usage {
+            input_tokens: 100,
+            output_tokens: 50,
+            cache_read_tokens: 20,
+            cache_write_tokens: 10,
+        };
+        assert_eq!(u.total(), 180);
     }
 
     #[test]
@@ -269,5 +317,96 @@ mod tests {
         let json = serde_json::to_string(&delta);
         assert!(json.is_ok());
         assert!(json.as_deref().unwrap_or("").contains("text_delta"));
+    }
+
+    #[test]
+    fn thinking_config_serialization() {
+        let config = ThinkingConfig {
+            enabled: true,
+            budget_tokens: Some(10_000),
+        };
+        let json = serde_json::to_string(&config);
+        assert!(json.is_ok());
+        let json_str = json.as_deref().unwrap_or("");
+        assert!(json_str.contains("true"));
+        assert!(json_str.contains("10000"));
+    }
+
+    #[test]
+    fn thinking_config_without_budget() {
+        let config = ThinkingConfig {
+            enabled: true,
+            budget_tokens: None,
+        };
+        let json = serde_json::to_string(&config);
+        assert!(json.is_ok());
+        let json_str = json.as_deref().unwrap_or("");
+        assert!(json_str.contains("true"));
+        assert!(!json_str.contains("budget_tokens"));
+    }
+
+    #[test]
+    fn thinking_config_roundtrip() {
+        let config = ThinkingConfig {
+            enabled: true,
+            budget_tokens: Some(5000),
+        };
+        let json = serde_json::to_string(&config).unwrap_or_default();
+        let parsed: std::result::Result<ThinkingConfig, _> = serde_json::from_str(&json);
+        assert!(parsed.is_ok());
+        if let Ok(c) = parsed {
+            assert!(c.enabled);
+            assert_eq!(c.budget_tokens, Some(5000));
+        }
+    }
+
+    #[test]
+    fn thinking_delta_variant() {
+        let delta = ContentDelta::ThinkingDelta {
+            text: "Let me think...".into(),
+        };
+        let json = serde_json::to_string(&delta);
+        assert!(json.is_ok());
+        assert!(json.as_deref().unwrap_or("").contains("thinking_delta"));
+    }
+
+    #[test]
+    fn usage_with_cache_tokens_deserialization() {
+        let json = r#"{"input_tokens": 100, "output_tokens": 50, "cache_read_tokens": 20, "cache_write_tokens": 10}"#;
+        let usage: std::result::Result<Usage, _> = serde_json::from_str(json);
+        assert!(usage.is_ok());
+        if let Ok(u) = usage {
+            assert_eq!(u.input_tokens, 100);
+            assert_eq!(u.output_tokens, 50);
+            assert_eq!(u.cache_read_tokens, 20);
+            assert_eq!(u.cache_write_tokens, 10);
+            assert_eq!(u.total(), 180);
+        }
+    }
+
+    #[test]
+    fn usage_without_cache_tokens_deserialization() {
+        let json = r#"{"input_tokens": 100, "output_tokens": 50}"#;
+        let usage: std::result::Result<Usage, _> = serde_json::from_str(json);
+        assert!(usage.is_ok());
+        if let Ok(u) = usage {
+            assert_eq!(u.cache_read_tokens, 0);
+            assert_eq!(u.cache_write_tokens, 0);
+            assert_eq!(u.total(), 150);
+        }
+    }
+
+    #[test]
+    fn request_with_thinking() {
+        let req = CompletionRequest::new("claude-opus-4", vec![Message::user("hi")], 16384)
+            .thinking(ThinkingConfig {
+                enabled: true,
+                budget_tokens: Some(10_000),
+            });
+        assert!(req.thinking.is_some());
+        if let Some(tc) = &req.thinking {
+            assert!(tc.enabled);
+            assert_eq!(tc.budget_tokens, Some(10_000));
+        }
     }
 }

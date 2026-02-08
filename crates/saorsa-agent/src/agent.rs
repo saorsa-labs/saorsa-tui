@@ -114,6 +114,12 @@ impl AgentLoop {
                             tc.input_json.push_str(&partial_json);
                         }
                     }
+                    Ok(StreamEvent::ContentBlockDelta {
+                        delta: ContentDelta::ThinkingDelta { text },
+                        ..
+                    }) => {
+                        let _ = self.event_tx.send(AgentEvent::ThinkingDelta { text }).await;
+                    }
                     Ok(StreamEvent::MessageDelta {
                         stop_reason: sr, ..
                     }) => {
@@ -305,8 +311,11 @@ struct ToolResultInfo {
 /// - GrepTool: Search file contents with regex
 /// - FindTool: Find files by name pattern
 /// - LsTool: List directory contents with metadata
+/// - WebSearchTool: Search the web via DuckDuckGo (no API key required)
 pub fn default_tools(working_dir: impl Into<std::path::PathBuf>) -> ToolRegistry {
-    use crate::tools::{BashTool, EditTool, FindTool, GrepTool, LsTool, ReadTool, WriteTool};
+    use crate::tools::{
+        BashTool, EditTool, FindTool, GrepTool, LsTool, ReadTool, WebSearchTool, WriteTool,
+    };
     use std::path::PathBuf;
 
     let wd: PathBuf = working_dir.into();
@@ -319,6 +328,7 @@ pub fn default_tools(working_dir: impl Into<std::path::PathBuf>) -> ToolRegistry
     registry.register(Box::new(GrepTool::new(wd.clone())));
     registry.register(Box::new(FindTool::new(wd.clone())));
     registry.register(Box::new(LsTool::new(wd)));
+    registry.register(Box::new(WebSearchTool::new()));
 
     registry
 }
@@ -476,8 +486,8 @@ mod tests {
         let Ok(dir) = cwd else { unreachable!() };
         let registry = super::default_tools(dir);
 
-        // Verify all 7 tools are registered
-        assert_eq!(registry.len(), 7);
+        // Verify all 8 tools are registered
+        assert_eq!(registry.len(), 8);
 
         let names = registry.names();
         assert!(names.contains(&"bash"));
@@ -487,5 +497,6 @@ mod tests {
         assert!(names.contains(&"grep"));
         assert!(names.contains(&"find"));
         assert!(names.contains(&"ls"));
+        assert!(names.contains(&"web_search"));
     }
 }

@@ -16,8 +16,14 @@ pub enum ProviderKind {
     Gemini,
     /// Ollama — local inference server.
     Ollama,
-    /// Any OpenAI-compatible API (Azure, Groq, Mistral, xAI, OpenRouter, etc.).
+    /// Any OpenAI-compatible API (Azure, Groq, Mistral, xAI, etc.).
     OpenAiCompatible,
+    /// LM Studio — local inference server.
+    LmStudio,
+    /// vLLM — high-performance local inference.
+    Vllm,
+    /// OpenRouter — multi-model API gateway.
+    OpenRouter,
 }
 
 impl ProviderKind {
@@ -32,6 +38,9 @@ impl ProviderKind {
             Self::Gemini => "https://generativelanguage.googleapis.com/v1beta",
             Self::Ollama => "http://localhost:11434",
             Self::OpenAiCompatible => "",
+            Self::LmStudio => "http://localhost:1234/v1",
+            Self::Vllm => "http://localhost:8000/v1",
+            Self::OpenRouter => "https://openrouter.ai/api",
         }
     }
 
@@ -44,8 +53,60 @@ impl ProviderKind {
             Self::Gemini => "Google Gemini",
             Self::Ollama => "Ollama",
             Self::OpenAiCompatible => "OpenAI-Compatible",
+            Self::LmStudio => "LM Studio",
+            Self::Vllm => "vLLM",
+            Self::OpenRouter => "OpenRouter",
         }
     }
+
+    /// Returns the standard environment variable name for this provider's API key.
+    #[must_use]
+    pub fn env_var_name(self) -> &'static str {
+        match self {
+            Self::Anthropic => "ANTHROPIC_API_KEY",
+            Self::OpenAi => "OPENAI_API_KEY",
+            Self::Gemini => "GOOGLE_API_KEY",
+            Self::Ollama => "OLLAMA_API_KEY",
+            Self::OpenAiCompatible => "OPENAI_API_KEY",
+            Self::LmStudio => "LMSTUDIO_API_KEY",
+            Self::Vllm => "VLLM_API_KEY",
+            Self::OpenRouter => "OPENROUTER_API_KEY",
+        }
+    }
+}
+
+/// Determine the provider kind for a given model string.
+///
+/// Resolution order:
+/// 1. Exact match in the known models registry.
+/// 2. `"provider/model"` prefix format (e.g., `"groq/llama-3.3-70b"`).
+/// 3. Prefix match in the known models registry (e.g., versioned names).
+pub fn determine_provider(model: &str) -> Option<ProviderKind> {
+    // 1. Check exact match in known models
+    if let Some(info) = crate::models::lookup_model(model) {
+        return Some(info.provider);
+    }
+    // 2. Handle "provider/model" format before prefix match to avoid
+    //    false matches (e.g., "mistral/..." matching Ollama's "mistral" model).
+    if let Some((prefix, _)) = model.split_once('/') {
+        return match prefix {
+            "anthropic" => Some(ProviderKind::Anthropic),
+            "openai" => Some(ProviderKind::OpenAi),
+            "google" | "gemini" => Some(ProviderKind::Gemini),
+            "ollama" => Some(ProviderKind::Ollama),
+            "openrouter" => Some(ProviderKind::OpenRouter),
+            "lmstudio" | "lm-studio" => Some(ProviderKind::LmStudio),
+            "vllm" => Some(ProviderKind::Vllm),
+            "groq" | "mistral" | "xai" | "cerebras" | "azure" => {
+                Some(ProviderKind::OpenAiCompatible)
+            }
+            // Unknown prefix with slash: check if any known model matches
+            // (handles OpenRouter-style models like "meta-llama/...")
+            _ => crate::models::lookup_model_by_prefix(model).map(|info| info.provider),
+        };
+    }
+    // 3. Prefix match for versioned model names (e.g., "claude-sonnet-4-5-20250929")
+    crate::models::lookup_model_by_prefix(model).map(|info| info.provider)
 }
 
 /// Configuration for an LLM provider.
@@ -183,6 +244,18 @@ impl Default for ProviderRegistry {
             let provider = crate::openai_compat::OpenAiCompatProvider::new(config)?;
             Ok(Box::new(provider))
         });
+        reg.register(ProviderKind::LmStudio, |config| {
+            let provider = crate::openai_compat::OpenAiCompatProvider::new(config)?;
+            Ok(Box::new(provider))
+        });
+        reg.register(ProviderKind::Vllm, |config| {
+            let provider = crate::openai_compat::OpenAiCompatProvider::new(config)?;
+            Ok(Box::new(provider))
+        });
+        reg.register(ProviderKind::OpenRouter, |config| {
+            let provider = crate::openai_compat::OpenAiCompatProvider::new(config)?;
+            Ok(Box::new(provider))
+        });
         reg
     }
 }
@@ -210,6 +283,18 @@ mod tests {
             "http://localhost:11434"
         );
         assert_eq!(ProviderKind::OpenAiCompatible.default_base_url(), "");
+        assert_eq!(
+            ProviderKind::LmStudio.default_base_url(),
+            "http://localhost:1234/v1"
+        );
+        assert_eq!(
+            ProviderKind::Vllm.default_base_url(),
+            "http://localhost:8000/v1"
+        );
+        assert_eq!(
+            ProviderKind::OpenRouter.default_base_url(),
+            "https://openrouter.ai/api"
+        );
     }
 
     #[test]
@@ -221,6 +306,27 @@ mod tests {
         assert_eq!(
             ProviderKind::OpenAiCompatible.display_name(),
             "OpenAI-Compatible"
+        );
+        assert_eq!(ProviderKind::LmStudio.display_name(), "LM Studio");
+        assert_eq!(ProviderKind::Vllm.display_name(), "vLLM");
+        assert_eq!(ProviderKind::OpenRouter.display_name(), "OpenRouter");
+    }
+
+    #[test]
+    fn provider_kind_env_var_name() {
+        assert_eq!(ProviderKind::Anthropic.env_var_name(), "ANTHROPIC_API_KEY");
+        assert_eq!(ProviderKind::OpenAi.env_var_name(), "OPENAI_API_KEY");
+        assert_eq!(ProviderKind::Gemini.env_var_name(), "GOOGLE_API_KEY");
+        assert_eq!(ProviderKind::Ollama.env_var_name(), "OLLAMA_API_KEY");
+        assert_eq!(
+            ProviderKind::OpenAiCompatible.env_var_name(),
+            "OPENAI_API_KEY"
+        );
+        assert_eq!(ProviderKind::LmStudio.env_var_name(), "LMSTUDIO_API_KEY");
+        assert_eq!(ProviderKind::Vllm.env_var_name(), "VLLM_API_KEY");
+        assert_eq!(
+            ProviderKind::OpenRouter.env_var_name(),
+            "OPENROUTER_API_KEY"
         );
     }
 
@@ -272,6 +378,9 @@ mod tests {
         assert!(reg.has_provider(ProviderKind::Gemini));
         assert!(reg.has_provider(ProviderKind::Ollama));
         assert!(reg.has_provider(ProviderKind::OpenAiCompatible));
+        assert!(reg.has_provider(ProviderKind::LmStudio));
+        assert!(reg.has_provider(ProviderKind::Vllm));
+        assert!(reg.has_provider(ProviderKind::OpenRouter));
     }
 
     #[test]
@@ -328,6 +437,30 @@ mod tests {
     }
 
     #[test]
+    fn registry_create_lm_studio() {
+        let reg = ProviderRegistry::default();
+        let config = ProviderConfig::new(ProviderKind::LmStudio, "", "local-model");
+        let result = reg.create(config);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn registry_create_vllm() {
+        let reg = ProviderRegistry::default();
+        let config = ProviderConfig::new(ProviderKind::Vllm, "", "local-model");
+        let result = reg.create(config);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn registry_create_openrouter() {
+        let reg = ProviderRegistry::default();
+        let config = ProviderConfig::new(ProviderKind::OpenRouter, "key", "openai/gpt-4o");
+        let result = reg.create(config);
+        assert!(result.is_ok());
+    }
+
+    #[test]
     fn registry_custom_factory() {
         use std::sync::Arc;
         use std::sync::atomic::{AtomicBool, Ordering};
@@ -350,5 +483,119 @@ mod tests {
         let result = reg.create(config);
         assert!(result.is_ok());
         assert!(called.load(Ordering::Relaxed));
+    }
+
+    #[test]
+    fn determine_provider_known_model() {
+        assert_eq!(determine_provider("gpt-4o"), Some(ProviderKind::OpenAi));
+        assert_eq!(
+            determine_provider("claude-sonnet-4"),
+            Some(ProviderKind::Anthropic)
+        );
+        assert_eq!(
+            determine_provider("gemini-2.0-flash"),
+            Some(ProviderKind::Gemini)
+        );
+        assert_eq!(determine_provider("llama3"), Some(ProviderKind::Ollama));
+    }
+
+    #[test]
+    fn determine_provider_prefix_match() {
+        assert_eq!(
+            determine_provider("claude-sonnet-4-5-20250929"),
+            Some(ProviderKind::Anthropic)
+        );
+        assert_eq!(
+            determine_provider("gpt-4o-2024-08-06"),
+            Some(ProviderKind::OpenAi)
+        );
+    }
+
+    #[test]
+    fn determine_provider_slash_format() {
+        // Unknown model with provider prefix falls through to slash-prefix logic
+        assert_eq!(
+            determine_provider("anthropic/some-new-model"),
+            Some(ProviderKind::Anthropic)
+        );
+        // "openai/gpt-4o" is a known OpenRouter model, so registry match wins
+        assert_eq!(
+            determine_provider("openai/gpt-4o"),
+            Some(ProviderKind::OpenRouter)
+        );
+        assert_eq!(
+            determine_provider("google/gemini-pro"),
+            Some(ProviderKind::Gemini)
+        );
+        assert_eq!(
+            determine_provider("gemini/gemini-pro"),
+            Some(ProviderKind::Gemini)
+        );
+        assert_eq!(
+            determine_provider("ollama/llama3"),
+            Some(ProviderKind::Ollama)
+        );
+        assert_eq!(
+            determine_provider("openrouter/some-model"),
+            Some(ProviderKind::OpenRouter)
+        );
+        assert_eq!(
+            determine_provider("lmstudio/some-model"),
+            Some(ProviderKind::LmStudio)
+        );
+        assert_eq!(
+            determine_provider("lm-studio/some-model"),
+            Some(ProviderKind::LmStudio)
+        );
+        assert_eq!(
+            determine_provider("vllm/some-model"),
+            Some(ProviderKind::Vllm)
+        );
+        assert_eq!(
+            determine_provider("groq/llama-3.3-70b"),
+            Some(ProviderKind::OpenAiCompatible)
+        );
+        assert_eq!(
+            determine_provider("mistral/mistral-large"),
+            Some(ProviderKind::OpenAiCompatible)
+        );
+        assert_eq!(
+            determine_provider("xai/grok-2"),
+            Some(ProviderKind::OpenAiCompatible)
+        );
+        assert_eq!(
+            determine_provider("cerebras/llama3"),
+            Some(ProviderKind::OpenAiCompatible)
+        );
+        assert_eq!(
+            determine_provider("azure/gpt-4"),
+            Some(ProviderKind::OpenAiCompatible)
+        );
+    }
+
+    #[test]
+    fn determine_provider_unknown() {
+        assert_eq!(determine_provider("totally-unknown"), None);
+        assert_eq!(determine_provider("unknown-provider/model"), None);
+    }
+
+    #[test]
+    fn determine_provider_openrouter_models_from_registry() {
+        assert_eq!(
+            determine_provider("meta-llama/llama-3.1-405b-instruct"),
+            Some(ProviderKind::OpenRouter)
+        );
+        assert_eq!(
+            determine_provider("anthropic/claude-sonnet-4"),
+            Some(ProviderKind::OpenRouter)
+        );
+        assert_eq!(
+            determine_provider("openai/gpt-4o"),
+            Some(ProviderKind::OpenRouter)
+        );
+        assert_eq!(
+            determine_provider("google/gemini-2.0-flash"),
+            Some(ProviderKind::OpenRouter)
+        );
     }
 }

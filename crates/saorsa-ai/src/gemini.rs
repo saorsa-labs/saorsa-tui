@@ -229,6 +229,7 @@ fn parse_gemini_response(response: &GeminiResponse) -> Result<CompletionResponse
         .map(|u| Usage {
             input_tokens: u.prompt_token_count.unwrap_or(0),
             output_tokens: u.candidates_token_count.unwrap_or(0),
+            ..Usage::default()
         })
         .unwrap_or_default();
 
@@ -271,6 +272,7 @@ fn parse_sse_event(data: &str) -> Option<StreamEvent> {
                 usage: Usage {
                     input_tokens: usage.prompt_token_count.unwrap_or(0),
                     output_tokens: usage.candidates_token_count.unwrap_or(0),
+                    ..Usage::default()
                 },
             });
         }
@@ -287,6 +289,7 @@ fn parse_sse_event(data: &str) -> Option<StreamEvent> {
                 usage: Usage {
                     input_tokens: usage.prompt_token_count.unwrap_or(0),
                     output_tokens: usage.candidates_token_count.unwrap_or(0),
+                    ..Usage::default()
                 },
             });
         }

@@ -1,6 +1,6 @@
 //! saorsa-agent: AI coding agent runtime.
 //!
-//! Provides the agent loop, built-in tools (bash, read, write, edit, grep, find, ls),
+//! Provides the agent loop, built-in tools (bash, read, write, edit, grep, find, ls, web\_search),
 //! event system for UI integration, and tool registry.
 //!
 //! # Architecture Overview
@@ -68,6 +68,8 @@ pub mod agent;
 pub mod config;
 /// Context engineering (AGENTS.md, SYSTEM.md, compaction, skills, templates).
 pub mod context;
+/// Cost tracking for LLM interactions.
+pub mod cost;
 pub mod error;
 pub mod event;
 /// Extension system for plugins and custom functionality.
@@ -83,7 +85,15 @@ pub mod tools;
 
 pub use agent::{AgentLoop, default_tools};
 pub use config::AgentConfig;
+pub use config::{
+    auth::{AuthConfig, AuthEntry},
+    import::{ImportReport, import_all},
+    models::{CustomModel, CustomProvider, ModelCost, ModelsConfig},
+    paths::{ensure_config_dir, saorsa_config_dir},
+    settings::{Settings, ThinkingLevel},
+};
 pub use context::{AgentsContext, ContextBuilder, ContextBundle, ContextDiscovery, SystemContext};
+pub use cost::{CostEntry, CostTracker};
 pub use error::{Result, SaorsaAgentError};
 pub use event::{AgentEvent, EventReceiver, EventSender, TurnEndReason, event_channel};
 pub use extension::{
@@ -103,4 +113,6 @@ pub use session::{
 pub use skills::{Skill, SkillRegistry};
 pub use templates::{TemplateContext, TemplateEngine, get_builtin, list_builtins, render_simple};
 pub use tool::{Tool, ToolRegistry};
-pub use tools::{BashTool, EditTool, FindTool, GrepTool, LsTool, ReadTool, WriteTool};
+pub use tools::{
+    BashTool, EditTool, FindTool, GrepTool, LsTool, ReadTool, WebSearchTool, WriteTool,
+};

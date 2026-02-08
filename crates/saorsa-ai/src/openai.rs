@@ -256,6 +256,7 @@ impl OpenAiProvider {
         let usage = Usage {
             input_tokens: oai.usage.prompt_tokens,
             output_tokens: oai.usage.completion_tokens,
+            ..Usage::default()
         };
 
         Ok(CompletionResponse {
@@ -317,6 +318,7 @@ impl OpenAiProvider {
                 usage: chunk.usage.map_or_else(Usage::default, |u| Usage {
                     input_tokens: u.prompt_tokens.unwrap_or(0),
                     output_tokens: u.completion_tokens.unwrap_or(0),
+                    ..Usage::default()
                 }),
             });
         }

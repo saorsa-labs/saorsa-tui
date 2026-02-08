@@ -78,13 +78,16 @@ pub use error::{Result, SaorsaAiError};
 pub use gemini::GeminiProvider;
 pub use message::{ContentBlock, Message, Role, ToolDefinition};
 pub use models::{
-    ModelInfo, get_context_window, lookup_model, lookup_model_by_prefix, supports_tools,
-    supports_vision,
+    ModelInfo, all_models, get_context_window, lookup_by_provider_prefix, lookup_model,
+    lookup_model_by_prefix, supports_tools, supports_vision,
 };
 pub use ollama::OllamaProvider;
 pub use openai::OpenAiProvider;
 pub use openai_compat::{OpenAiCompatBuilder, OpenAiCompatProvider};
-pub use provider::{Provider, ProviderConfig, ProviderKind, ProviderRegistry, StreamingProvider};
+pub use provider::{
+    Provider, ProviderConfig, ProviderKind, ProviderRegistry, StreamingProvider, determine_provider,
+};
 pub use types::{
-    CompletionRequest, CompletionResponse, ContentDelta, StopReason, StreamEvent, Usage,
+    CompletionRequest, CompletionResponse, ContentDelta, StopReason, StreamEvent, ThinkingConfig,
+    Usage,
 };

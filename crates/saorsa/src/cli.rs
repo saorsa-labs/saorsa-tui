@@ -10,9 +10,13 @@ pub struct Cli {
     #[arg(long, default_value = "claude-sonnet-4-5-20250929")]
     pub model: String,
 
-    /// Anthropic API key (or set ANTHROPIC_API_KEY env var).
-    #[arg(long, env = "ANTHROPIC_API_KEY")]
+    /// API key (or use ~/.saorsa/auth.json config).
+    #[arg(long)]
     pub api_key: Option<String>,
+
+    /// Provider to use (auto-detected from model if omitted).
+    #[arg(long)]
+    pub provider: Option<String>,
 
     /// System prompt for the agent.
     #[arg(long, default_value = "You are a helpful AI coding assistant.")]
@@ -49,13 +53,9 @@ impl Cli {
         Self::parse()
     }
 
-    /// Get the API key from args or environment.
-    ///
-    /// Returns an error message if no key is found.
-    pub fn api_key(&self) -> std::result::Result<&str, &'static str> {
-        self.api_key
-            .as_deref()
-            .ok_or("No API key provided. Set ANTHROPIC_API_KEY or use --api-key")
+    /// Get the API key from CLI arguments, if provided.
+    pub fn api_key(&self) -> Option<&str> {
+        self.api_key.as_deref()
     }
 }
 
@@ -91,17 +91,15 @@ mod tests {
     #[test]
     fn cli_api_key_from_arg() {
         let cli = Cli::parse_from(["saorsa", "--api-key", "sk-test"]);
-        assert_eq!(cli.api_key(), Ok("sk-test"));
+        assert_eq!(cli.api_key(), Some("sk-test"));
     }
 
     #[test]
-    fn cli_api_key_missing_without_env() {
-        // When ANTHROPIC_API_KEY is not set and --api-key not given,
-        // api_key() should return an error. We simulate this by
-        // checking the behavior of api_key() on a manually constructed CLI.
+    fn cli_api_key_missing_returns_none() {
         let cli = Cli {
             model: "test".into(),
             api_key: None,
+            provider: None,
             system_prompt: "test".into(),
             max_tokens: 4096,
             max_turns: 10,
@@ -110,7 +108,19 @@ mod tests {
             resume: None,
             ephemeral: false,
         };
-        assert!(cli.api_key().is_err());
+        assert!(cli.api_key().is_none());
+    }
+
+    #[test]
+    fn cli_provider_flag() {
+        let cli = Cli::parse_from(["saorsa", "--provider", "openai"]);
+        assert_eq!(cli.provider.as_deref(), Some("openai"));
+    }
+
+    #[test]
+    fn cli_provider_defaults_to_none() {
+        let cli = Cli::parse_from(["saorsa"]);
+        assert!(cli.provider.is_none());
     }
 
     #[test]

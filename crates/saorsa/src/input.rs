@@ -15,6 +15,10 @@ pub enum InputAction {
     Quit,
     /// The UI needs to be redrawn.
     Redraw,
+    /// Cycle to the next model (Ctrl+P).
+    CycleModel,
+    /// Cycle to the previous model (Shift+Ctrl+P).
+    CycleModelBackward,
 }
 
 /// Handle an input event and return the resulting action.
@@ -43,6 +47,14 @@ fn handle_key(state: &mut AppState, code: KeyCode, modifiers: Modifiers) -> Inpu
     // Only process editing keys when idle.
     if !state.is_idle() {
         return InputAction::None;
+    }
+
+    // Ctrl+P: cycle model forward.
+    if code == KeyCode::Char('p') && modifiers.contains(Modifiers::CTRL) {
+        if modifiers.contains(Modifiers::SHIFT) {
+            return InputAction::CycleModelBackward;
+        }
+        return InputAction::CycleModel;
     }
 
     match code {
@@ -209,6 +221,35 @@ mod tests {
         let mut state = AppState::new("test");
         let action = handle_event(&mut state, &Event::Resize(80, 24));
         assert_eq!(action, InputAction::Redraw);
+    }
+
+    fn shift_ctrl_key(c: char) -> Event {
+        Event::Key(KeyEvent {
+            code: KeyCode::Char(c),
+            modifiers: Modifiers::CTRL | Modifiers::SHIFT,
+        })
+    }
+
+    #[test]
+    fn ctrl_p_cycles_model_forward() {
+        let mut state = AppState::new("test");
+        let action = handle_event(&mut state, &ctrl_key('p'));
+        assert_eq!(action, InputAction::CycleModel);
+    }
+
+    #[test]
+    fn shift_ctrl_p_cycles_model_backward() {
+        let mut state = AppState::new("test");
+        let action = handle_event(&mut state, &shift_ctrl_key('p'));
+        assert_eq!(action, InputAction::CycleModelBackward);
+    }
+
+    #[test]
+    fn ctrl_p_blocked_while_thinking() {
+        let mut state = AppState::new("test");
+        state.status = crate::app::AppStatus::Thinking;
+        let action = handle_event(&mut state, &ctrl_key('p'));
+        assert_eq!(action, InputAction::None);
     }
 
     #[test]

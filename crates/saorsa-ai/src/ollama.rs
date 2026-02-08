@@ -229,6 +229,7 @@ fn parse_ollama_response(resp: &OllamaResponse) -> CompletionResponse {
     let usage = Usage {
         input_tokens: resp.prompt_eval_count.unwrap_or(0),
         output_tokens: resp.eval_count.unwrap_or(0),
+        ..Usage::default()
     };
 
     CompletionResponse {
@@ -261,6 +262,7 @@ pub fn parse_ndjson_chunk(data: &str) -> Option<StreamEvent> {
         let usage = Usage {
             input_tokens: chunk.prompt_eval_count.unwrap_or(0),
             output_tokens: chunk.eval_count.unwrap_or(0),
+            ..Usage::default()
         };
         let stop_reason = chunk.done_reason.as_deref().map(map_done_reason);
         return Some(StreamEvent::MessageDelta { stop_reason, usage });

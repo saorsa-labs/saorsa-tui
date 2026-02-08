@@ -40,6 +40,29 @@ pub enum SaorsaAgentError {
     /// Extension error.
     #[error("extension error: {0}")]
     Extension(String),
+
+    /// Home directory could not be determined.
+    #[error("could not determine home directory")]
+    HomeDirectory,
+
+    /// Configuration file I/O error.
+    #[error("config I/O error: {0}")]
+    ConfigIo(std::io::Error),
+
+    /// Configuration file parse error.
+    #[error("config parse error: {0}")]
+    ConfigParse(serde_json::Error),
+
+    /// Environment variable not found.
+    #[error("environment variable not found: {name}")]
+    EnvVarNotFound {
+        /// The name of the missing environment variable.
+        name: String,
+    },
+
+    /// Shell command execution failed.
+    #[error("command execution failed: {0}")]
+    CommandFailed(String),
 }
 
 /// Result type alias for saorsa-agent operations.

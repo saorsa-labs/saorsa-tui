@@ -18,6 +18,12 @@ pub enum AgentEvent {
         text: String,
     },
 
+    /// Streaming thinking/reasoning delta from the assistant.
+    ThinkingDelta {
+        /// The incremental thinking text.
+        text: String,
+    },
+
     /// The assistant is requesting a tool call.
     ToolCall {
         /// The tool use ID.
