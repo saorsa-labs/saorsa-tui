@@ -1,6 +1,8 @@
 //! General agent settings.
 
+use std::fmt;
 use std::path::Path;
+use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
@@ -19,6 +21,37 @@ pub enum ThinkingLevel {
     Medium,
     /// Maximum thinking budget.
     High,
+}
+
+impl fmt::Display for ThinkingLevel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Self::Off => "off",
+            Self::Low => "low",
+            Self::Medium => "medium",
+            Self::High => "high",
+        };
+        f.write_str(s)
+    }
+}
+
+/// Error returned when parsing an invalid thinking level string.
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[error("invalid thinking level: '{0}' (expected off, low, medium, high)")]
+pub struct ParseThinkingLevelError(String);
+
+impl FromStr for ThinkingLevel {
+    type Err = ParseThinkingLevelError;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s.trim().to_lowercase().as_str() {
+            "off" | "none" | "0" => Ok(Self::Off),
+            "low" | "1" => Ok(Self::Low),
+            "medium" | "med" | "2" => Ok(Self::Medium),
+            "high" | "3" => Ok(Self::High),
+            other => Err(ParseThinkingLevelError(other.to_string())),
+        }
+    }
 }
 
 /// General agent settings that apply across all sessions.
@@ -225,5 +258,41 @@ mod tests {
     #[test]
     fn thinking_level_default_is_off() {
         assert_eq!(ThinkingLevel::default(), ThinkingLevel::Off);
+    }
+
+    #[test]
+    fn thinking_level_display() {
+        assert_eq!(ThinkingLevel::Off.to_string(), "off");
+        assert_eq!(ThinkingLevel::Low.to_string(), "low");
+        assert_eq!(ThinkingLevel::Medium.to_string(), "medium");
+        assert_eq!(ThinkingLevel::High.to_string(), "high");
+    }
+
+    #[test]
+    fn thinking_level_from_str() {
+        assert_eq!("off".parse::<ThinkingLevel>().unwrap(), ThinkingLevel::Off);
+        assert_eq!("low".parse::<ThinkingLevel>().unwrap(), ThinkingLevel::Low);
+        assert_eq!(
+            "medium".parse::<ThinkingLevel>().unwrap(),
+            ThinkingLevel::Medium
+        );
+        assert_eq!(
+            "high".parse::<ThinkingLevel>().unwrap(),
+            ThinkingLevel::High
+        );
+        // Case insensitive.
+        assert_eq!(
+            "HIGH".parse::<ThinkingLevel>().unwrap(),
+            ThinkingLevel::High
+        );
+        // Numeric aliases.
+        assert_eq!("0".parse::<ThinkingLevel>().unwrap(), ThinkingLevel::Off);
+        assert_eq!("3".parse::<ThinkingLevel>().unwrap(), ThinkingLevel::High);
+    }
+
+    #[test]
+    fn thinking_level_from_str_invalid() {
+        let err = "extreme".parse::<ThinkingLevel>().unwrap_err();
+        assert!(err.to_string().contains("extreme"));
     }
 }

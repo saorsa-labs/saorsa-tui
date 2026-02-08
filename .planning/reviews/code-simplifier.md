@@ -1,143 +1,163 @@
-# Code Simplification Review
-**Date**: 2026-02-08
-**Mode**: gsd (phase review)
-**Scope**: Last commit (HEAD~1..HEAD)
-
-## Summary
-
-Reviewed 28 modified Rust files from the last commit, focusing on:
-- `saorsa-agent/src/config/import.rs` (946 new lines) - Configuration import from ~/.pi and ~/.claude
-- `saorsa-agent/src/tools/web_search.rs` (534 new lines) - DuckDuckGo web search tool
-- `saorsa-agent/src/cost.rs` (192 new lines) - LLM cost tracking
-- `saorsa/src/main.rs` (242 lines modified) - Main application with session management
-- Various config modules (auth, models, settings, paths)
+# Code Simplifier Review
 
 ## Findings
 
-### MEDIUM Priority
+### [MEDIUM] Redundant Display::fmt pattern in ThinkingLevel
 
-1. **File: `saorsa-agent/src/config/import.rs:269-341`**
-   - **Pattern**: Duplicate logic in `import_skills()` function
-   - **Issue**: The function handles two different file patterns (`.md` files and `SKILL.md` subdirs) within a single loop with repeated `copy_skill_file()` calls
-   - **Suggestion**: Extract file pattern detection into a helper function that returns `Option<(source_path, target_name)>`, simplifying the main loop
+- File: crates/saorsa-agent/src/config/settings.rs:18-28
+- Current: Implements Display with intermediate variable `let s = match self {...}; f.write_str(s)`
+- Simpler: Direct write without intermediate binding:
+  ```rust
+  impl fmt::Display for ThinkingLevel {
+      fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+          f.write_str(match self {
+              Self::Off => "off",
+              Self::Low => "low",
+              Self::Medium => "medium",
+              Self::High => "high",
+          })
+      }
+  }
+  ```
 
-2. **File: `saorsa-agent/src/config/import.rs:351-397`**
-   - **Pattern**: Similar structure to `import_skills()` but slightly different
-   - **Issue**: `import_agents()` and `import_skills()` share substantial structural similarity but are separate functions
-   - **Suggestion**: Consider extracting a generic `import_files()` function with a predicate/transformer closure to reduce duplication
+### [LOW] Over-engineered command dispatch with nested helper functions
 
-3. **File: `saorsa/src/main.rs:319-380`**
-   - **Pattern**: Duplicated code in `CycleModel` and `CycleModelBackward` handlers
-   - **Issue**: Both branches contain nearly identical logic (80+ lines each) for API key resolution and model switching
-   - **Suggestion**: Extract a helper function `switch_to_model(state, new_model, &mut api_key, &mut provider_kind, &mut model)` to eliminate ~160 lines of duplication
+- File: crates/saorsa/src/commands/mod.rs:65-107
+- Current: `dispatch_bookmark()` and `dispatch_model()` are separate helper functions only called from one place
+- Simpler: Inline these helpers directly into the main `dispatch()` match arms. Since they're single-use, the abstraction adds indirection without clarity benefit. Alternatively, if the pattern recognition logic is the concern, extract just that logic, not the full dispatch.
 
-4. **File: `saorsa-agent/src/tools/web_search.rs:80-137`**
-   - **Pattern**: Complex string parsing with nested conditionals
-   - **Issue**: The `parse_ddg_html()` function has deeply nested logic for extracting URLs, titles, and snippets
-   - **Suggestion**: Extract URL extraction into a dedicated function `extract_result_url()` that handles both backward and forward href searches, improving readability
+### [LOW] AppState dirty flag could use std::cell::Cell
 
-5. **File: `saorsa/src/main.rs:211-258`**
-   - **Pattern**: Nested if-let-else chain for session loading
-   - **Issue**: Three-level conditional with repeated `state.add_system_message()` patterns
-   - **Suggestion**: Use early returns or match expressions instead of nested if-else to reduce indentation
+- File: crates/saorsa/src/app.rs:146-178
+- Current: Manual dirty flag management with `take_dirty()` and `mark_dirty()` methods
+- Simpler: Consider using `Cell<bool>` for interior mutability, which makes the "check and clear" pattern more idiomatic:
+  ```rust
+  dirty: Cell<bool>,
 
-### LOW Priority
+  pub fn mark_dirty(&self) {
+      self.dirty.set(true);
+  }
 
-6. **File: `saorsa-agent/src/cost.rs:40-64`**
-   - **Pattern**: Chained `and_then` with inline calculations
-   - **Issue**: The `track()` method has complex inline cost calculation logic
-   - **Suggestion**: Extract cost calculation into a separate `calculate_cost(model_info, usage) -> f64` function for clarity
+  pub fn take_dirty(&self) -> bool {
+      self.dirty.replace(false)
+  }
+  ```
+  This allows marking dirty without `&mut self`, reducing the need to thread mutability through the entire call chain. (Note: This is more of a "consider" than a hard recommendation, as the current approach is perfectly valid.)
 
-7. **File: `saorsa-agent/src/config/import.rs:108-152`**
-   - **Pattern**: Repeated error handling pattern
-   - **Issue**: `import_pi_auth()`, `import_pi_models()`, and `import_pi_settings()` all use identical early-return patterns
-   - **Observation**: The pattern is reasonable, but could benefit from a macro or helper if this pattern expands
+### [LOW] Nested tokio::select! with pending future could be simplified
 
-8. **File: `saorsa-agent/src/tools/web_search.rs:259-292`**
-   - **Pattern**: Manual whitespace normalization
-   - **Issue**: `clean_text()` manually iterates with state tracking for whitespace
-   - **Suggestion**: Could use `text.split_whitespace().collect::<Vec<_>>().join(" ")` for simpler logic (though current approach is more efficient)
+- File: crates/saorsa/src/main.rs:322-378
+- Current: Agent event handling uses `std::future::pending()` when no agent is active to prevent the branch from completing
+- Simpler: Use `Option<EventReceiver>` and `if let Some(rx) = agent_rx.as_mut()` guard outside the select:
+  ```rust
+  loop {
+      tokio::select! {
+          _ = tick_interval.tick() => { /* ... */ }
 
-9. **File: `saorsa/src/main.rs:533-556`**
-   - **Pattern**: Match expression with repetitive string truncation
-   - **Issue**: `add_message_to_state()` has duplicate truncation logic in two branches
-   - **Suggestion**: Extract `truncate_display(text, max_len)` helper
+          event = async {
+              match &mut agent_rx {
+                  Some(rx) => rx.recv().await,
+                  None => std::future::pending().await,
+              }
+          } => { /* ... */ }
 
-## Simplification Opportunities
+          // ...
+      }
+  }
+  ```
+  The current code works but the pending() pattern is somewhat obscure. However, the existing approach is explicit about intent, so this is a minor style preference rather than a clarity issue.
 
-### High Impact (Recommended)
+### [MEDIUM] Duplicate string formatting in main.rs model cycling
 
-1. **Consolidate model switching logic** (`saorsa/src/main.rs`)
-   - Extract common code from `CycleModel` and `CycleModelBackward` handlers
-   - **Savings**: ~160 lines → ~50 lines (110 lines eliminated)
-   - **Complexity**: Reduces maintenance burden significantly
+- File: crates/saorsa/src/main.rs:461-502
+- Current: Model cycling (forward and backward) duplicate the "No other models" system message and logic
+- Simpler: Extract a helper function for model cycling notification:
+  ```rust
+  fn notify_model_cycle(state: &mut AppState, new_model: Option<&str>) {
+      if let Some(model) = new_model {
+          state.add_system_message(format!("Switched to: {model}"));
+      } else {
+          state.add_system_message(
+              "No other models configured. Add models to ~/.saorsa/settings.json"
+          );
+      }
+  }
+  ```
+  Then use `notify_model_cycle(&mut state, state.cycle_model_forward())` etc.
 
-2. **Simplify config import functions** (`saorsa-agent/src/config/import.rs`)
-   - Create generic file import helper to reduce duplication between `import_skills()` and `import_agents()`
-   - **Savings**: ~90 lines → ~60 lines (30 lines eliminated)
-   - **Complexity**: Improves testability and reduces error-prone duplication
+### [LOW] InputAction::Redraw returned multiple times for input editing
 
-3. **Refactor HTML parsing** (`saorsa-agent/src/tools/web_search.rs`)
-   - Extract URL/title/snippet extraction into separate focused functions
-   - **Savings**: Minimal line reduction, but significant readability improvement
-   - **Complexity**: Makes the parsing logic much easier to test and debug
+- File: crates/saorsa/src/input.rs:107-138
+- Current: Every input editing action (insert, delete, cursor movement) returns `InputAction::Redraw`, but modern code already marks state dirty through AppState methods
+- Simpler: Since AppState methods (`insert_char`, `delete_char_before`, `cursor_left`, etc.) all call `state.mark_dirty()` internally, the `InputAction::Redraw` return is redundant. The tick handler will flush and render based on the dirty flag. The explicit Redraw action could be renamed to `InputAction::None` for these cases, simplifying the caller logic.
+- Caveat: Looking at main.rs:395-560, only Redraw and a few special actions trigger immediate renders. The dirty flag is for deferred rendering via tick. So the current approach is intentional — input editing triggers immediate visual feedback while async events batch via dirty flag. This is actually **good design**, not over-engineering.
 
-### Medium Impact (Consider)
+### [MINOR] Common prefix calculation could use itertools
 
-4. **Extract cost calculation logic** (`saorsa-agent/src/cost.rs`)
-   - Separate calculation from tracking
-   - **Benefit**: Easier to test cost formulas independently
+- File: crates/saorsa/src/main.rs:745-761
+- Current: Manual common prefix calculation with byte-by-byte comparison
+- Simpler: This is a one-off utility with clear logic. Adding itertools as a dependency for one function is **not** simpler. The current implementation is fine.
 
-5. **Simplify session loading flow** (`saorsa/src/main.rs`)
-   - Use match or early returns instead of nested if-let-else
-   - **Benefit**: Reduces indentation depth from 4 to 2 levels
+### [LOW] Command test boilerplate could use test helpers
 
-## Code Quality Assessment
+- File: Multiple command test modules
+- Current: Every command test contains:
+  ```rust
+  #[test]
+  fn test_name() {
+      let mut state = AppState::new("test");
+      let result = execute(...);
+      match result { Ok(text) => assert!(...), Err(_) => panic!() }
+  }
+  ```
+- Simpler: Create test helper macros or functions:
+  ```rust
+  fn expect_ok(result: anyhow::Result<String>) -> String {
+      result.expect("command should succeed")
+  }
+  ```
+  Then tests become:
+  ```rust
+  let text = expect_ok(execute("", &mut state));
+  assert!(text.contains("expected"));
+  ```
+  The current tests already use `#[allow(clippy::unwrap_used, clippy::expect_used)]` and `.expect("should succeed")`, which is reasonable. Further abstraction may reduce clarity for test readers.
 
-**Strengths:**
-- Excellent error handling with proper `Result` types throughout
-- Comprehensive test coverage (all new modules have substantial test suites)
-- Clear separation of concerns (auth, models, settings as separate modules)
-- Consistent use of `#[allow(clippy::unwrap_used)]` in test modules only
-- Good documentation with module-level and function-level doc comments
+### [INFO] RenderThrottle is well-designed
 
-**Areas for Improvement:**
-- Some functions exceed comfortable length (100+ lines)
-- Duplication in model cycling logic is significant
-- Complex parsing logic could benefit from better decomposition
+- File: crates/saorsa/src/render_throttle.rs:1-170
+- Current: Clean, single-responsibility module with clear API
+- Assessment: **No simplification needed.** This is exemplary code — clear purpose, minimal surface area, comprehensive tests.
 
-**Patterns Observed:**
-- Heavy use of early returns for error cases (good)
-- Consistent error type conversion with descriptive messages (good)
-- Preference for explicit code over compact/clever solutions (good)
-- Some functions accumulate multiple responsibilities
+### [INFO] Command dispatch pattern is appropriate
 
-## Grade: B+
+- File: crates/saorsa/src/commands/mod.rs:1-443
+- Current: Central dispatch function with match on command name and alias support
+- Assessment: The current design (single dispatch point with helpers for complex subcommands) is the right balance for a CLI command system. Further simplification (like a macro-based command registration system) would be over-engineering for ~15 commands.
 
-**Rationale:**
+## Summary
 
-The code demonstrates strong fundamentals with excellent error handling, comprehensive testing, and clear documentation. The primary issues are:
+**5 simplification opportunities found:**
+- 1 Medium: ThinkingLevel Display implementation (easy fix, removes intermediate variable)
+- 1 Medium: Duplicate model cycling notification logic (extract helper)
+- 1 Low: Command dispatch helpers could be inlined (minor)
+- 1 Low: AppState dirty flag pattern (optional Cell refactor)
+- 1 Low: Nested tokio::select with pending() (style preference)
 
-1. **Duplication** in the model switching logic (major)
-2. **Complexity** in some parsing and import functions (moderate)
-3. **Function length** in a few cases (minor)
+**Overall Assessment:**
 
-These issues are addressable through targeted refactoring without requiring architectural changes. The code follows project standards well (zero unwrap/expect in production, proper error types, good test coverage).
+The code is generally **well-structured and appropriately engineered** for a TUI application with async agent interaction. Most patterns (dirty flag tracking, event-driven rendering, command dispatch, render throttling) are correct solutions to real problems, not over-engineering.
 
-**Deductions:**
-- -0.5: Significant duplication in model cycling handlers
-- -0.5: Complex nested logic in HTML parsing and session loading
-- -0.5: Some functions exceed 100 lines (import_skills, parse_ddg_html)
+The main opportunities are:
+1. Small formatting/duplication improvements (ThinkingLevel Display, model cycling)
+2. Optional refactors that are more about style than complexity reduction
 
-**What would make this an A:**
-- Extract model switching logic to eliminate ~110 lines of duplication
-- Decompose `parse_ddg_html()` into smaller, focused functions
-- Simplify session loading flow with match expressions or early returns
+**No critical over-engineering detected.** The codebase favors explicitness over cleverness, which is the right trade-off for maintainability.
 
-## Recommendations
+---
 
-1. **Immediate**: Extract model switching helper in `main.rs` (high impact, low risk)
-2. **Short-term**: Refactor HTML parsing in `web_search.rs` (improves testability)
-3. **Long-term**: Consider generic import helper if more import sources are added
+**Recommendations:**
 
-All findings are refinement opportunities, not critical issues. The code is production-ready as-is.
+1. **Apply:** ThinkingLevel Display simplification (one-line change)
+2. **Consider:** Extract model cycling notification helper (reduces duplication)
+3. **Leave as-is:** RenderThrottle, command dispatch, dirty flag pattern, InputAction::Redraw semantics

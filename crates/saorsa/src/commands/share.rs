@@ -1,27 +1,22 @@
-//! /share command - export conversation with shareable link.
+//! `/share` command — share conversation.
 
-/// Handle the /share command.
+/// Show sharing status.
 ///
-/// Exports the current conversation and generates a shareable link.
+/// Sharing is not yet implemented.
 pub fn execute(_args: &str) -> anyhow::Result<String> {
-    let link = "https://share.saorsa.dev/abc123";
-    Ok(format!("Conversation shared: {}", link))
+    Ok("Conversation sharing is not yet available.\n\
+        Session export coming in a future release."
+        .to_string())
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
 
     #[test]
-    fn share_generates_link() {
-        let result = execute("");
-        assert!(result.is_ok());
-        match result {
-            Ok(output) => {
-                assert!(output.contains("shared"));
-                assert!(output.contains("https://"));
-            }
-            Err(_) => unreachable!(),
-        }
+    fn share_says_not_available() {
+        let text = execute("").expect("should succeed");
+        assert!(text.contains("not yet available"));
     }
 }

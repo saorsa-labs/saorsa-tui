@@ -312,6 +312,83 @@
 
 ---
 
+## Milestone 9: UX Overhaul — Performance, Scrollback, Commands & Model Management
+
+**Goal**: Fix input responsiveness, add scrollback, make slash commands functional, add model management, wire up existing unused widgets.
+
+### Phase 9.1: Render Throttling
+- Add 30fps frame cap to render_ui() using Instant tracking
+- Batch TextDelta events during AI streaming (accumulate, render at frame boundary)
+- Mark frames dirty to skip no-op renders
+- **Files:** main.rs, ui.rs
+
+### Phase 9.2: Scrollback
+- Add `scroll_offset: usize` and `auto_scroll: bool` to AppState
+- Add InputAction variants: ScrollUp, ScrollDown, PageUp, PageDown, ScrollToBottom
+- Handle PageUp/PageDown keys and mouse scroll wheel in input.rs
+- Update render_messages() in ui.rs to use scroll_offset
+- Auto-scroll to bottom on new messages (unless user has scrolled up)
+- **Files:** app.rs, input.rs, ui.rs, main.rs
+
+### Phase 9.3: Non-blocking Input During Streaming
+- Allow scroll keys while AI is streaming (currently all input returns None when !idle)
+- Allow Escape to cancel/interrupt agent run
+- Allow Ctrl+P model switch to take effect on next interaction
+- **Files:** input.rs, main.rs
+
+### Phase 9.4: Command Dispatch
+- Add `InputAction::Command(String, String)` variant (name + args)
+- Detect `/` prefix in Submit handler before sending to agent
+- Route to command modules: parse first word as command, rest as args
+- Display command output as system message
+- Handle unknown commands with error message
+- **Files:** input.rs, main.rs, commands/mod.rs
+
+### Phase 9.5: Functional Slash Commands
+- `/model` - No args: list available models with current highlighted. With arg: switch model
+- `/clear` - Clear message history and reset scroll
+- `/thinking [off|low|medium|high]` - Set thinking level, persist to settings
+- `/compact` - Toggle compact rendering mode
+- `/help` - Dynamic command list with descriptions
+- `/hotkeys` - Show keybindings
+- `/config` - Show config paths and current settings summary
+- Refactor commands to take `&mut AppState` instead of returning strings
+- **Files:** All commands/*.rs, app.rs, main.rs
+
+### Phase 9.6: Model Management
+- `--show-models` CLI flag: list all known models with provider, context window, pricing
+- `/model` interactive: show enabled models, allow toggling active/inactive for Ctrl+P cycling
+- `/model add <provider> <key>` - Add API key for a new provider
+- `/model enable/disable <name>` - Toggle model in Ctrl+P rotation
+- Persist enabled models to ~/.saorsa/settings.json
+- **Files:** cli.rs, commands/model.rs, app.rs, config/settings.rs
+
+### Phase 9.7: New Slash Commands
+- `/providers` - List configured providers with auth status
+- `/cost` - Show session cost breakdown (uses CostTracker)
+- `/agents` - List available agent tools
+- `/skills` - List available skills (scan ~/.saorsa/skills/)
+- `/status` - Show session info (model, provider, messages, tokens)
+- **Files:** New command files, commands/mod.rs
+
+### Phase 9.8: Widget Integration
+- Wire ModelSelector widget to Ctrl+L (full interactive picker with fuzzy search)
+- Wire SettingsScreen widget to /settings command
+- Add OperatingMode to AppState for overlay management (Normal, ModelSelector, Settings)
+- Route key events to active overlay widget when in overlay mode
+- **Files:** app.rs, main.rs, ui.rs, input.rs
+
+### Phase 9.9: Autocomplete Integration
+- Instantiate Autocomplete in AppState
+- Handle Tab key in input.rs for command/file completion
+- Render suggestion popup in ui.rs
+- Populate file paths from working directory
+- **Files:** app.rs, input.rs, ui.rs, autocomplete.rs
+
+**Milestone 9 Deliverable**: Responsive TUI with scrollback, working slash commands, model management, and integrated widgets.
+
+---
+
 ## Architecture Decision Records
 
 | ADR | Decision | Rationale |

@@ -1,23 +1,36 @@
-//! /compact command - toggle compact mode.
+//! `/compact` command — toggle compact display mode.
 
-/// Handle the /compact command.
+use crate::app::AppState;
+
+/// Toggle compact display mode.
 ///
-/// Toggles compact mode on/off for minimal UI.
-pub fn execute(_args: &str) -> anyhow::Result<String> {
-    Ok("Compact mode toggled".to_string())
+/// Compact mode reduces visual chrome for a denser conversation view.
+pub fn execute(_args: &str, state: &mut AppState) -> anyhow::Result<String> {
+    state.compact_mode = !state.compact_mode;
+    let label = if state.compact_mode { "on" } else { "off" };
+    Ok(format!("Compact mode: {label}"))
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
 
     #[test]
-    fn compact_toggles() {
-        let result = execute("");
-        assert!(result.is_ok());
-        match result {
-            Ok(output) => assert!(output.contains("toggled")),
-            Err(_) => unreachable!(),
-        }
+    fn toggle_on() {
+        let mut state = AppState::new("test");
+        assert!(!state.compact_mode);
+        let text = execute("", &mut state).expect("should succeed");
+        assert!(text.contains("on"));
+        assert!(state.compact_mode);
+    }
+
+    #[test]
+    fn toggle_off_after_on() {
+        let mut state = AppState::new("test");
+        execute("", &mut state).expect("should succeed");
+        let text = execute("", &mut state).expect("should succeed");
+        assert!(text.contains("off"));
+        assert!(!state.compact_mode);
     }
 }

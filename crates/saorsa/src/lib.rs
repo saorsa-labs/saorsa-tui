@@ -11,5 +11,6 @@ pub mod commands;
 pub mod input;
 pub mod keybindings;
 pub mod operating_mode;
+pub mod render_throttle;
 pub mod ui;
 pub mod widgets;

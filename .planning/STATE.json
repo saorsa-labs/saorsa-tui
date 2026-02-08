@@ -3,19 +3,29 @@
   "project": "saorsa-tui",
   "active": true,
   "milestone": {
-    "number": 8,
-    "name": "Comprehensive README Documentation"
+    "number": 9,
+    "name": "UX Overhaul — Performance, Scrollback, Commands & Model Management"
   },
   "phase": {
-    "number": "8.5",
-    "name": "saorsa-cli README + Root README",
+    "number": "9.9",
+    "name": "Autocomplete Integration",
     "plan": null
   },
-  "progress": {
-    "total_tasks": 2,
-    "completed_tasks": 2,
-    "current_task": null
+  "task": {
+    "current": 0,
+    "total": 0,
+    "name": null
   },
-  "status": "complete",
-  "last_updated": "2026-02-07T00:00:00Z"
+  "review": {
+    "status": "passed",
+    "iteration": 1,
+    "last_verdict": "PASS",
+    "consensus_grade": "A",
+    "agents_passed": 13,
+    "agents_total": 13,
+    "critical_findings": 0,
+    "high_findings": 0
+  },
+  "status": "milestone_complete",
+  "last_updated": "2026-02-08T16:18:00Z"
 }

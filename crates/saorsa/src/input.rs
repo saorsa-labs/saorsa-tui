@@ -1,8 +1,14 @@
 //! Input event handling for the chat application.
 
-use saorsa_core::event::{Event, KeyCode, Modifiers};
+use saorsa_core::event::{Event, KeyCode, Modifiers, MouseEventKind};
 
 use crate::app::AppState;
+
+/// Number of lines to scroll per mouse wheel tick.
+const MOUSE_SCROLL_LINES: usize = 3;
+
+/// Number of lines to scroll per PageUp/PageDown press.
+const PAGE_SCROLL_LINES: usize = 10;
 
 /// Result of handling an input event.
 #[derive(Debug, PartialEq, Eq)]
@@ -19,13 +25,31 @@ pub enum InputAction {
     CycleModel,
     /// Cycle to the previous model (Shift+Ctrl+P).
     CycleModelBackward,
+    /// Scroll message history up by the given number of lines.
+    ScrollUp(usize),
+    /// Scroll message history down by the given number of lines.
+    ScrollDown(usize),
+    /// Open the model selector overlay (Ctrl+L).
+    OpenModelSelector,
+    /// Tab-complete the current input.
+    TabComplete,
 }
 
 /// Handle an input event and return the resulting action.
 pub fn handle_event(state: &mut AppState, event: &Event) -> InputAction {
     match event {
         Event::Key(key) => handle_key(state, key.code.clone(), key.modifiers),
+        Event::Mouse(mouse) => handle_mouse(mouse.kind),
         Event::Resize(_, _) => InputAction::Redraw,
+        _ => InputAction::None,
+    }
+}
+
+/// Handle a mouse event.
+fn handle_mouse(kind: MouseEventKind) -> InputAction {
+    match kind {
+        MouseEventKind::ScrollUp => InputAction::ScrollUp(MOUSE_SCROLL_LINES),
+        MouseEventKind::ScrollDown => InputAction::ScrollDown(MOUSE_SCROLL_LINES),
         _ => InputAction::None,
     }
 }
@@ -44,6 +68,14 @@ fn handle_key(state: &mut AppState, code: KeyCode, modifiers: Modifiers) -> Inpu
         return InputAction::Quit;
     }
 
+    // Scrolling works even when the AI is thinking.
+    if code == KeyCode::PageUp {
+        return InputAction::ScrollUp(PAGE_SCROLL_LINES);
+    }
+    if code == KeyCode::PageDown {
+        return InputAction::ScrollDown(PAGE_SCROLL_LINES);
+    }
+
     // Only process editing keys when idle.
     if !state.is_idle() {
         return InputAction::None;
@@ -57,7 +89,13 @@ fn handle_key(state: &mut AppState, code: KeyCode, modifiers: Modifiers) -> Inpu
         return InputAction::CycleModel;
     }
 
+    // Ctrl+L: open model selector overlay.
+    if code == KeyCode::Char('l') && modifiers.contains(Modifiers::CTRL) {
+        return InputAction::OpenModelSelector;
+    }
+
     match code {
+        KeyCode::Tab if modifiers == Modifiers::NONE => InputAction::TabComplete,
         KeyCode::Enter => {
             let text = state.take_input();
             if text.is_empty() {
@@ -258,5 +296,85 @@ mod tests {
         state.status = crate::app::AppStatus::Thinking;
         let action = handle_event(&mut state, &key_event(KeyCode::Char('a')));
         assert_eq!(action, InputAction::None);
+    }
+
+    #[test]
+    fn page_up_scrolls() {
+        let mut state = AppState::new("test");
+        let action = handle_event(&mut state, &key_event(KeyCode::PageUp));
+        assert_eq!(action, InputAction::ScrollUp(PAGE_SCROLL_LINES));
+    }
+
+    #[test]
+    fn page_down_scrolls() {
+        let mut state = AppState::new("test");
+        let action = handle_event(&mut state, &key_event(KeyCode::PageDown));
+        assert_eq!(action, InputAction::ScrollDown(PAGE_SCROLL_LINES));
+    }
+
+    #[test]
+    fn mouse_scroll_up() {
+        let mut state = AppState::new("test");
+        let event = Event::Mouse(saorsa_core::event::MouseEvent {
+            kind: MouseEventKind::ScrollUp,
+            x: 0,
+            y: 0,
+            modifiers: Modifiers::NONE,
+        });
+        let action = handle_event(&mut state, &event);
+        assert_eq!(action, InputAction::ScrollUp(MOUSE_SCROLL_LINES));
+    }
+
+    #[test]
+    fn mouse_scroll_down() {
+        let mut state = AppState::new("test");
+        let event = Event::Mouse(saorsa_core::event::MouseEvent {
+            kind: MouseEventKind::ScrollDown,
+            x: 0,
+            y: 0,
+            modifiers: Modifiers::NONE,
+        });
+        let action = handle_event(&mut state, &event);
+        assert_eq!(action, InputAction::ScrollDown(MOUSE_SCROLL_LINES));
+    }
+
+    #[test]
+    fn tab_triggers_autocomplete() {
+        let mut state = AppState::new("test");
+        state.input = "/mod".into();
+        state.cursor = 4;
+        let action = handle_event(&mut state, &key_event(KeyCode::Tab));
+        assert_eq!(action, InputAction::TabComplete);
+    }
+
+    #[test]
+    fn tab_blocked_while_thinking() {
+        let mut state = AppState::new("test");
+        state.status = crate::app::AppStatus::Thinking;
+        let action = handle_event(&mut state, &key_event(KeyCode::Tab));
+        assert_eq!(action, InputAction::None);
+    }
+
+    #[test]
+    fn ctrl_l_opens_model_selector() {
+        let mut state = AppState::new("test");
+        let action = handle_event(&mut state, &ctrl_key('l'));
+        assert_eq!(action, InputAction::OpenModelSelector);
+    }
+
+    #[test]
+    fn ctrl_l_blocked_while_thinking() {
+        let mut state = AppState::new("test");
+        state.status = crate::app::AppStatus::Thinking;
+        let action = handle_event(&mut state, &ctrl_key('l'));
+        assert_eq!(action, InputAction::None);
+    }
+
+    #[test]
+    fn page_up_works_while_thinking() {
+        let mut state = AppState::new("test");
+        state.status = crate::app::AppStatus::Thinking;
+        let action = handle_event(&mut state, &key_event(KeyCode::PageUp));
+        assert_eq!(action, InputAction::ScrollUp(PAGE_SCROLL_LINES));
     }
 }

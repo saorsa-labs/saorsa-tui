@@ -45,6 +45,10 @@ pub struct Cli {
     /// Run in ephemeral mode (no session persistence).
     #[arg(long)]
     pub ephemeral: bool,
+
+    /// List all known models and exit.
+    #[arg(long)]
+    pub show_models: bool,
 }
 
 impl Cli {
@@ -107,6 +111,7 @@ mod tests {
             continue_session: false,
             resume: None,
             ephemeral: false,
+            show_models: false,
         };
         assert!(cli.api_key().is_none());
     }
@@ -145,5 +150,17 @@ mod tests {
     fn cli_ephemeral() {
         let cli = Cli::parse_from(["saorsa", "--ephemeral"]);
         assert!(cli.ephemeral);
+    }
+
+    #[test]
+    fn cli_show_models() {
+        let cli = Cli::parse_from(["saorsa", "--show-models"]);
+        assert!(cli.show_models);
+    }
+
+    #[test]
+    fn cli_show_models_defaults_false() {
+        let cli = Cli::parse_from(["saorsa"]);
+        assert!(!cli.show_models);
     }
 }

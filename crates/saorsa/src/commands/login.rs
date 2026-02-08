@@ -1,38 +1,35 @@
-//! /login command - authenticate with API providers.
+//! `/login` command — configure API keys.
 
-/// Handle the /login command.
-///
-/// Authenticates with LLM API providers.
-pub fn execute(args: &str) -> anyhow::Result<String> {
-    if args.trim().is_empty() {
-        Ok("Usage: /login <provider>".to_string())
-    } else {
-        let provider = args.trim();
-        Ok(format!("Authenticated with {}", provider))
-    }
+/// Show instructions for configuring API keys.
+pub fn execute(_args: &str) -> anyhow::Result<String> {
+    Ok("\
+To configure API keys, edit ~/.saorsa/auth.json:
+
+  {
+    \"anthropic\": \"sk-ant-...\",
+    \"openai\": \"sk-...\",
+    \"gemini\": \"AI...\"
+  }
+
+Supported providers: anthropic, openai, gemini, ollama, openrouter, lmstudio, vllm"
+        .to_string())
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
 
     #[test]
-    fn login_with_provider() {
-        let result = execute("anthropic");
-        assert!(result.is_ok());
-        match result {
-            Ok(output) => assert!(output.contains("Authenticated")),
-            Err(_) => unreachable!(),
-        }
+    fn login_shows_config_path() {
+        let text = execute("").expect("should succeed");
+        assert!(text.contains("auth.json"));
     }
 
     #[test]
-    fn login_without_provider() {
-        let result = execute("");
-        assert!(result.is_ok());
-        match result {
-            Ok(output) => assert!(output.contains("Usage")),
-            Err(_) => unreachable!(),
-        }
+    fn login_lists_providers() {
+        let text = execute("").expect("should succeed");
+        assert!(text.contains("anthropic"));
+        assert!(text.contains("openai"));
     }
 }

@@ -90,7 +90,7 @@ pub use config::{
     import::{ImportReport, import_all},
     models::{CustomModel, CustomProvider, ModelCost, ModelsConfig},
     paths::{ensure_config_dir, saorsa_config_dir},
-    settings::{Settings, ThinkingLevel},
+    settings::{ParseThinkingLevelError, Settings, ThinkingLevel},
 };
 pub use context::{AgentsContext, ContextBuilder, ContextBundle, ContextDiscovery, SystemContext};
 pub use cost::{CostEntry, CostTracker};

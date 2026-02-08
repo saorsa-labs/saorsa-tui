@@ -47,23 +47,21 @@ fn render_header(state: &AppState, buf: &mut ScreenBuffer, area: Rect) {
     label.render(area, buf);
 }
 
-/// Render the message history.
+/// Render the message history with scroll support.
 fn render_messages(state: &AppState, buf: &mut ScreenBuffer, area: Rect) {
     if area.size.height == 0 {
         return;
     }
 
-    // Calculate how many messages we can show (1 line per message, simplified).
     let max_visible = area.size.height as usize;
+    let total = state.messages.len();
+    let scroll_offset = state.scroll_offset();
 
-    // Show the most recent messages.
-    let start = if state.messages.len() > max_visible {
-        state.messages.len() - max_visible
-    } else {
-        0
-    };
-
-    let visible_messages = &state.messages[start..];
+    // Calculate the window of messages to display.
+    // scroll_offset is from the bottom: 0 = latest, N = N messages from bottom.
+    let end = total.saturating_sub(scroll_offset);
+    let start = end.saturating_sub(max_visible);
+    let visible_messages = &state.messages[start..end];
 
     for (i, msg) in visible_messages.iter().enumerate() {
         let y = area.position.y + i as u16;
@@ -107,8 +105,8 @@ fn render_messages(state: &AppState, buf: &mut ScreenBuffer, area: Rect) {
         label.render(row_area, buf);
     }
 
-    // If we're streaming, show the current streaming text.
-    if !state.streaming_text.is_empty() && !visible_messages.is_empty() {
+    // Show streaming text only when at the bottom (not scrolled up).
+    if !state.is_scrolled_up() && !state.streaming_text.is_empty() && !visible_messages.is_empty() {
         let y = area.position.y + visible_messages.len() as u16;
         if y < area.position.y + area.size.height {
             let row_area = Rect::new(area.position.x, y, area.size.width, 1);
@@ -117,6 +115,21 @@ fn render_messages(state: &AppState, buf: &mut ScreenBuffer, area: Rect) {
             let label = Label::new(&text).style(style);
             label.render(row_area, buf);
         }
+    }
+
+    // Show scroll indicator when scrolled up.
+    if state.is_scrolled_up() {
+        let indicator = format!(" [{scroll_offset} more] ");
+        let indicator_style = Style::default()
+            .fg(Color::Named(saorsa_core::color::NamedColor::Yellow))
+            .bold(true);
+        // Render at bottom-right of the message area.
+        let indicator_len = indicator.len().min(area.size.width as usize);
+        let x = area.position.x + area.size.width - indicator_len as u16;
+        let y = area.position.y + area.size.height - 1;
+        let indicator_area = Rect::new(x, y, indicator_len as u16, 1);
+        let label = Label::new(&indicator).style(indicator_style);
+        label.render(indicator_area, buf);
     }
 }
 
