@@ -119,7 +119,7 @@ pub fn profile_for(kind: TerminalKind) -> TerminalCapabilities {
 /// # Examples
 ///
 /// ```
-/// use saorsa_core::terminal::{TerminalKind, MultiplexerKind, profile_for, merge_multiplexer_limits};
+/// use saorsa_tui::terminal::{TerminalKind, MultiplexerKind, profile_for, merge_multiplexer_limits};
 ///
 /// let kitty = profile_for(TerminalKind::Kitty);
 /// let tmux_kitty = merge_multiplexer_limits(kitty, MultiplexerKind::Tmux);

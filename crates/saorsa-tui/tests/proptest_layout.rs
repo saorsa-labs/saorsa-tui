@@ -4,7 +4,7 @@
 //! and constraints.
 
 use proptest::prelude::*;
-use saorsa_core::layout::engine::LayoutEngine;
+use saorsa_tui::layout::engine::LayoutEngine;
 use taffy::Overflow;
 use taffy::prelude::*;
 

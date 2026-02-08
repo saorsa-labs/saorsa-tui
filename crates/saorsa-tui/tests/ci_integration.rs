@@ -2,7 +2,7 @@
 
 #![allow(clippy::unwrap_used)]
 
-use saorsa_core::{
+use saorsa_tui::{
     Cell, Color, Event, KeyCode, KeyEvent, Position, Rect, SaorsaCoreError, ScreenBuffer, Segment,
     Size, Style,
 };

@@ -1827,7 +1827,7 @@ dependencies = [
  "fuzzy-matcher",
  "saorsa-agent",
  "saorsa-ai",
- "saorsa-core",
+ "saorsa-tui",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -1880,7 +1880,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "saorsa-core"
+name = "saorsa-tui"
 version = "0.3.0"
 dependencies = [
  "criterion",

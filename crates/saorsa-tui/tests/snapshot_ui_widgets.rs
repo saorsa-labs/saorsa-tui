@@ -1,9 +1,9 @@
 //! Snapshot tests for UI control widgets.
 
-use saorsa_core::buffer::ScreenBuffer;
-use saorsa_core::geometry::{Rect, Size};
-use saorsa_core::segment::Segment;
-use saorsa_core::widget::{
+use saorsa_tui::buffer::ScreenBuffer;
+use saorsa_tui::geometry::{Rect, Size};
+use saorsa_tui::segment::Segment;
+use saorsa_tui::widget::{
     Checkbox, Collapsible, IndicatorStyle, LoadingIndicator, OptionList, ProgressBar, RadioButton,
     Sparkline, Switch, Tab, Tabs, Widget,
 };

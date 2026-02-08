@@ -1,15 +1,15 @@
-# saorsa-core
+# saorsa-tui
 
 A retained-mode, CSS-styled terminal UI framework for Rust.
 
-[![Crates.io](https://img.shields.io/crates/v/saorsa-core.svg)](https://crates.io/crates/saorsa-core)
-[![Documentation](https://docs.rs/saorsa-core/badge.svg)](https://docs.rs/saorsa-core)
-[![License](https://img.shields.io/crates/l/saorsa-core.svg)](LICENSE)
+[![Crates.io](https://img.shields.io/crates/v/saorsa-tui.svg)](https://crates.io/crates/saorsa-tui)
+[![Documentation](https://docs.rs/saorsa-tui/badge.svg)](https://docs.rs/saorsa-tui)
+[![License](https://img.shields.io/crates/l/saorsa-tui.svg)](LICENSE)
 [![MSRV](https://img.shields.io/badge/MSRV-1.88-blue.svg)](#minimum-supported-rust-version)
 
 ## Overview
 
-**saorsa-core** is a full-featured TUI framework that brings web-like development patterns to the terminal:
+**saorsa-tui** is a full-featured TUI framework that brings web-like development patterns to the terminal:
 
 - **Retained-mode rendering** - Widgets persist in a tree; the framework handles diffing and efficient updates
 - **CSS-styled** - Style everything with TCSS (Terminal CSS), including variables, themes, and live hot-reload
@@ -60,17 +60,17 @@ A retained-mode, CSS-styled terminal UI framework for Rust.
 
 ## Quick Start
 
-Add saorsa-core to your `Cargo.toml`:
+Add saorsa-tui to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-saorsa-core = "0.1"
+saorsa-tui = "0.1"
 ```
 
 Render a styled label into a screen buffer:
 
 ```rust
-use saorsa_core::{
+use saorsa_tui::{
     Color, Label, Rect, ScreenBuffer, Segment, Size, Style, Widget,
 };
 
@@ -80,7 +80,7 @@ let mut buf = ScreenBuffer::new(size);
 
 // Create a styled label
 let style = Style::new()
-    .fg(Color::Named(saorsa_core::color::NamedColor::Cyan))
+    .fg(Color::Named(saorsa_tui::color::NamedColor::Cyan))
     .bold(true);
 let label = Label::new("Hello, saorsa!")
     .style(style);
@@ -93,7 +93,7 @@ label.render(area, &mut buf);
 Split a terminal area into layout regions:
 
 ```rust
-use saorsa_core::{Constraint, Direction, Layout, Rect};
+use saorsa_tui::{Constraint, Direction, Layout, Rect};
 
 let area = Rect::new(0, 0, 80, 24);
 
@@ -177,7 +177,7 @@ pub trait InteractiveWidget: Widget {
 
 ## TCSS (Terminal CSS)
 
-saorsa-core includes a full CSS engine adapted for terminals. Stylesheets are parsed using a Servo-derived `cssparser` backend.
+saorsa-tui includes a full CSS engine adapted for terminals. Stylesheets are parsed using a Servo-derived `cssparser` backend.
 
 ### Selectors
 
@@ -298,7 +298,7 @@ Container {
 
 ### Built-in Themes
 
-saorsa-core ships with popular color schemes:
+saorsa-tui ships with popular color schemes:
 
 | Theme | Variants |
 |-------|----------|
@@ -318,7 +318,7 @@ TCSS files can be watched for changes at runtime using the `notify`-based file w
 Split areas using constraints:
 
 ```rust
-use saorsa_core::{Constraint, Direction, Dock, Layout, Rect};
+use saorsa_tui::{Constraint, Direction, Dock, Layout, Rect};
 
 let terminal = Rect::new(0, 0, 120, 40);
 
@@ -351,10 +351,10 @@ let (content, status_bar) = Layout::dock(terminal, Dock::Bottom, 1);
 
 ### Taffy-Powered Flexbox & Grid
 
-For complex layouts, saorsa-core integrates with [Taffy](https://github.com/DioxusLabs/taffy) (from the Servo/Dioxus project) for full CSS Flexbox and Grid support:
+For complex layouts, saorsa-tui integrates with [Taffy](https://github.com/DioxusLabs/taffy) (from the Servo/Dioxus project) for full CSS Flexbox and Grid support:
 
 ```rust
-use saorsa_core::{LayoutEngine, LayoutRect};
+use saorsa_tui::{LayoutEngine, LayoutRect};
 
 let mut engine = LayoutEngine::new();
 
@@ -375,7 +375,7 @@ TCSS properties are automatically converted to Taffy styles via `computed_to_taf
 ### Scroll Management
 
 ```rust
-use saorsa_core::{ScrollManager, ScrollState, OverflowBehavior};
+use saorsa_tui::{ScrollManager, ScrollState, OverflowBehavior};
 
 let mut scroll_mgr = ScrollManager::new();
 let widget_id = 42;
@@ -393,14 +393,14 @@ scroll_mgr.scroll_to(widget_id, 0, 100);
 
 ## Reactive System
 
-saorsa-core provides a fine-grained reactive system inspired by SolidJS. Changes to signals automatically propagate to computed values, effects, and bound widgets.
+saorsa-tui provides a fine-grained reactive system inspired by SolidJS. Changes to signals automatically propagate to computed values, effects, and bound widgets.
 
 ### Signals
 
 A `Signal<T>` holds a mutable value. Reading it inside a tracking context records a dependency; setting it notifies all subscribers:
 
 ```rust
-use saorsa_core::Signal;
+use saorsa_tui::Signal;
 
 let count = Signal::new(0);
 assert_eq!(count.get(), 0);
@@ -418,7 +418,7 @@ assert_eq!(count.get(), 6);
 A `Computed<T>` derives its value from one or more signals. It re-evaluates only when dependencies change:
 
 ```rust
-use saorsa_core::{Signal, Computed};
+use saorsa_tui::{Signal, Computed};
 
 let width = Signal::new(80);
 let height = Signal::new(24);
@@ -435,7 +435,7 @@ assert_eq!(area.get(), 2880); // Automatically recomputed
 An `Effect` runs a side-effect function whenever its dependencies change:
 
 ```rust
-use saorsa_core::{Signal, Effect};
+use saorsa_tui::{Signal, Effect};
 
 let theme = Signal::new("dark".to_string());
 
@@ -451,7 +451,7 @@ let _effect = Effect::new(move || {
 Bind signals to widget properties:
 
 ```rust
-use saorsa_core::{Signal, OneWayBinding, TwoWayBinding};
+use saorsa_tui::{Signal, OneWayBinding, TwoWayBinding};
 
 let source = Signal::new(42);
 let target = Signal::new(0);
@@ -468,7 +468,7 @@ let _binding = TwoWayBinding::new(source, target);
 Coalesce multiple signal changes into a single notification pass:
 
 ```rust
-use saorsa_core::{Signal, batch};
+use saorsa_tui::{Signal, batch};
 
 let x = Signal::new(0);
 let y = Signal::new(0);
@@ -485,7 +485,7 @@ batch(|| {
 A `ReactiveScope` manages the lifetime of effects and subscriptions. When the scope is dropped, all its effects are cleaned up:
 
 ```rust
-use saorsa_core::ReactiveScope;
+use saorsa_tui::ReactiveScope;
 
 let scope = ReactiveScope::new();
 // Effects created within this scope are cleaned up when `scope` is dropped
@@ -500,7 +500,7 @@ The compositor manages overlapping widget layers and produces the final screen b
 Each widget renders into a `Layer` with a position, z-index, and content:
 
 ```rust
-use saorsa_core::{Compositor, Layer, Rect, ScreenBuffer, Size};
+use saorsa_tui::{Compositor, Layer, Rect, ScreenBuffer, Size};
 
 let mut compositor = Compositor::new(80, 24);
 
@@ -537,7 +537,7 @@ compositor.compose(&mut buf);
 The `ScreenStack` manages modal overlays, tooltips, and toasts:
 
 ```rust
-use saorsa_core::{ScreenStack, OverlayConfig, Placement};
+use saorsa_tui::{ScreenStack, OverlayConfig, Placement};
 
 let mut stack = ScreenStack::new();
 
@@ -573,10 +573,10 @@ pub trait Terminal: Send {
 
 ### Capability Detection
 
-saorsa-core automatically detects the terminal emulator and its capabilities:
+saorsa-tui automatically detects the terminal emulator and its capabilities:
 
 ```rust
-use saorsa_core::{detect, detect_terminal, TerminalKind, ColorSupport};
+use saorsa_tui::{detect, detect_terminal, TerminalKind, ColorSupport};
 
 let info = detect();
 println!("Terminal: {:?}", info.kind);
@@ -608,7 +608,7 @@ println!("Synchronized output: {}", info.capabilities.synchronized_output);
 For testing, use `TestBackend` which stores output in memory:
 
 ```rust
-use saorsa_core::TestBackend;
+use saorsa_tui::TestBackend;
 
 let backend = TestBackend::new(80, 24);
 // Use for snapshot testing and unit tests without a real terminal
@@ -621,7 +621,7 @@ let backend = TestBackend::new(80, 24);
 `ScreenBuffer` maintains a grid of `Cell` values. The renderer diffs the current buffer against the previous frame and only emits escape sequences for changed cells:
 
 ```rust
-use saorsa_core::{ScreenBuffer, Size, CellChange, batch_changes, Renderer};
+use saorsa_tui::{ScreenBuffer, Size, CellChange, batch_changes, Renderer};
 
 let prev = ScreenBuffer::new(Size::new(80, 24));
 let curr = ScreenBuffer::new(Size::new(80, 24));
@@ -655,7 +655,7 @@ The renderer minimizes escape sequence output:
 The fundamental rendering unit. A `Segment` is a piece of styled text:
 
 ```rust
-use saorsa_core::{Segment, Style, Color};
+use saorsa_tui::{Segment, Style, Color};
 
 // Plain text
 let seg = Segment::new("Hello");
@@ -676,7 +676,7 @@ let ctrl = Segment::control("\x1b[?25l"); // hide cursor
 A single terminal cell. Stores one grapheme cluster, its style, and its display width:
 
 ```rust
-use saorsa_core::Cell;
+use saorsa_tui::Cell;
 
 let cell = Cell::new("A", Style::default());
 assert_eq!(cell.width, 1);
@@ -690,7 +690,7 @@ assert_eq!(wide.width, 2); // CJK character takes 2 columns
 Builder-pattern text attributes:
 
 ```rust
-use saorsa_core::{Style, Color};
+use saorsa_tui::{Style, Color};
 
 let style = Style::new()
     .fg(Color::Rgb { r: 200, g: 200, b: 200 })
@@ -705,8 +705,8 @@ let style = Style::new()
 Four color modes with automatic downgrading based on terminal capabilities:
 
 ```rust
-use saorsa_core::Color;
-use saorsa_core::color::NamedColor;
+use saorsa_tui::Color;
+use saorsa_tui::color::NamedColor;
 
 let rgb = Color::Rgb { r: 255, g: 0, b: 128 };  // True color
 let indexed = Color::Indexed(196);                 // 256-color palette
@@ -720,7 +720,7 @@ let short_hex = Color::from_hex("#f0c").unwrap();
 
 ## Unicode Support
 
-saorsa-core handles the full range of Unicode correctly:
+saorsa-tui handles the full range of Unicode correctly:
 
 - **Grapheme clusters** - Characters with combining marks are kept together (via `unicode-segmentation`)
 - **Wide characters** - CJK ideographs and some emoji occupy 2 terminal columns; continuation cells are tracked automatically
@@ -739,7 +739,7 @@ The `ScreenBuffer::set()` method automatically handles wide character edge cases
 Widget rendering is verified with `insta` snapshot tests:
 
 ```rust
-use saorsa_core::{Label, Rect, ScreenBuffer, Size, Widget, TestBackend};
+use saorsa_tui::{Label, Rect, ScreenBuffer, Size, Widget, TestBackend};
 
 #[test]
 fn label_renders_correctly() {
@@ -778,7 +778,7 @@ Tests live in `tests/proptest_layout.rs` and `tests/proptest_css.rs`.
 Performance-critical paths are benchmarked with `criterion`:
 
 ```bash
-cargo bench -p saorsa-core
+cargo bench -p saorsa-tui
 ```
 
 Benchmarks cover:

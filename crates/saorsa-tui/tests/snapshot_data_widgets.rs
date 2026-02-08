@@ -3,11 +3,11 @@
 #[path = "snapshot_helpers.rs"]
 mod snapshot_helpers;
 
-use saorsa_core::buffer::ScreenBuffer;
-use saorsa_core::geometry::{Rect, Size};
-use saorsa_core::segment::Segment;
-use saorsa_core::style::Style;
-use saorsa_core::widget::{
+use saorsa_tui::buffer::ScreenBuffer;
+use saorsa_tui::geometry::{Rect, Size};
+use saorsa_tui::segment::Segment;
+use saorsa_tui::style::Style;
+use saorsa_tui::widget::{
     Column, DataTable, DiffView, RichLog, SelectList, Tree, TreeNode, Widget,
 };
 
@@ -163,8 +163,8 @@ fn snapshot_tree_expanded() {
 
 #[test]
 fn snapshot_tree_nested() {
-    use saorsa_core::event::{Event, KeyCode, KeyEvent, Modifiers};
-    use saorsa_core::widget::InteractiveWidget;
+    use saorsa_tui::event::{Event, KeyCode, KeyEvent, Modifiers};
+    use saorsa_tui::widget::InteractiveWidget;
 
     let tree_node = TreeNode::branch("root".to_string()).with_child(
         TreeNode::branch("branch".to_string())

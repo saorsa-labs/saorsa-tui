@@ -19,9 +19,9 @@ use crate::compositor::layer::Layer;
 /// # Example
 ///
 /// ```
-/// use saorsa_core::compositor::layer::Layer;
-/// use saorsa_core::compositor::cuts::find_cuts;
-/// use saorsa_core::geometry::Rect;
+/// use saorsa_tui::compositor::layer::Layer;
+/// use saorsa_tui::compositor::cuts::find_cuts;
+/// use saorsa_tui::geometry::Rect;
 ///
 /// let layers = vec![
 ///     Layer::new(1, Rect::new(10, 0, 20, 5), 0, vec![]),

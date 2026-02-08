@@ -3,7 +3,7 @@
 #![allow(missing_docs)]
 
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use saorsa_core::tcss::parser::parse_stylesheet;
+use saorsa_tui::tcss::parser::parse_stylesheet;
 
 /// Benchmark parsing a simple CSS stylesheet (3-5 rules).
 fn benchmark_parse_simple_stylesheet(c: &mut Criterion) {

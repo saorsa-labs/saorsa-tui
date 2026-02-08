@@ -3,12 +3,12 @@
 #![allow(missing_docs)]
 
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use saorsa_core::buffer::ScreenBuffer;
-use saorsa_core::cell::Cell;
-use saorsa_core::color::{Color, NamedColor};
-use saorsa_core::geometry::Size;
-use saorsa_core::segment::Segment;
-use saorsa_core::style::Style;
+use saorsa_tui::buffer::ScreenBuffer;
+use saorsa_tui::cell::Cell;
+use saorsa_tui::color::{Color, NamedColor};
+use saorsa_tui::geometry::Size;
+use saorsa_tui::segment::Segment;
+use saorsa_tui::style::Style;
 
 /// Benchmark ScreenBuffer creation and diff for 80x24 grid.
 fn benchmark_buffer_diff_80x24(c: &mut Criterion) {

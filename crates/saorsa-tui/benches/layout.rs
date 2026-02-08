@@ -3,7 +3,7 @@
 #![allow(missing_docs)]
 
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use saorsa_core::layout::engine::LayoutEngine;
+use saorsa_tui::layout::engine::LayoutEngine;
 use taffy::prelude::*;
 
 /// Benchmark Taffy layout computation for 10-node flexbox tree.

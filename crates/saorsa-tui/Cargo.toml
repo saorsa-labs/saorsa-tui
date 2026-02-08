@@ -1,5 +1,5 @@
 [package]
-name = "saorsa-core"
+name = "saorsa-tui"
 description = "Retained-mode, CSS-styled terminal UI framework"
 version.workspace = true
 edition.workspace = true

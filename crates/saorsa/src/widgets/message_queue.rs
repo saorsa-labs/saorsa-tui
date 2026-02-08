@@ -1,12 +1,12 @@
 //! Message queue widget for batching messages.
 
-use saorsa_core::buffer::ScreenBuffer;
-use saorsa_core::cell::Cell;
-use saorsa_core::color::NamedColor;
-use saorsa_core::event::{Event, KeyCode, KeyEvent, Modifiers};
-use saorsa_core::geometry::Rect;
-use saorsa_core::style::Style;
-use saorsa_core::widget::{EventResult, InteractiveWidget, Widget};
+use saorsa_tui::buffer::ScreenBuffer;
+use saorsa_tui::cell::Cell;
+use saorsa_tui::color::NamedColor;
+use saorsa_tui::event::{Event, KeyCode, KeyEvent, Modifiers};
+use saorsa_tui::geometry::Rect;
+use saorsa_tui::style::Style;
+use saorsa_tui::widget::{EventResult, InteractiveWidget, Widget};
 
 /// A queued message.
 #[derive(Clone, Debug)]
@@ -186,7 +186,7 @@ impl Widget for MessageQueue {
                 area.position.x + 2,
                 help_y,
                 "[Enter] Send All  [D] Delete  [X] Clear  [Q] Close",
-                Style::default().fg(saorsa_core::color::Color::Named(NamedColor::Cyan)),
+                Style::default().fg(saorsa_tui::color::Color::Named(NamedColor::Cyan)),
             );
         }
     }

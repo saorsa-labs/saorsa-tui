@@ -3,7 +3,7 @@
 //! This test suite validates terminal detection, capability profiles, multiplexer
 //! wrapping, and NO_COLOR support across various terminal emulators.
 
-use saorsa_core::terminal::{
+use saorsa_tui::terminal::{
     ColorSupport, MockQuerier, MultiplexerKind, TerminalKind, detect_capabilities,
     merge_multiplexer_limits, multiplexer::wrap_sequence, profile_for,
 };
@@ -185,11 +185,11 @@ fn test_nested_multiplexer_scenarios() {
 /// Test NO_COLOR environment variable respect.
 #[test]
 fn test_no_color_environment_variable() {
-    use saorsa_core::buffer::CellChange;
-    use saorsa_core::cell::Cell;
-    use saorsa_core::color::Color;
-    use saorsa_core::renderer::Renderer;
-    use saorsa_core::style::Style;
+    use saorsa_tui::buffer::CellChange;
+    use saorsa_tui::cell::Cell;
+    use saorsa_tui::color::Color;
+    use saorsa_tui::renderer::Renderer;
+    use saorsa_tui::style::Style;
 
     let style = Style::default().fg(Color::Rgb { r: 255, g: 0, b: 0 }); // Red
     let changes = vec![CellChange {

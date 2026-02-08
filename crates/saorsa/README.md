@@ -196,7 +196,7 @@ CLI Parsing → Mode Selection
 ```
 
 **Crate dependencies:**
-- `saorsa-core` - TUI framework (widgets, layout, rendering)
+- `saorsa-tui` - TUI framework (widgets, layout, rendering)
 - `saorsa-ai` - LLM provider abstraction
 - `saorsa-agent` - Agent loop, tools, sessions, context
 

@@ -8,7 +8,7 @@ Saorsa TUI is a retained-mode, CSS-styled terminal UI framework in Rust, with a 
 
 | Crate | Type | Purpose |
 |-------|------|---------|
-| `saorsa-core` | lib | TUI framework: rendering, layout, CSS, widgets, compositor |
+| `saorsa-tui` | lib | TUI framework: rendering, layout, CSS, widgets, compositor |
 | `saorsa-ai` | lib | Unified multi-provider LLM API (Anthropic, OpenAI, etc.) |
 | `saorsa-agent` | lib | Agent runtime: tool execution, sessions, context engineering |
 | `saorsa` | bin+lib | The AI coding agent application |
@@ -17,7 +17,7 @@ Saorsa TUI is a retained-mode, CSS-styled terminal UI framework in Rust, with a 
 ### Dependency Graph
 
 ```
-saorsa-cli -> saorsa -> saorsa-core
+saorsa-cli -> saorsa -> saorsa-tui
                       -> saorsa-ai
                       -> saorsa-agent -> saorsa-ai
 ```
@@ -40,7 +40,7 @@ cargo doc --workspace --no-deps                       # Build docs
 - **No `panic!()`, `todo!()`, `unimplemented!()`** anywhere
 - **Doc comments** on all public items
 - **`thiserror`** for library error types, **`anyhow`** in application binaries
-- Error type per crate: `SaorsaCoreError`, `SaorsaAiError`, `SaorsaAgentError`
+- Error type per crate: `SaorsaTuiError`, `SaorsaAiError`, `SaorsaAgentError`
 
 ## Architecture
 
@@ -52,7 +52,7 @@ cargo doc --workspace --no-deps                       # Build docs
 - **Cells**: `Cell` represents a single terminal cell with grapheme + style + width
 - **Screen buffer**: Double-buffered with differential rendering
 
-## Key Types (saorsa-core)
+## Key Types (saorsa-tui)
 
 - `Segment` - Styled text piece (text + style + control flag)
 - `Cell` - Single terminal cell (grapheme + style + width)

@@ -1,12 +1,12 @@
 //! Settings screen widget with tabs for configuration.
 
-use saorsa_core::buffer::ScreenBuffer;
-use saorsa_core::cell::Cell;
-use saorsa_core::color::{Color, NamedColor};
-use saorsa_core::event::{Event, KeyCode, KeyEvent, Modifiers};
-use saorsa_core::geometry::Rect;
-use saorsa_core::style::Style;
-use saorsa_core::widget::{Checkbox, EventResult, InteractiveWidget, Tab, Tabs, TextArea, Widget};
+use saorsa_tui::buffer::ScreenBuffer;
+use saorsa_tui::cell::Cell;
+use saorsa_tui::color::{Color, NamedColor};
+use saorsa_tui::event::{Event, KeyCode, KeyEvent, Modifiers};
+use saorsa_tui::geometry::Rect;
+use saorsa_tui::style::Style;
+use saorsa_tui::widget::{Checkbox, EventResult, InteractiveWidget, Tab, Tabs, TextArea, Widget};
 use std::collections::HashMap;
 
 /// Tab identifier for settings.

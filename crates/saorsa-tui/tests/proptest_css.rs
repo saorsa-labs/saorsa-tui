@@ -5,12 +5,12 @@
 
 use cssparser::{Parser, ParserInput};
 use proptest::prelude::*;
-use saorsa_core::color::{Color, NamedColor};
-use saorsa_core::tcss::parser::{parse_color, parse_keyword, parse_length, parse_property_value};
-use saorsa_core::tcss::property::PropertyName;
-use saorsa_core::tcss::selector::SelectorList;
-use saorsa_core::tcss::value::{CssValue, Length};
-use saorsa_core::tcss::variable::{VariableEnvironment, VariableMap};
+use saorsa_tui::color::{Color, NamedColor};
+use saorsa_tui::tcss::parser::{parse_color, parse_keyword, parse_length, parse_property_value};
+use saorsa_tui::tcss::property::PropertyName;
+use saorsa_tui::tcss::selector::SelectorList;
+use saorsa_tui::tcss::value::{CssValue, Length};
+use saorsa_tui::tcss::variable::{VariableEnvironment, VariableMap};
 
 // ==============================================================================
 // Property Test 1: Random hex color strings don't panic the parser

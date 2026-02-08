@@ -1,9 +1,9 @@
 //! Basic snapshot tests for widget rendering.
 
-use saorsa_core::buffer::ScreenBuffer;
-use saorsa_core::geometry::{Rect, Size};
-use saorsa_core::segment::Segment;
-use saorsa_core::widget::{Container, Label, StaticWidget, Widget};
+use saorsa_tui::buffer::ScreenBuffer;
+use saorsa_tui::geometry::{Rect, Size};
+use saorsa_tui::segment::Segment;
+use saorsa_tui::widget::{Container, Label, StaticWidget, Widget};
 
 /// Render a widget to a text grid for snapshot testing.
 fn render_widget_to_text(widget: &dyn Widget, width: u16, height: u16) -> String {

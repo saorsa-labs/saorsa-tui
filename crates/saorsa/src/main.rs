@@ -14,8 +14,8 @@ use saorsa_agent::{
     find_last_active_session, find_session_by_prefix, restore_session,
 };
 use saorsa_ai::{ProviderConfig, ProviderKind, ProviderRegistry, determine_provider};
-use saorsa_core::render_context::RenderContext;
-use saorsa_core::terminal::{CrosstermBackend, Terminal};
+use saorsa_tui::render_context::RenderContext;
+use saorsa_tui::terminal::{CrosstermBackend, Terminal};
 
 use saorsa::app::{AppState, AppStatus, OverlayMode};
 use saorsa::cli::Cli;
@@ -383,7 +383,7 @@ async fn run_interactive(
                     break;
                 };
 
-                let event = saorsa_core::event::Event::from(ct_event);
+                let event = saorsa_tui::event::Event::from(ct_event);
                 let action = handle_event(&mut state, &event);
 
                 match action {

@@ -22,10 +22,10 @@ use crate::segment::Segment;
 /// # Example
 ///
 /// ```
-/// use saorsa_core::compositor::layer::Layer;
-/// use saorsa_core::compositor::compose::compose_line;
-/// use saorsa_core::geometry::Rect;
-/// use saorsa_core::segment::Segment;
+/// use saorsa_tui::compositor::layer::Layer;
+/// use saorsa_tui::compositor::compose::compose_line;
+/// use saorsa_tui::geometry::Rect;
+/// use saorsa_tui::segment::Segment;
 ///
 /// let layer1 = Layer::new(1, Rect::new(0, 0, 40, 10), 0, vec![
 ///     vec![Segment::new("Hello")],

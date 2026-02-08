@@ -1,12 +1,12 @@
 //! UI rendering for the chat interface.
 
-use saorsa_core::geometry::Rect;
-use saorsa_core::layout::{Constraint, Direction, Layout};
-use saorsa_core::style::Style;
-use saorsa_core::widget::Widget;
-use saorsa_core::widget::container::{BorderStyle, Container};
-use saorsa_core::widget::label::{Alignment, Label};
-use saorsa_core::{Color, ScreenBuffer};
+use saorsa_tui::geometry::Rect;
+use saorsa_tui::layout::{Constraint, Direction, Layout};
+use saorsa_tui::style::Style;
+use saorsa_tui::widget::Widget;
+use saorsa_tui::widget::container::{BorderStyle, Container};
+use saorsa_tui::widget::label::{Alignment, Label};
+use saorsa_tui::{Color, ScreenBuffer};
 
 use crate::app::{AppState, AppStatus, ChatRole};
 
@@ -37,8 +37,8 @@ fn render_header(state: &AppState, buf: &mut ScreenBuffer, area: Rect) {
     let header_text = format!(" saorsa | {} | {}", state.model, status_text);
 
     let style = Style::default()
-        .fg(Color::Named(saorsa_core::color::NamedColor::Black))
-        .bg(Color::Named(saorsa_core::color::NamedColor::White))
+        .fg(Color::Named(saorsa_tui::color::NamedColor::Black))
+        .bg(Color::Named(saorsa_tui::color::NamedColor::White))
         .bold(true);
 
     let label = Label::new(&header_text)
@@ -75,17 +75,17 @@ fn render_messages(state: &AppState, buf: &mut ScreenBuffer, area: Rect) {
             ChatRole::User => (
                 "> ",
                 Style::default()
-                    .fg(Color::Named(saorsa_core::color::NamedColor::Green))
+                    .fg(Color::Named(saorsa_tui::color::NamedColor::Green))
                     .bold(true),
             ),
             ChatRole::Assistant => (
                 "  ",
-                Style::default().fg(Color::Named(saorsa_core::color::NamedColor::Cyan)),
+                Style::default().fg(Color::Named(saorsa_tui::color::NamedColor::Cyan)),
             ),
             ChatRole::Tool { name } => {
                 let prefix_str = format!("  [{name}] ");
                 let style = Style::default()
-                    .fg(Color::Named(saorsa_core::color::NamedColor::Yellow))
+                    .fg(Color::Named(saorsa_tui::color::NamedColor::Yellow))
                     .dim(true);
                 // Render tool prefix inline.
                 let label = Label::new(format!("{prefix_str}{}", msg.content)).style(style);
@@ -95,7 +95,7 @@ fn render_messages(state: &AppState, buf: &mut ScreenBuffer, area: Rect) {
             ChatRole::System => (
                 "  ",
                 Style::default()
-                    .fg(Color::Named(saorsa_core::color::NamedColor::Magenta))
+                    .fg(Color::Named(saorsa_tui::color::NamedColor::Magenta))
                     .italic(true),
             ),
         };
@@ -110,7 +110,7 @@ fn render_messages(state: &AppState, buf: &mut ScreenBuffer, area: Rect) {
         let y = area.position.y + visible_messages.len() as u16;
         if y < area.position.y + area.size.height {
             let row_area = Rect::new(area.position.x, y, area.size.width, 1);
-            let style = Style::default().fg(Color::Named(saorsa_core::color::NamedColor::Cyan));
+            let style = Style::default().fg(Color::Named(saorsa_tui::color::NamedColor::Cyan));
             let text = format!("  {}", state.streaming_text);
             let label = Label::new(&text).style(style);
             label.render(row_area, buf);
@@ -121,7 +121,7 @@ fn render_messages(state: &AppState, buf: &mut ScreenBuffer, area: Rect) {
     if state.is_scrolled_up() {
         let indicator = format!(" [{scroll_offset} more] ");
         let indicator_style = Style::default()
-            .fg(Color::Named(saorsa_core::color::NamedColor::Yellow))
+            .fg(Color::Named(saorsa_tui::color::NamedColor::Yellow))
             .bold(true);
         // Render at bottom-right of the message area.
         let indicator_len = indicator.len().min(area.size.width as usize);
@@ -155,7 +155,7 @@ fn render_input(state: &AppState, buf: &mut ScreenBuffer, area: Rect) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use saorsa_core::geometry::Size;
+    use saorsa_tui::geometry::Size;
 
     #[test]
     fn render_empty_state() {

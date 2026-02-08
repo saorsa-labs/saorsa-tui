@@ -3,12 +3,12 @@
 //! Tests theme registration, retrieval, switching, variable resolution,
 //! and integration with the CSS variable system.
 
-use saorsa_core::Color;
-use saorsa_core::tcss::theme::{
+use saorsa_tui::Color;
+use saorsa_tui::tcss::theme::{
     Theme, ThemeManager, builtin_dark, builtin_light, register_all_themes,
 };
-use saorsa_core::tcss::value::CssValue;
-use saorsa_core::tcss::variable::VariableMap;
+use saorsa_tui::tcss::value::CssValue;
+use saorsa_tui::tcss::variable::VariableMap;
 
 /// Test: Register and retrieve all built-in themes.
 #[test]

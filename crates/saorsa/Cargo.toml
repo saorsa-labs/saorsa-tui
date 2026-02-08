@@ -12,7 +12,7 @@ categories = ["command-line-interface", "development-tools"]
 
 [dependencies]
 anyhow = { workspace = true }
-saorsa-core = { workspace = true }
+saorsa-tui = { workspace = true }
 saorsa-ai = { workspace = true }
 saorsa-agent = { workspace = true }
 tokio = { workspace = true }

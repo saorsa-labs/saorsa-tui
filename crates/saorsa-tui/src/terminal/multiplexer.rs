@@ -78,7 +78,7 @@ pub fn wrapper_for(kind: MultiplexerKind) -> Box<dyn EscapeWrapper> {
 /// # Examples
 ///
 /// ```
-/// use saorsa_core::terminal::{MultiplexerKind, multiplexer::wrap_sequence};
+/// use saorsa_tui::terminal::{MultiplexerKind, multiplexer::wrap_sequence};
 ///
 /// let seq = "\x1b[?2026h";
 /// let wrapped = wrap_sequence(seq, MultiplexerKind::Tmux);

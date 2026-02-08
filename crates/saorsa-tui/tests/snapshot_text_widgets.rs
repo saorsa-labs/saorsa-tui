@@ -3,9 +3,9 @@
 #[path = "snapshot_helpers.rs"]
 mod snapshot_helpers;
 
-use saorsa_core::buffer::ScreenBuffer;
-use saorsa_core::geometry::{Rect, Size};
-use saorsa_core::widget::{MarkdownRenderer, TextArea, Widget};
+use saorsa_tui::buffer::ScreenBuffer;
+use saorsa_tui::geometry::{Rect, Size};
+use saorsa_tui::widget::{MarkdownRenderer, TextArea, Widget};
 use snapshot_helpers::render_to_text;
 
 /// Render a widget to a text grid for snapshot testing.

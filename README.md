@@ -3,7 +3,7 @@
 A retained-mode, CSS-styled terminal UI framework in Rust, with a full AI coding agent as the showcase application.
 
 [![CI](https://github.com/saorsa-labs/saorsa-tui/actions/workflows/ci.yml/badge.svg)](https://github.com/saorsa-labs/saorsa-tui/actions/workflows/ci.yml)
-[![License](https://img.shields.io/crates/l/saorsa-core.svg)](LICENSE)
+[![License](https://img.shields.io/crates/l/saorsa-tui.svg)](LICENSE)
 [![MSRV](https://img.shields.io/badge/MSRV-1.88-blue.svg)](#minimum-supported-rust-version)
 
 ## Overview
@@ -15,14 +15,14 @@ The framework brings web-like development patterns to the terminal: retained-mod
 ## Workspace Crates
 
 ```
-saorsa-cli ──→ saorsa ──→ saorsa-core
+saorsa-cli ──→ saorsa ──→ saorsa-tui
                         ├→ saorsa-ai
                         └→ saorsa-agent ──→ saorsa-ai
 ```
 
 | Crate | Type | Description |
 |-------|------|-------------|
-| [**saorsa-core**](crates/saorsa-core/) | lib | TUI framework: 24+ widgets, TCSS styling, Taffy layout, reactive signals, compositor |
+| [**saorsa-tui**](crates/saorsa-tui/) | lib | TUI framework: 24+ widgets, TCSS styling, Taffy layout, reactive signals, compositor |
 | [**saorsa-ai**](crates/saorsa-ai/) | lib | Unified multi-provider LLM API (Anthropic, OpenAI, Gemini, Ollama, + OpenAI-compatible) |
 | [**saorsa-agent**](crates/saorsa-agent/) | lib | Agent runtime: tool execution, sessions, context engineering, extensions |
 | [**saorsa**](crates/saorsa/) | bin+lib | AI coding agent application with TUI and print modes |
@@ -51,14 +51,14 @@ Add individual crates to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-saorsa-core = "0.1"   # TUI framework
+saorsa-tui = "0.1"   # TUI framework
 saorsa-ai = "0.1"     # LLM providers
 saorsa-agent = "0.1"  # Agent runtime
 ```
 
 ## Framework Highlights
 
-### saorsa-core - TUI Framework
+### saorsa-tui - TUI Framework
 
 - **Retained-mode widgets** - 24+ widgets including DataTable, Tree, TextArea, MarkdownRenderer, DiffView, Modal, Tabs, Sparkline
 - **TCSS (Terminal CSS)** - CSS-like styling with selectors, variables, themes (Catppuccin, Dracula, Nord, Solarized), and live hot-reload
@@ -93,7 +93,7 @@ saorsa-agent = "0.1"  # Agent runtime
            │              │              │
            ▼              ▼              ▼
 ┌──────────────┐ ┌──────────────┐ ┌──────────────────────────┐
-│  saorsa-core │ │  saorsa-ai   │ │     saorsa-agent         │
+│  saorsa-tui │ │  saorsa-ai   │ │     saorsa-agent         │
 │              │ │              │ │                            │
 │  Widgets     │ │  Providers   │ │  Agent loop               │
 │  TCSS Engine │ │  Streaming   │ │  Tools (bash/read/write/  │
@@ -134,7 +134,7 @@ cargo doc --workspace --no-deps
 ### Benchmarks
 
 ```bash
-cargo bench -p saorsa-core
+cargo bench -p saorsa-tui
 ```
 
 Benchmarks cover rendering performance, layout computation, and CSS parsing.

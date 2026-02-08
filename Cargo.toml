@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/saorsa-core",
+    "crates/saorsa-tui",
     "crates/saorsa-ai",
     "crates/saorsa-agent",
     "crates/saorsa",
@@ -81,7 +81,7 @@ uuid = { version = "1.11", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 
 # Internal crates
-saorsa-core = { version = "0.3.0", path = "crates/saorsa-core" }
+saorsa-tui = { version = "0.3.0", path = "crates/saorsa-tui" }
 saorsa-ai = { version = "0.3.0", path = "crates/saorsa-ai" }
 saorsa-agent = { version = "0.3.0", path = "crates/saorsa-agent" }
 saorsa = { version = "0.5.0", path = "crates/saorsa" }

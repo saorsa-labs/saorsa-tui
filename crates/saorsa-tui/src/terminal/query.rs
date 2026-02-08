@@ -223,7 +223,7 @@ impl TerminalQuerier for MockQuerier {
 /// # Examples
 ///
 /// ```
-/// use saorsa_core::terminal::{TerminalKind, MultiplexerKind, MockQuerier, detect_capabilities, ColorSupport};
+/// use saorsa_tui::terminal::{TerminalKind, MultiplexerKind, MockQuerier, detect_capabilities, ColorSupport};
 ///
 /// let mut querier = MockQuerier::new()
 ///     .with_color_support(ColorSupport::TrueColor)

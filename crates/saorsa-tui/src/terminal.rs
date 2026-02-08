@@ -42,7 +42,7 @@
 //! # Usage Pattern
 //!
 //! ```
-//! use saorsa_core::terminal::{detect, detect_capabilities, MockQuerier};
+//! use saorsa_tui::terminal::{detect, detect_capabilities, MockQuerier};
 //!
 //! // Detect terminal and multiplexer
 //! let info = detect();
@@ -67,7 +67,7 @@
 //! - **Zellij**: Transparent (no wrapping needed)
 //!
 //! ```
-//! use saorsa_core::terminal::{MultiplexerKind, multiplexer::wrap_sequence};
+//! use saorsa_tui::terminal::{MultiplexerKind, multiplexer::wrap_sequence};
 //!
 //! let seq = "\x1b[?2026h"; // Synchronized output begin
 //! let wrapped = wrap_sequence(seq, MultiplexerKind::Tmux);
@@ -89,7 +89,7 @@
 //! The [`MockQuerier`] and [`TestBackend`] support testing without a real TTY:
 //!
 //! ```
-//! use saorsa_core::terminal::{ColorSupport, MockQuerier, TerminalKind, MultiplexerKind, detect_capabilities};
+//! use saorsa_tui::terminal::{ColorSupport, MockQuerier, TerminalKind, MultiplexerKind, detect_capabilities};
 //!
 //! let mut querier = MockQuerier::new()
 //!     .with_color_support(ColorSupport::TrueColor)

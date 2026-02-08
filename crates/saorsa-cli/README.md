@@ -35,7 +35,7 @@ See the [saorsa README](../saorsa/README.md) for complete usage documentation in
 ```
 saorsa-cli (thin binary)
     └→ saorsa (application logic + TUI)
-         ├→ saorsa-core (TUI framework)
+         ├→ saorsa-tui (TUI framework)
          ├→ saorsa-ai (LLM providers)
          └→ saorsa-agent (agent runtime + tools)
 ```

@@ -4,13 +4,13 @@ use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use saorsa_ai::models::{ModelInfo, lookup_model};
 use saorsa_ai::provider::ProviderKind;
-use saorsa_core::buffer::ScreenBuffer;
-use saorsa_core::color::Color;
-use saorsa_core::event::{Event, KeyCode, KeyEvent, Modifiers};
-use saorsa_core::geometry::Rect;
-use saorsa_core::segment::Segment;
-use saorsa_core::style::Style;
-use saorsa_core::widget::{BorderStyle, EventResult, InteractiveWidget, SelectList, Widget};
+use saorsa_tui::buffer::ScreenBuffer;
+use saorsa_tui::color::Color;
+use saorsa_tui::event::{Event, KeyCode, KeyEvent, Modifiers};
+use saorsa_tui::geometry::Rect;
+use saorsa_tui::segment::Segment;
+use saorsa_tui::style::Style;
+use saorsa_tui::widget::{BorderStyle, EventResult, InteractiveWidget, SelectList, Widget};
 use std::collections::HashSet;
 
 /// Model entry with metadata for display.

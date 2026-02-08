@@ -1,6 +1,6 @@
 //! Input event handling for the chat application.
 
-use saorsa_core::event::{Event, KeyCode, Modifiers, MouseEventKind};
+use saorsa_tui::event::{Event, KeyCode, Modifiers, MouseEventKind};
 
 use crate::app::AppState;
 
@@ -142,7 +142,7 @@ fn handle_key(state: &mut AppState, code: KeyCode, modifiers: Modifiers) -> Inpu
 #[cfg(test)]
 mod tests {
     use super::*;
-    use saorsa_core::event::KeyEvent;
+    use saorsa_tui::event::KeyEvent;
 
     fn key_event(code: KeyCode) -> Event {
         Event::Key(KeyEvent {
@@ -315,7 +315,7 @@ mod tests {
     #[test]
     fn mouse_scroll_up() {
         let mut state = AppState::new("test");
-        let event = Event::Mouse(saorsa_core::event::MouseEvent {
+        let event = Event::Mouse(saorsa_tui::event::MouseEvent {
             kind: MouseEventKind::ScrollUp,
             x: 0,
             y: 0,
@@ -328,7 +328,7 @@ mod tests {
     #[test]
     fn mouse_scroll_down() {
         let mut state = AppState::new("test");
-        let event = Event::Mouse(saorsa_core::event::MouseEvent {
+        let event = Event::Mouse(saorsa_tui::event::MouseEvent {
             kind: MouseEventKind::ScrollDown,
             x: 0,
             y: 0,

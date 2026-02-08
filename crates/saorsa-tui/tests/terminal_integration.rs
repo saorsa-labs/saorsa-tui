@@ -1,13 +1,13 @@
 //! Integration tests for the terminal compatibility system.
 
-use saorsa_core::buffer::{CellChange, ScreenBuffer};
-use saorsa_core::cell::Cell;
-use saorsa_core::color::{Color, NamedColor};
-use saorsa_core::geometry::Size;
-use saorsa_core::renderer::{Renderer, build_sgr_sequence};
-use saorsa_core::style::Style;
-use saorsa_core::terminal::multiplexer::wrap_sequence;
-use saorsa_core::terminal::{
+use saorsa_tui::buffer::{CellChange, ScreenBuffer};
+use saorsa_tui::cell::Cell;
+use saorsa_tui::color::{Color, NamedColor};
+use saorsa_tui::geometry::Size;
+use saorsa_tui::renderer::{Renderer, build_sgr_sequence};
+use saorsa_tui::style::Style;
+use saorsa_tui::terminal::multiplexer::wrap_sequence;
+use saorsa_tui::terminal::{
     ColorSupport, MockQuerier, MultiplexerKind, TerminalKind, detect_capabilities, profile_for,
 };
 
@@ -225,7 +225,7 @@ fn test_static_profiles_correctness() {
 /// Test multiplexer limits are applied correctly.
 #[test]
 fn test_multiplexer_limits_applied() {
-    use saorsa_core::terminal::merge_multiplexer_limits;
+    use saorsa_tui::terminal::merge_multiplexer_limits;
 
     let kitty = profile_for(TerminalKind::Kitty);
 
