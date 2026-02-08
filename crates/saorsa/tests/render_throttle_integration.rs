@@ -59,13 +59,14 @@ mod tests {
     #[test]
     fn rapid_dirty_marks_produce_limited_renders() {
         let mut state = AppState::new("test");
-        // Use 240fps (fastest) for more granular testing.
-        let mut throttle = RenderThrottle::new(240);
+        // Use 30fps so the frame interval (~33ms) is well above timer resolution
+        // on all platforms (macOS CI has ~1ms granularity for sleep).
+        let mut throttle = RenderThrottle::default_fps();
 
         let mut render_count = 0;
         let start = std::time::Instant::now();
 
-        // Simulate 100 rapid dirty marks in ~100ms.
+        // Simulate 100 rapid dirty marks with ~1ms spacing (~100ms total).
         for i in 0..100 {
             state.mark_dirty();
             if maybe_render(&mut state, &mut throttle) {
@@ -79,16 +80,15 @@ mod tests {
 
         let elapsed = start.elapsed();
 
-        // At 240fps (~4.16ms per frame), in ~100ms we should get ~24 renders max.
-        // With 1ms spacing and 4.16ms frame time, expect roughly 20-25 renders.
-        // Use generous bounds for CI flakiness.
+        // At 30fps (~33ms per frame), in ~100ms we should get ~3-4 renders.
+        // Even with imprecise sleeps, the count must stay well below 100.
         assert!(
-            render_count < 50,
-            "Expected fewer than 50 renders, got {render_count} in {elapsed:?}"
+            render_count < 20,
+            "Expected fewer than 20 renders, got {render_count} in {elapsed:?}"
         );
         assert!(
-            render_count > 5,
-            "Expected more than 5 renders, got {render_count} in {elapsed:?}"
+            render_count >= 1,
+            "Expected at least 1 render, got {render_count} in {elapsed:?}"
         );
     }
 
