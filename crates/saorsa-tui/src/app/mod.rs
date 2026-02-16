@@ -2,7 +2,7 @@
 //!
 //! This module is the start of a "Textual-equivalent" retained-mode runtime.
 //! It owns the widget tree, computes styles (TCSS), runs layout (Taffy),
-//! dispatches input events, and renders frames via [`RenderContext`].
+//! dispatches input events, and renders frames via [`crate::RenderContext`].
 
 mod dom;
 mod node_widget;
