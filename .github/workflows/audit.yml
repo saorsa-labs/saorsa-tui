@@ -9,6 +9,7 @@ on:
 permissions:
   checks: write
   contents: read
+  issues: write
 
 jobs:
   audit:
